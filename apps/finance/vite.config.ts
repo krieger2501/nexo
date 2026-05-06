@@ -1,0 +1,53 @@
+import tailwindcss from '@tailwindcss/vite';
+import { sveltekit } from '@sveltejs/kit/vite';
+import { defineConfig, mergeConfig, type PluginOption } from 'vite';
+import { SvelteKitPWA } from '@vite-pwa/sveltekit';
+import { sharedConfig } from '../../vite.shared';
+
+export default mergeConfig(
+	sharedConfig,
+	defineConfig({
+		plugins: [
+			tailwindcss() as PluginOption,
+			sveltekit() as PluginOption,
+			SvelteKitPWA({
+				registerType: 'autoUpdate',
+				includeAssets: ['favicon.png', 'apple-touch-icon.png', 'icons/*.png'],
+				manifest: {
+					id: '/',
+					name: 'Finance — Nexo',
+					short_name: 'Finance',
+					description: 'Personal finance tracker — accounts, expenses, cashflow',
+					theme_color: '#16a34a',
+					background_color: '#0a0a0a',
+					display: 'standalone',
+					orientation: 'portrait',
+					scope: '/',
+					start_url: '/',
+					icons: [
+						{ src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+						{
+							src: '/icons/icon-192x192.png',
+							sizes: '192x192',
+							type: 'image/png',
+							purpose: 'maskable'
+						},
+						{ src: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+						{
+							src: '/icons/icon-512x512.png',
+							sizes: '512x512',
+							type: 'image/png',
+							purpose: 'maskable'
+						}
+					]
+				},
+				workbox: {
+					globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
+					navigateFallbackDenylist: [/^\/api\//],
+					runtimeCaching: [{ urlPattern: /^\/api\//, handler: 'NetworkOnly' }]
+				},
+				devOptions: { enabled: true }
+			})
+		]
+	})
+);

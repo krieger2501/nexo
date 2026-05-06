@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: nexo
+      POSTGRES_USER: nexo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nexo']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build:
+      context: .
+      dockerfile: packages/db/Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  auth:
+    build:
+      context: .
+      dockerfile: apps/auth/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      BETTER_AUTH_SECRET: ${AUTH_SECRET}
+      PUBLIC_AUTH_URL: https://auth.krieger2501.de
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  finance:
+    build:
+      context: .
+      dockerfile: apps/finance/Dockerfile
+      args:
+        PUBLIC_APP_VERSION: ${PUBLIC_APP_VERSION:-dev}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      BETTER_AUTH_SECRET: ${AUTH_SECRET}
+      PUBLIC_AUTH_URL: https://auth.krieger2501.de
+    depends_on:
+      - auth
+
+  landing:
+    build:
+      context: .
+      dockerfile: apps/landing/Dockerfile
+    restart: unless-stopped
+    environment:
+      PUBLIC_FINANCE_URL: https://finance.krieger2501.de
+
+  bot:
+    build:
+      context: .
+      dockerfile: apps/bot/Dockerfile
+    restart: unless-stopped
+    ports:
+      - '3003:3003'
+    environment:
+      GH_APP_ID: ${GH_APP_ID}
+      GH_APP_PRIVATE_KEY: ${GH_APP_PRIVATE_KEY}
+      GH_WEBHOOK_SECRET: ${GH_WEBHOOK_SECRET}
+      GH_REPO_OWNER: ${GH_REPO_OWNER}
+      GH_REPO_NAME: ${GH_REPO_NAME}
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - auth
+      - finance
+      - landing
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+build/
+dist/
+.svelte-kit/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Docker volumes (if mounted locally)
+pgdata/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# Turbo
+.turbo/

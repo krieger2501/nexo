@@ -1,0 +1,14 @@
+# Local dev override — swaps production URLs for localhost equivalents
+# Docker Compose merges this automatically on top of docker-compose.yml when you run `docker compose up`
+services:
+  postgres:
+    ports:
+      - '5433:5432'
+
+  auth:
+    environment:
+      PUBLIC_AUTH_URL: http://localhost:3001
+
+  finance:
+    environment:
+      PUBLIC_AUTH_URL: http://localhost:3001

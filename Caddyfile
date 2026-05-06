@@ -1,0 +1,30 @@
+# Production
+krieger2501.de {
+	reverse_proxy landing:3000
+}
+
+auth.krieger2501.de {
+	reverse_proxy auth:3000
+}
+
+finance.krieger2501.de {
+	reverse_proxy finance:3000
+}
+
+# Preview (host-port services from docker-compose.preview.yml)
+preview.krieger2501.de {
+	reverse_proxy localhost:4000
+}
+
+auth.preview.krieger2501.de {
+	reverse_proxy localhost:4001
+}
+
+finance.preview.krieger2501.de {
+	reverse_proxy localhost:4002
+}
+
+# Bot
+bot.krieger2501.de {
+	reverse_proxy localhost:3003
+}

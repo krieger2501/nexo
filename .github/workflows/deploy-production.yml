@@ -1,0 +1,41 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        run: |
+          TAG=$(git tag --sort=-version:refname | grep '^v' | head -1)
+          echo "value=${TAG:-dev}" >> $GITHUB_OUTPUT
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /home/deploy/nexo
+            git pull origin main
+
+            export $(grep -v '^#' .env | xargs)
+            export PUBLIC_APP_VERSION=${{ steps.version.outputs.value }}
+
+            docker compose pull --ignore-pull-failures || true
+            docker compose up -d --build --remove-orphans
+
+            # Also redeploy preview with the same main code so it stays in sync
+            docker compose -f docker-compose.preview.yml \
+              --env-file .env.preview \
+              up -d --build --remove-orphans
