@@ -6,6 +6,7 @@ COPY packages/db/package.json ./packages/db/
 COPY apps/finance/package.json ./apps/finance/
 RUN corepack enable && pnpm install --frozen-lockfile
 
+COPY vite.shared.ts ./
 COPY packages/db ./packages/db
 COPY apps/finance ./apps/finance
 

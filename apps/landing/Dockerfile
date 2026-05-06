@@ -5,6 +5,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/landing/package.json ./apps/landing/
 RUN corepack enable && pnpm install --frozen-lockfile
 
+COPY vite.shared.ts ./
 COPY apps/landing ./apps/landing
 RUN pnpm --filter=@nexo/landing run build
 
