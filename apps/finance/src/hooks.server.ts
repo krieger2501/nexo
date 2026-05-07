@@ -1,11 +1,11 @@
 import { redirect, type Handle } from '@sveltejs/kit';
 import { auth } from '$lib/server/auth';
 import { initDb } from '@nexo/db';
+import { DATABASE_URL } from '$env/dynamic/private';
 
-initDb(process.env.DATABASE_URL!);
+initDb(DATABASE_URL);
 
 export const handle: Handle = async ({ event, resolve }) => {
-	// Skip session check for static assets
 	if (event.url.pathname.startsWith('/_app/')) return resolve(event);
 
 	const session = await auth.api.getSession({ headers: event.request.headers });

@@ -11,7 +11,8 @@ COPY packages/db ./packages/db
 COPY apps/finance ./apps/finance
 
 ARG PUBLIC_APP_VERSION=dev
-RUN echo "PUBLIC_APP_VERSION=$PUBLIC_APP_VERSION" > apps/finance/.env
+COPY apps/finance/.env.build ./apps/finance/.env
+RUN echo "PUBLIC_APP_VERSION=$PUBLIC_APP_VERSION" >> apps/finance/.env
 RUN pnpm --filter=@nexo/finance run build
 
 FROM node:24-alpine

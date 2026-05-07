@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { PUBLIC_AUTH_URL } from '$env/dynamic/public';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -6,6 +7,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	return {
 		error: url.searchParams.get('error'),
-		authUrl: process.env.PUBLIC_AUTH_URL ?? 'https://auth.krieger2501.de'
+		authUrl: PUBLIC_AUTH_URL
 	};
 };

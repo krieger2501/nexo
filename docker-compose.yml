@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL}
-      BETTER_AUTH_SECRET: ${AUTH_SECRET}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       PUBLIC_AUTH_URL: https://auth.krieger2501.de
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
@@ -53,7 +53,7 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL}
-      BETTER_AUTH_SECRET: ${AUTH_SECRET}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       PUBLIC_AUTH_URL: https://auth.krieger2501.de
     depends_on:
       - auth

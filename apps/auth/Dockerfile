@@ -9,6 +9,7 @@ RUN corepack enable && pnpm install --frozen-lockfile
 COPY vite.shared.ts ./
 COPY packages/db ./packages/db
 COPY apps/auth ./apps/auth
+COPY apps/auth/.env.build ./apps/auth/.env
 RUN pnpm --filter=@nexo/auth run build
 
 FROM node:24-alpine
