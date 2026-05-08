@@ -11,6 +11,10 @@ const config: KnipConfig = {
 		'src/lib/index.ts',
 		// cn() helper used exclusively by shadcn components (above ignored path)
 		'src/lib/utils.ts'
+	],
+	ignoreDependencies: [
+		// Imported via CSS @import in app.css — not visible to knip
+		'@fontsource-variable/inter'
 	]
 };
 

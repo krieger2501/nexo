@@ -4,5 +4,11 @@
 		"strict": true,
 		"resolveJsonModule": true
 	},
-	"include": ["src/**/*.ts", "src/**/*.svelte", ".svelte-kit/types/**"]
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.svelte",
+		".svelte-kit/ambient.d.ts",
+		".svelte-kit/non-ambient.d.ts",
+		".svelte-kit/types"
+	]
 }

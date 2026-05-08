@@ -23,6 +23,7 @@
 		"type:check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},
 	"dependencies": {
+		"@fontsource-variable/inter": "^5.2.8",
 		"@internationalized/date": "^3.12.1",
 		"@nexo/db": "workspace:*",
 		"better-auth": "^1.6.9",

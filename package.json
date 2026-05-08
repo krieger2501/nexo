@@ -29,7 +29,7 @@
 		"package:check": "sort-package-json --check \"{apps,packages}/*/package.json\" package.json",
 		"package:format": "sort-package-json \"{apps,packages}/*/package.json\" package.json",
 		"preview": "turbo preview",
-		"qc": "turbo package:check format:check lint knip type:check build test:unit",
+		"qc": "turbo package:check format:check lint knip type:check && turbo build test:unit",
 		"test": "turbo test:unit",
 		"test:e2e": "turbo test:e2e",
 		"type:check": "turbo type:check"
