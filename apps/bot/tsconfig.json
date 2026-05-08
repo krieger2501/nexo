@@ -1,5 +1,4 @@
 {
-	"extends": "../../tsconfig.json",
 	"compilerOptions": {
 		"target": "ES2022",
 		"module": "ESNext",
@@ -7,6 +6,10 @@
 		"outDir": "dist",
 		"rootDir": "src",
 		"strict": true,
+		"isolatedModules": true,
+		"verbatimModuleSyntax": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
 		"types": ["node"]
 	},
 	"include": ["src"]
