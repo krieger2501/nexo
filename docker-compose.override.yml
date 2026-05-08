@@ -3,12 +3,27 @@
 services:
   postgres:
     ports:
-      - '5433:5432'
+      - "5433:5432"
 
   auth:
+    ports:
+      - "3001:3000"
     environment:
       PUBLIC_AUTH_URL: http://localhost:3001
+      FINANCE_URL: http://localhost:3002
+      ORIGIN: http://localhost:3001
 
   finance:
+    ports:
+      - "3002:3000"
     environment:
       PUBLIC_AUTH_URL: http://localhost:3001
+      PUBLIC_FINANCE_URL: http://localhost:3002
+      ORIGIN: http://localhost:3002
+
+  landing:
+    build:
+      args:
+        PUBLIC_FINANCE_URL: http://localhost:3002
+    ports:
+      - "3000:3000"

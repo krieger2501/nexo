@@ -4,21 +4,32 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/db/package.json ./packages/db/
 COPY apps/finance/package.json ./apps/finance/
-RUN corepack enable && pnpm install --frozen-lockfile
+RUN corepack enable && corepack prepare pnpm@10.33.3 --activate
+RUN pnpm install --frozen-lockfile
 
 COPY vite.shared.ts ./
 COPY packages/db ./packages/db
 COPY apps/finance ./apps/finance
 
-ARG PUBLIC_APP_VERSION=dev
-COPY apps/finance/.env.build ./apps/finance/.env
-RUN echo "PUBLIC_APP_VERSION=$PUBLIC_APP_VERSION" >> apps/finance/.env
+ARG PUBLIC_APP_VERSION
+RUN ver="${PUBLIC_APP_VERSION:-$(node -p "require('./apps/finance/package.json').version")}" && \
+    echo "PUBLIC_APP_VERSION=$ver" > apps/finance/.env
 RUN pnpm --filter=@nexo/finance run build
 
 FROM node:24-alpine
 WORKDIR /app
-COPY --from=builder /app/apps/finance/build ./build
-COPY --from=builder /app/apps/finance/package.json ./
+RUN corepack enable && corepack prepare pnpm@10.33.3 --activate
+RUN addgroup -S app && adduser -S app -G app
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/db/package.json ./packages/db/
+COPY apps/finance/package.json ./apps/finance/
+RUN pnpm install --frozen-lockfile --prod
+
+COPY --from=builder --chown=app:app /app/apps/finance/build ./apps/finance/build
+
+USER app
 ENV NODE_ENV=production PORT=3000
+WORKDIR /app/apps/finance
 EXPOSE 3000
 CMD ["node", "build"]

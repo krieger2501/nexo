@@ -5,14 +5,17 @@
 	const authClient = createAuthClient();
 
 	async function signIn(provider: 'google' | 'github' | 'discord') {
-		const oauthQuery = page.url.search.slice(1); // signed OIDC params from oauthProvider
+		const params = page.url.searchParams;
+		const callbackURL = params.get('redirectTo') ?? '/';
+		// oauth_query is only forwarded for signed OIDC authorization requests
+		// (when the auth app is acting as an OAuth provider). Regular social logins
+		// must not forward query params — they aren't signed and fail verification.
+		const isOidcRequest = params.has('client_id') && params.has('sig');
 		await authClient.signIn.social({
 			provider,
-			callbackURL: page.url.href,
-			// oauth_query carries the signed OIDC state so oauthProvider can resume
-			// the authorization flow after the social provider redirects back
-			...(oauthQuery ? { oauth_query: oauthQuery } : {})
-		} as Parameters<typeof authClient.signIn.social>[0]);
+			callbackURL,
+			...(isOidcRequest && { oauth_query: page.url.search.slice(1) })
+		});
 	}
 </script>
 
@@ -32,7 +35,7 @@
 		<p class="sub">Pick a provider to sign in. Your email needs to be on the list.</p>
 
 		<div class="providers">
-			<button class="provider-btn" onclick={() => signIn('google')}>
+			<button type="button" class="provider-btn" onclick={() => signIn('google')}>
 				<svg class="provider-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 					<path
 						d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -54,7 +57,7 @@
 				Continue with Google
 			</button>
 
-			<button class="provider-btn" onclick={() => signIn('github')}>
+			<button type="button" class="provider-btn" onclick={() => signIn('github')}>
 				<svg
 					class="provider-icon"
 					viewBox="0 0 24 24"
@@ -68,7 +71,7 @@
 				Continue with GitHub
 			</button>
 
-			<button class="provider-btn" onclick={() => signIn('discord')}>
+			<button type="button" class="provider-btn" onclick={() => signIn('discord')}>
 				<svg
 					class="provider-icon"
 					viewBox="0 0 24 24"

@@ -4,18 +4,28 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/db/package.json ./packages/db/
 COPY apps/auth/package.json ./apps/auth/
-RUN corepack enable && pnpm install --frozen-lockfile
+RUN corepack enable && corepack prepare pnpm@10.33.3 --activate
+RUN pnpm install --frozen-lockfile
 
 COPY vite.shared.ts ./
 COPY packages/db ./packages/db
 COPY apps/auth ./apps/auth
-COPY apps/auth/.env.build ./apps/auth/.env
 RUN pnpm --filter=@nexo/auth run build
 
 FROM node:24-alpine
 WORKDIR /app
-COPY --from=builder /app/apps/auth/build ./build
-COPY --from=builder /app/apps/auth/package.json ./
+RUN corepack enable && corepack prepare pnpm@10.33.3 --activate
+RUN addgroup -S app && adduser -S app -G app
+
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/db/package.json ./packages/db/
+COPY apps/auth/package.json ./apps/auth/
+RUN pnpm install --frozen-lockfile --prod
+
+COPY --from=builder --chown=app:app /app/apps/auth/build ./apps/auth/build
+
+USER app
 ENV NODE_ENV=production PORT=3000
+WORKDIR /app/apps/auth
 EXPOSE 3000
 CMD ["node", "build"]
