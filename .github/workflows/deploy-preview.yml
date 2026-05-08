@@ -17,12 +17,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.sha }}
 
       - name: Deploy preview to VPS
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -40,7 +41,7 @@ jobs:
               up -d --build --remove-orphans
 
       - name: Update bot comment — success
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         if: success()
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -67,7 +68,7 @@ jobs:
             });
 
       - name: Update bot comment — failure
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         if: failure()
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

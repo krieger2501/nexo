@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/db/package.json ./packages/db/
 COPY apps/finance/package.json ./apps/finance/
-RUN corepack enable && corepack prepare pnpm@10.33.3 --activate
+RUN corepack enable && corepack prepare pnpm@11.0.8 --activate
 RUN pnpm install --frozen-lockfile
 
 COPY vite.shared.ts ./
@@ -18,7 +18,7 @@ RUN pnpm --filter=@nexo/finance run build
 
 FROM node:24-alpine
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@10.33.3 --activate
+RUN corepack enable && corepack prepare pnpm@11.0.8 --activate
 RUN addgroup -S app && adduser -S app -G app
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
