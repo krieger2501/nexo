@@ -3,7 +3,7 @@ WORKDIR /app
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/db/package.json ./packages/db/
-RUN corepack enable && corepack prepare pnpm@10.33.3 --activate
+RUN corepack enable && corepack prepare pnpm@11.0.8 --activate
 RUN pnpm install --frozen-lockfile
 
 COPY packages/db ./packages/db
