@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/krieger2501/nexo/compare/nexo-v0.3.2...nexo-v0.4.0) (2026-05-10)
+
+
+### Features
+
+* inline error banner on login page, loading state on provider buttons ([3e5310a](https://github.com/krieger2501/nexo/commit/3e5310adb30e5d9b6ce7d1c1e307aceee384a587))
+
+
+### Bug Fixes
+
+* pass PUBLIC_FINANCE_URL and PUBLIC_APP_VERSION as runtime env to landing ([00e04e8](https://github.com/krieger2501/nexo/commit/00e04e8f0f3c10747fb76bdc58e4e1b47cfc9a4f))
+* remove --remove-orphans from preview deploy command ([d216241](https://github.com/krieger2501/nexo/commit/d216241da10e088962967121ff01e4d54fc7613a))
+
 ## [0.3.2](https://github.com/krieger2501/nexo/compare/nexo-v0.3.1...nexo-v0.3.2) (2026-05-10)
 
 
