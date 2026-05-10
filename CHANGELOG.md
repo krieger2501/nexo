@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/krieger2501/nexo/compare/nexo-v0.2.0...nexo-v0.2.1) (2026-05-10)
+
+
+### Bug Fixes
+
+* cross-subdomain cookies + structured logging for auth flow ([121f105](https://github.com/krieger2501/nexo/commit/121f105bdd224f95328dd7aad0fda560eb38924c))
+
 ## [0.2.0](https://github.com/krieger2501/nexo/compare/nexo-v0.1.0...nexo-v0.2.0) (2026-05-08)
 
 
