@@ -63,6 +63,7 @@ export const debts = financeSchema.table('debts', {
 	amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
 	paid: boolean('paid').notNull().default(false),
 	dueDate: date('due_date'),
+	accountId: uuid('account_id').references(() => accounts.id, { onDelete: 'set null' }),
 	notes: text('notes'),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 });
