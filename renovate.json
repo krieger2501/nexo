@@ -43,7 +43,7 @@
 		{
 			"description": "Better Auth",
 			"groupName": "Better Auth",
-			"matchPackageNames": ["better-auth"]
+			"matchPackageNames": ["better-auth", "@better-auth/oauth-provider"]
 		},
 		{
 			"description": "ESLint ecosystem",
@@ -79,6 +79,11 @@
 			"description": "Turbo",
 			"groupName": "Turborepo",
 			"matchPackageNames": ["turbo"]
+		},
+		{
+			"description": "@types/node — single PR across all workspace packages",
+			"groupName": "@types/node",
+			"matchPackageNames": ["@types/node"]
 		},
 		{
 			"description": "GitHub Actions",
