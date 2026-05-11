@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/krieger2501/nexo/compare/nexo-v0.5.0...nexo-v0.6.0) (2026-05-11)
+
+
+### Features
+
+* add admin panel app at admin.krieger2501.de ([956fa23](https://github.com/krieger2501/nexo/commit/956fa233cef7f70a4dd8f450da605a12a79ffb1f))
+
+
+### Bug Fixes
+
+* add missing eslint/knip/gitignore configs to admin app ([55b69db](https://github.com/krieger2501/nexo/commit/55b69dbc1f02b19636c7616b9f2619a9d207aca1))
+
 ## [0.5.0](https://github.com/krieger2501/nexo/compare/nexo-v0.4.0...nexo-v0.5.0) (2026-05-11)
 
 
