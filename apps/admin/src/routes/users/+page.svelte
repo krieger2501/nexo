@@ -335,11 +335,7 @@
 
 				<div class="danger-row">
 					{#if !confirmRemove}
-						<button
-							type="button"
-							class="btn-danger-outline"
-							onclick={() => (confirmRemove = true)}
-						>
+						<button type="button" class="btn-danger-outline" onclick={() => (confirmRemove = true)}>
 							Remove from whitelist
 						</button>
 					{/if}

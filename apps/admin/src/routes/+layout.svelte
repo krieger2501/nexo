@@ -13,12 +13,45 @@
 <div class="admin-shell">
 	<aside class="sidebar">
 		<div class="sidebar-brand">
-			<svg class="brand-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Nexo Admin">
-				<rect width="100" height="100" rx="22" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
-				<rect x="26" y="26" width="22" height="22" rx="3" fill="#16a34a"/>
-				<rect x="52" y="26" width="22" height="22" rx="3" fill="none" stroke="#18181b" stroke-width="3"/>
-				<rect x="26" y="52" width="22" height="22" rx="3" fill="none" stroke="#18181b" stroke-width="3"/>
-				<rect x="52" y="52" width="22" height="22" rx="3" fill="none" stroke="#18181b" stroke-width="3"/>
+			<svg
+				class="brand-mark"
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 100 100"
+				role="img"
+				aria-label="Nexo Admin"
+			>
+				<rect width="100" height="100" rx="22" fill="#ffffff" stroke="#e5e7eb" stroke-width="1" />
+				<rect x="26" y="26" width="22" height="22" rx="3" fill="#16a34a" />
+				<rect
+					x="52"
+					y="26"
+					width="22"
+					height="22"
+					rx="3"
+					fill="none"
+					stroke="#18181b"
+					stroke-width="3"
+				/>
+				<rect
+					x="26"
+					y="52"
+					width="22"
+					height="22"
+					rx="3"
+					fill="none"
+					stroke="#18181b"
+					stroke-width="3"
+				/>
+				<rect
+					x="52"
+					y="52"
+					width="22"
+					height="22"
+					rx="3"
+					fill="none"
+					stroke="#18181b"
+					stroke-width="3"
+				/>
 			</svg>
 			<span class="brand-name">Nexo Admin</span>
 		</div>

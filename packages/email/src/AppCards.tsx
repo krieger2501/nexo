@@ -8,35 +8,72 @@ export interface AppInfo {
 
 function FinanceIcon() {
 	return (
-		<svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-			<rect width="100" height="100" rx="22" fill="#ffffff" stroke="#e5e7eb" strokeWidth="1"/>
-			<path d="M22 68 L42 48 L56 60 L78 32" fill="none" stroke="#16a34a" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"/>
-			<path d="M64 32 L78 32 L78 46" fill="none" stroke="#16a34a" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"/>
+		<svg
+			width="32"
+			height="32"
+			viewBox="0 0 100 100"
+			fill="none"
+			xmlns="http://www.w3.org/2000/svg"
+		>
+			<rect width="100" height="100" rx="22" fill="#ffffff" stroke="#e5e7eb" strokeWidth="1" />
+			<path
+				d="M22 68 L42 48 L56 60 L78 32"
+				fill="none"
+				stroke="#16a34a"
+				strokeWidth="7"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
+			<path
+				d="M64 32 L78 32 L78 46"
+				fill="none"
+				stroke="#16a34a"
+				strokeWidth="7"
+				strokeLinecap="round"
+				strokeLinejoin="round"
+			/>
 		</svg>
 	);
 }
 
 function GymIcon() {
 	return (
-		<svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-			<rect width="100" height="100" rx="22" fill="#2563eb"/>
-			<rect x="22" y="36" width="10" height="28" rx="2" fill="#ffffff"/>
-			<rect x="68" y="36" width="10" height="28" rx="2" fill="#ffffff"/>
-			<rect x="16" y="42" width="6" height="16" rx="2" fill="#ffffff"/>
-			<rect x="78" y="42" width="6" height="16" rx="2" fill="#ffffff"/>
-			<rect x="32" y="46" width="36" height="8" rx="2" fill="#ffffff"/>
+		<svg
+			width="32"
+			height="32"
+			viewBox="0 0 100 100"
+			fill="none"
+			xmlns="http://www.w3.org/2000/svg"
+		>
+			<rect width="100" height="100" rx="22" fill="#2563eb" />
+			<rect x="22" y="36" width="10" height="28" rx="2" fill="#ffffff" />
+			<rect x="68" y="36" width="10" height="28" rx="2" fill="#ffffff" />
+			<rect x="16" y="42" width="6" height="16" rx="2" fill="#ffffff" />
+			<rect x="78" y="42" width="6" height="16" rx="2" fill="#ffffff" />
+			<rect x="32" y="46" width="36" height="8" rx="2" fill="#ffffff" />
 		</svg>
 	);
 }
 
 function NexoIcon() {
 	return (
-		<svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-			<rect width="100" height="100" rx="22" fill="#0f2010"/>
-			<circle cx="30" cy="30" r="6" fill="#16a34a"/>
-			<circle cx="70" cy="70" r="6" fill="#16a34a"/>
-			<path d="M30 36 L30 70 M70 30 L70 64" stroke="#16a34a" strokeWidth="8" strokeLinecap="round"/>
-			<path d="M33 33 L67 67" stroke="#16a34a" strokeWidth="8" strokeLinecap="round"/>
+		<svg
+			width="32"
+			height="32"
+			viewBox="0 0 100 100"
+			fill="none"
+			xmlns="http://www.w3.org/2000/svg"
+		>
+			<rect width="100" height="100" rx="22" fill="#0f2010" />
+			<circle cx="30" cy="30" r="6" fill="#16a34a" />
+			<circle cx="70" cy="70" r="6" fill="#16a34a" />
+			<path
+				d="M30 36 L30 70 M70 30 L70 64"
+				stroke="#16a34a"
+				strokeWidth="8"
+				strokeLinecap="round"
+			/>
+			<path d="M33 33 L67 67" stroke="#16a34a" strokeWidth="8" strokeLinecap="round" />
 		</svg>
 	);
 }
@@ -101,11 +138,7 @@ export function AppCards({ apps }: AppCardsProps) {
 						}}
 					>
 						{/* App header row: icon + name badge */}
-						<table
-							cellPadding="0"
-							cellSpacing="0"
-							style={{ width: '100%', marginBottom: '12px' }}
-						>
+						<table cellPadding="0" cellSpacing="0" style={{ width: '100%', marginBottom: '12px' }}>
 							<tbody>
 								<tr>
 									<td style={appHeaderLeft}>

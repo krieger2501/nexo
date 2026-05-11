@@ -43,11 +43,27 @@ export default function InviteEmail({ landingUrl, apps = [] }: InviteEmailProps)
 											<tbody>
 												<tr>
 													<td style={heroIconCell}>
-														<svg width="26" height="26" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-															<circle cx="30" cy="30" r="6" fill="#4ade80"/>
-															<circle cx="70" cy="70" r="6" fill="#4ade80"/>
-															<path d="M30 36 L30 70 M70 30 L70 64" stroke="#4ade80" strokeWidth="8" strokeLinecap="round"/>
-															<path d="M33 33 L67 67" stroke="#4ade80" strokeWidth="8" strokeLinecap="round"/>
+														<svg
+															width="26"
+															height="26"
+															viewBox="0 0 100 100"
+															fill="none"
+															xmlns="http://www.w3.org/2000/svg"
+														>
+															<circle cx="30" cy="30" r="6" fill="#4ade80" />
+															<circle cx="70" cy="70" r="6" fill="#4ade80" />
+															<path
+																d="M30 36 L30 70 M70 30 L70 64"
+																stroke="#4ade80"
+																strokeWidth="8"
+																strokeLinecap="round"
+															/>
+															<path
+																d="M33 33 L67 67"
+																stroke="#4ade80"
+																strokeWidth="8"
+																strokeLinecap="round"
+															/>
 														</svg>
 													</td>
 												</tr>
@@ -67,8 +83,7 @@ export default function InviteEmail({ landingUrl, apps = [] }: InviteEmailProps)
 						{hasApps ? (
 							<>
 								<Text style={bodyIntro}>
-									You already have access to the following{' '}
-									{apps.length === 1 ? 'app' : 'apps'}:
+									You already have access to the following {apps.length === 1 ? 'app' : 'apps'}:
 								</Text>
 								<AppCards apps={apps} />
 							</>
