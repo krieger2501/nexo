@@ -1,0 +1,1 @@
+ALTER TABLE "auth"."user_app_access" ADD CONSTRAINT "user_app_access_user_id_app_pk" PRIMARY KEY("user_id","app");

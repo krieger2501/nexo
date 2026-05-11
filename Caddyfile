@@ -7,6 +7,10 @@ auth.krieger2501.de {
 	reverse_proxy auth:3000
 }
 
+admin.krieger2501.de {
+	reverse_proxy admin:3000
+}
+
 finance.krieger2501.de {
 	reverse_proxy finance:3000
 }

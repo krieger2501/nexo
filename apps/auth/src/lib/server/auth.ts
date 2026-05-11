@@ -12,6 +12,7 @@ function createAuth() {
 	const baseURL = publicEnv.PUBLIC_AUTH_URL!;
 	const trustedOrigins: string[] = [baseURL];
 	if (env.FINANCE_URL) trustedOrigins.push(env.FINANCE_URL);
+	if (env.ADMIN_URL) trustedOrigins.push(env.ADMIN_URL);
 	return betterAuth({
 		secret: env.BETTER_AUTH_SECRET!,
 		baseURL,
