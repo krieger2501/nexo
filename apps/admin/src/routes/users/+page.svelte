@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { X, Plus, UserPlus, ChevronLeft } from 'lucide-svelte';
+	import { X, UserPlus, ChevronLeft, Search } from 'lucide-svelte';
 
 	let { data, form } = $props();
 
@@ -11,10 +11,30 @@
 	let inviteEmail = $state('');
 	let confirmRemove = $state(false);
 
-	// Always derived from live server data — stays in sync after grant/revoke
+	// Filters
+	let searchQuery = $state('');
+	let filterStatus = $state<'all' | 'active' | 'invited' | 'blocked'>('all');
+	let filterApp = $state<string>('all');
+
 	const selectedEntry = $derived(
 		selectedEmail ? (data.entries.find((e) => e.email === selectedEmail) ?? null) : null
 	);
+
+	const filteredEntries = $derived(() => {
+		return data.entries.filter((e) => {
+			if (filterStatus === 'active' && !(e.type === 'user' && e.allowed)) return false;
+			if (filterStatus === 'invited' && e.type !== 'invited') return false;
+			if (filterStatus === 'blocked' && !(e.type === 'user' && !e.allowed)) return false;
+			if (filterApp !== 'all' && !e.apps.includes(filterApp)) return false;
+			if (searchQuery) {
+				const q = searchQuery.toLowerCase();
+				const name = (e.name ?? '').toLowerCase();
+				const email = e.email.toLowerCase();
+				if (!name.includes(q) && !email.includes(q)) return false;
+			}
+			return true;
+		});
+	});
 
 	function openDetail(entry: Entry) {
 		selectedEmail = entry.email;
@@ -35,15 +55,23 @@
 		return entry.name ?? entry.email;
 	}
 
+	function badgeClass(entry: Entry) {
+		if (entry.type === 'invited') return 'badge-invited';
+		if (entry.allowed) return 'badge-active';
+		return 'badge-blocked';
+	}
+
+	function badgeLabel(entry: Entry) {
+		if (entry.type === 'invited') return 'Invited';
+		if (entry.allowed) return 'Active';
+		return 'Blocked';
+	}
+
 	const fmtDate = (iso: string) =>
 		new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 </script>
 
-<svelte:window
-	onkeydown={(e) => {
-		if (e.key === 'Escape') closeDetail();
-	}}
-/>
+<svelte:window onkeydown={(e) => { if (e.key === 'Escape') closeDetail(); }} />
 
 <div class="workspace">
 	<!-- LEFT: user list -->
@@ -52,8 +80,7 @@
 			<div>
 				<h1 class="page-title">Users</h1>
 				<p class="page-subtitle">
-					{data.entries.length} total &middot; {data.entries.filter((e) => e.type === 'user')
-						.length} signed in
+					{data.entries.length} total &middot; {data.entries.filter((e) => e.type === 'user').length} signed in
 				</p>
 			</div>
 			<button type="button" class="btn-primary" onclick={() => (showInviteForm = !showInviteForm)}>
@@ -86,17 +113,48 @@
 					autocomplete="off"
 				/>
 				<button type="submit" class="btn-primary">Add</button>
-				<button type="button" class="btn-ghost" onclick={() => (showInviteForm = false)}>
-					Cancel
-				</button>
+				<button type="button" class="btn-ghost" onclick={() => (showInviteForm = false)}>Cancel</button>
 				{#if form?.addError}
 					<span class="error-text">{form.addError}</span>
 				{/if}
 			</form>
 		{/if}
 
+		<!-- Search + filters -->
+		<div class="filters">
+			<div class="search-wrap">
+				<Search size={14} class="search-icon" />
+				<input
+					type="search"
+					class="search-input"
+					placeholder="Search name or email…"
+					bind:value={searchQuery}
+				/>
+			</div>
+			<div class="filter-chips">
+				{#each (['all', 'active', 'invited', 'blocked'] as const) as s (s)}
+					<button
+						type="button"
+						class="filter-chip {filterStatus === s ? 'active' : ''}"
+						onclick={() => (filterStatus = s)}
+					>
+						{s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+					</button>
+				{/each}
+				{#each data.knownApps as app (app)}
+					<button
+						type="button"
+						class="filter-chip app {filterApp === app ? 'active' : ''}"
+						onclick={() => (filterApp = filterApp === app ? 'all' : app)}
+					>
+						{app}
+					</button>
+				{/each}
+			</div>
+		</div>
+
 		<div class="user-list">
-			{#each data.entries as entry (entry.email)}
+			{#each filteredEntries() as entry (entry.email)}
 				<button
 					type="button"
 					class="user-row {selectedEmail === entry.email ? 'selected' : ''}"
@@ -112,9 +170,7 @@
 						{/if}
 					</div>
 					<div class="user-meta">
-						<span class="badge {entry.type === 'invited' ? 'badge-invited' : entry.allowed ? 'badge-active' : 'badge-blocked'}">
-							{entry.type === 'invited' ? 'Invited' : entry.allowed ? 'Active' : 'Blocked'}
-						</span>
+						<span class="badge {badgeClass(entry)}">{badgeLabel(entry)}</span>
 						{#if entry.apps.length > 0}
 							<div class="app-chips">
 								{#each entry.apps as app (app)}
@@ -126,9 +182,9 @@
 				</button>
 			{/each}
 
-			{#if data.entries.length === 0}
+			{#if filteredEntries().length === 0}
 				<div class="empty-state">
-					<p>No users yet. Invite someone to get started.</p>
+					<p>{data.entries.length === 0 ? 'No users yet. Invite someone to get started.' : 'No users match the current filters.'}</p>
 				</div>
 			{/if}
 		</div>
@@ -137,122 +193,85 @@
 	<!-- RIGHT: detail pane -->
 	<div class="detail-pane {selectedEntry ? 'open' : ''}">
 		{#if selectedEntry}
+			<!-- Mobile back button -->
 			<button type="button" class="back-btn" onclick={closeDetail}>
 				<ChevronLeft size={18} />
 				Back
 			</button>
-			<div class="detail-header">
-				<div class="detail-avatar {selectedEntry.type === 'invited' ? 'invited' : ''}">
+
+			<!-- Profile card -->
+			<div class="profile-card">
+				<div class="profile-avatar {selectedEntry.type === 'invited' ? 'invited' : ''}">
 					{initials(selectedEntry)}
 				</div>
-				<div class="detail-user-info">
-					<p class="detail-name">{displayName(selectedEntry)}</p>
+				<div class="profile-info">
+					<p class="profile-name">{displayName(selectedEntry)}</p>
 					{#if selectedEntry.name}
-						<p class="detail-email">{selectedEntry.email}</p>
+						<p class="profile-email">{selectedEntry.email}</p>
 					{/if}
-					<p class="detail-joined">
-						{selectedEntry.type === 'invited' ? 'Invited' : 'Joined'}
-						{fmtDate(selectedEntry.createdAt)}
-					</p>
+					<div class="profile-meta">
+						<span class="badge {badgeClass(selectedEntry)}">{badgeLabel(selectedEntry)}</span>
+						<span class="profile-date">
+							{selectedEntry.type === 'invited' ? 'Invited' : 'Joined'}
+							{fmtDate(selectedEntry.createdAt)}
+						</span>
+					</div>
 				</div>
-				<button type="button" class="close-btn" onclick={closeDetail}>
-					<X size={16} />
+				<!-- Desktop close -->
+				<button type="button" class="close-btn" onclick={closeDetail} aria-label="Close">
+					<X size={15} />
 				</button>
 			</div>
 
+			<!-- App access section (signed-in users only) -->
 			{#if selectedEntry.type === 'user'}
 				<div class="detail-section">
 					<p class="section-label">App Access</p>
-					<div class="app-columns">
-						<div class="app-col">
-							<p class="col-label">Assigned</p>
-							<div class="app-col-items">
-								{#each selectedEntry.apps as app (app)}
-									<div class="app-col-item">
-										<span class="app-chip-lg">{app}</span>
-										<form
-											method="POST"
-											action="?/revokeAccess"
-											use:enhance={() => {
-												return async ({ update }) => {
-													await update({ reset: false });
-												};
-											}}
-										>
-											<input type="hidden" name="userId" value={selectedEntry?.id} />
-											<input type="hidden" name="app" value={app} />
-											<button type="submit" class="chip-action remove" title="Revoke {app} access">
-												<X size={12} />
-											</button>
-										</form>
-									</div>
-								{/each}
-								{#if selectedEntry.apps.length === 0}
-									<p class="col-empty">No apps assigned</p>
-								{/if}
-							</div>
-						</div>
 
-						<div class="app-col">
-							<p class="col-label">Available</p>
-							<div class="app-col-items">
-								{#each data.knownApps.filter((a) => !selectedEntry?.apps.includes(a)) as app (app)}
-									<div class="app-col-item">
-										<span class="app-chip-lg available">{app}</span>
-										<form
-											method="POST"
-											action="?/grantAccess"
-											use:enhance={() => {
-												return async ({ update }) => {
-													await update({ reset: false });
-												};
-											}}
-										>
-											<input type="hidden" name="userId" value={selectedEntry?.id} />
-											<input type="hidden" name="app" value={app} />
-											<button type="submit" class="chip-action add" title="Grant {app} access">
-												<Plus size={12} />
-											</button>
-										</form>
-									</div>
-								{/each}
-								{#if data.knownApps.every((a) => selectedEntry?.apps.includes(a))}
-									<p class="col-empty">All apps assigned</p>
+					<div class="access-list">
+						{#each data.knownApps as app (app)}
+							{@const granted = selectedEntry.apps.includes(app)}
+							<div class="access-row">
+								<div class="access-app-info">
+									<span class="access-app-dot {granted ? 'granted' : ''}"></span>
+									<span class="access-app-name">{app}</span>
+								</div>
+								{#if granted}
+									<form method="POST" action="?/revokeAccess" use:enhance={() => async ({ update }) => { await update({ reset: false }); }}>
+										<input type="hidden" name="userId" value={selectedEntry?.id} />
+										<input type="hidden" name="app" value={app} />
+										<button type="submit" class="access-btn revoke">Revoke</button>
+									</form>
+								{:else}
+									<form method="POST" action="?/grantAccess" use:enhance={() => async ({ update }) => { await update({ reset: false }); }}>
+										<input type="hidden" name="userId" value={selectedEntry?.id} />
+										<input type="hidden" name="app" value={app} />
+										<button type="submit" class="access-btn grant">Grant</button>
+									</form>
 								{/if}
 							</div>
-						</div>
+						{/each}
 					</div>
 				</div>
 			{/if}
 
+			<!-- Danger zone -->
 			<div class="detail-danger">
 				{#if !confirmRemove}
-					<button type="button" class="btn-danger-ghost" onclick={() => (confirmRemove = true)}>
+					<button type="button" class="btn-danger-outline" onclick={() => (confirmRemove = true)}>
 						Remove from whitelist
 					</button>
 				{:else}
 					<div class="confirm-box">
 						<p class="confirm-text">
-							Remove <strong>{selectedEntry.email}</strong> from the access list? They won't be able to
-							sign in.
+							Remove <strong>{selectedEntry.email}</strong> from the access list? They won't be able to sign in.
 						</p>
 						<div class="confirm-actions">
-							<form
-								method="POST"
-								action="?/removeEmail"
-								use:enhance={() => {
-									return async ({ update }) => {
-										closeDetail();
-										await update();
-									};
-								}}
-							>
+							<form method="POST" action="?/removeEmail" use:enhance={() => async ({ update }) => { closeDetail(); await update(); }}>
 								<input type="hidden" name="email" value={selectedEntry.email} />
 								<button type="submit" class="btn-danger">Yes, remove</button>
 							</form>
-							<button type="button" class="btn-ghost" onclick={() => (confirmRemove = false)}>
-								Cancel
-							</button>
+							<button type="button" class="btn-ghost" onclick={() => (confirmRemove = false)}>Cancel</button>
 						</div>
 					</div>
 				{/if}
@@ -266,11 +285,11 @@
 </div>
 
 <style>
-	/* Fixed split-pane viewport — fills the main-content area */
+	/* ── Layout ─────────────────────────────────────────────────── */
 	.workspace {
 		display: grid;
 		grid-template-columns: 1fr 0px;
-		height: calc(100dvh - 64px); /* subtract layout top padding */
+		height: calc(100dvh - 64px);
 		gap: 0;
 		transition: grid-template-columns var(--duration-base) var(--ease-out);
 		overflow: hidden;
@@ -278,22 +297,22 @@
 
 	@media (min-width: 641px) {
 		.workspace:has(.detail-pane.open) {
-			grid-template-columns: 1fr 380px;
+			grid-template-columns: 1fr 360px;
 		}
 	}
 
-	/* LEFT pane */
 	.list-pane {
 		min-width: 0;
 		overflow-y: auto;
 		padding-right: 24px;
 	}
 
+	/* ── Header ─────────────────────────────────────────────────── */
 	.pane-header {
 		display: flex;
 		align-items: flex-start;
 		justify-content: space-between;
-		margin-bottom: 20px;
+		margin-bottom: 16px;
 	}
 
 	.page-title {
@@ -310,12 +329,13 @@
 		margin: 0;
 	}
 
+	/* ── Invite form ─────────────────────────────────────────────── */
 	.invite-form {
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		margin-bottom: 16px;
-		padding: 12px 14px;
+		margin-bottom: 14px;
+		padding: 10px 12px;
 		background: var(--color-surface-1);
 		border: 1px solid var(--color-border-default);
 		border-radius: var(--radius-lg);
@@ -323,8 +343,8 @@
 
 	.invite-input {
 		flex: 1;
-		height: 34px;
-		padding: 0 12px;
+		height: 32px;
+		padding: 0 10px;
 		border: 1px solid var(--color-border-default);
 		border-radius: var(--radius-md);
 		background: var(--color-bg-0);
@@ -343,6 +363,85 @@
 		color: var(--color-danger);
 	}
 
+	/* ── Filters ────────────────────────────────────────────────── */
+	.filters {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		margin-bottom: 14px;
+	}
+
+	.search-wrap {
+		position: relative;
+	}
+
+	:global(.search-icon) {
+		position: absolute;
+		left: 10px;
+		top: 50%;
+		transform: translateY(-50%);
+		color: var(--color-text-faint);
+		pointer-events: none;
+	}
+
+	.search-input {
+		width: 100%;
+		height: 34px;
+		padding: 0 10px 0 32px;
+		border: 1px solid var(--color-border-default);
+		border-radius: var(--radius-md);
+		background: var(--color-surface-1);
+		font-size: 13px;
+		color: var(--color-text-primary);
+		outline: none;
+		font-family: inherit;
+		box-sizing: border-box;
+	}
+
+	.search-input:focus {
+		border-color: var(--color-accent);
+	}
+
+	.filter-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+
+	.filter-chip {
+		padding: 4px 10px;
+		border-radius: 999px;
+		font-size: 12px;
+		font-weight: 500;
+		border: 1px solid var(--color-border-default);
+		background: var(--color-surface-1);
+		color: var(--color-text-muted);
+		cursor: pointer;
+		font-family: inherit;
+		transition:
+			background var(--duration-fast) var(--ease-out),
+			color var(--duration-fast) var(--ease-out),
+			border-color var(--duration-fast) var(--ease-out);
+	}
+
+	.filter-chip:hover {
+		background: var(--color-bg-1);
+		border-color: var(--color-border-strong);
+	}
+
+	.filter-chip.active {
+		background: var(--color-accent-muted);
+		color: var(--color-accent);
+		border-color: color-mix(in oklab, var(--color-accent) 30%, transparent);
+	}
+
+	.filter-chip.app.active {
+		background: color-mix(in oklab, #6366f1 12%, transparent);
+		color: #6366f1;
+		border-color: color-mix(in oklab, #6366f1 30%, transparent);
+	}
+
+	/* ── User list ──────────────────────────────────────────────── */
 	.user-list {
 		display: flex;
 		flex-direction: column;
@@ -353,7 +452,7 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		padding: 10px 14px;
+		padding: 10px 12px;
 		background: var(--color-surface-1);
 		border: 1px solid var(--color-border-subtle);
 		border-radius: var(--radius-lg);
@@ -427,11 +526,35 @@
 		flex-shrink: 0;
 	}
 
+	.app-chips {
+		display: flex;
+		gap: 3px;
+	}
+
+	.app-chip {
+		font-size: 10px;
+		font-weight: 600;
+		padding: 2px 6px;
+		border-radius: 999px;
+		background: color-mix(in oklab, #6366f1 12%, transparent);
+		color: #6366f1;
+		text-transform: capitalize;
+	}
+
+	.empty-state {
+		padding: 40px 20px;
+		text-align: center;
+		color: var(--color-text-faint);
+		font-size: 14px;
+	}
+
+	/* ── Badges ─────────────────────────────────────────────────── */
 	.badge {
 		font-size: 10px;
 		font-weight: 600;
 		padding: 2px 7px;
 		border-radius: 999px;
+		white-space: nowrap;
 	}
 
 	.badge-active {
@@ -449,29 +572,7 @@
 		color: #b45309;
 	}
 
-	.app-chips {
-		display: flex;
-		gap: 3px;
-	}
-
-	.app-chip {
-		font-size: 10px;
-		font-weight: 600;
-		padding: 2px 6px;
-		border-radius: 999px;
-		background: color-mix(in oklab, #6366f1 12%, transparent);
-		color: #6366f1;
-		text-transform: capitalize;
-	}
-
-	.empty-state {
-		padding: 40px;
-		text-align: center;
-		color: var(--color-text-faint);
-		font-size: 14px;
-	}
-
-	/* RIGHT pane */
+	/* ── Detail pane ────────────────────────────────────────────── */
 	.detail-pane {
 		overflow: hidden;
 		border-left: 1px solid transparent;
@@ -490,73 +591,6 @@
 		padding-left: 24px;
 	}
 
-	/* Back button — hidden on desktop */
-	.back-btn {
-		display: none;
-	}
-
-	/* Mobile layout */
-	@media (max-width: 640px) {
-		.workspace {
-			display: block;
-			height: auto;
-			overflow: visible;
-		}
-
-		.list-pane {
-			padding-right: 0;
-			overflow-y: visible;
-		}
-
-		.detail-pane {
-			position: fixed;
-			inset: 0;
-			z-index: 50;
-			background: var(--color-bg-0);
-			border-left: none;
-			opacity: 1;
-			transform: translateX(100%);
-			transition: transform var(--duration-base) var(--ease-out);
-			overflow-y: auto;
-			padding: 0 20px calc(var(--bottom-bar-height) + env(safe-area-inset-bottom) + 20px);
-			display: flex;
-			flex-direction: column;
-		}
-
-		.detail-pane.open {
-			transform: translateX(0);
-			border-left: none;
-			padding-left: 20px;
-		}
-
-		.back-btn {
-			display: flex;
-			align-items: center;
-			gap: 4px;
-			padding: 16px 0 12px;
-			background: none;
-			border: none;
-			font-size: 14px;
-			font-weight: 600;
-			color: var(--color-accent);
-			cursor: pointer;
-			font-family: inherit;
-		}
-
-		.close-btn {
-			display: none;
-		}
-
-		.btn-danger-ghost {
-			width: 100%;
-			justify-content: center;
-			padding: 10px 16px;
-			border: 1px solid color-mix(in oklab, var(--color-danger) 35%, transparent);
-			border-radius: var(--radius-md);
-			background: var(--color-danger-muted);
-		}
-	}
-
 	.detail-empty {
 		display: flex;
 		align-items: center;
@@ -566,22 +600,28 @@
 		font-size: 13px;
 	}
 
-	.detail-header {
+	/* Back button — mobile only */
+	.back-btn {
+		display: none;
+	}
+
+	/* ── Profile card ───────────────────────────────────────────── */
+	.profile-card {
 		display: flex;
 		align-items: flex-start;
-		gap: 12px;
-		padding-bottom: 20px;
+		gap: 14px;
+		padding: 20px 0 20px;
 		border-bottom: 1px solid var(--color-border-subtle);
 		margin-bottom: 20px;
 	}
 
-	.detail-avatar {
-		width: 44px;
-		height: 44px;
+	.profile-avatar {
+		width: 52px;
+		height: 52px;
 		border-radius: 50%;
 		background: var(--color-accent-muted);
 		color: var(--color-accent);
-		font-size: 18px;
+		font-size: 20px;
 		font-weight: 700;
 		display: flex;
 		align-items: center;
@@ -589,18 +629,18 @@
 		flex-shrink: 0;
 	}
 
-	.detail-avatar.invited {
+	.profile-avatar.invited {
 		background: var(--color-bg-2);
 		color: var(--color-text-faint);
 	}
 
-	.detail-user-info {
+	.profile-info {
 		flex: 1;
 		min-width: 0;
 	}
 
-	.detail-name {
-		font-size: 15px;
+	.profile-name {
+		font-size: 16px;
 		font-weight: 600;
 		color: var(--color-text-primary);
 		margin: 0 0 2px;
@@ -609,19 +649,25 @@
 		white-space: nowrap;
 	}
 
-	.detail-email {
+	.profile-email {
 		font-size: 12px;
 		color: var(--color-text-muted);
-		margin: 0 0 4px;
+		margin: 0 0 8px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
-	.detail-joined {
+	.profile-meta {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+
+	.profile-date {
 		font-size: 11px;
 		color: var(--color-text-faint);
-		margin: 0;
 	}
 
 	.close-btn {
@@ -643,6 +689,7 @@
 		background: var(--color-bg-2);
 	}
 
+	/* ── App access list ────────────────────────────────────────── */
 	.detail-section {
 		padding-bottom: 20px;
 		border-bottom: 1px solid var(--color-border-subtle);
@@ -655,97 +702,110 @@
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
 		color: var(--color-text-faint);
-		margin: 0 0 14px;
+		margin: 0 0 12px;
 	}
 
-	.app-columns {
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: 16px;
-	}
-
-	.app-col {
-		min-width: 0;
-	}
-
-	.col-label {
-		font-size: 11px;
-		font-weight: 600;
-		color: var(--color-text-subtle);
-		margin: 0 0 8px;
-	}
-
-	.app-col-items {
+	.access-list {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 2px;
 	}
 
-	.app-col-item {
+	.access-row {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		justify-content: space-between;
+		padding: 10px 12px;
+		background: var(--color-surface-1);
+		border: 1px solid var(--color-border-subtle);
+		border-radius: var(--radius-md);
+		gap: 12px;
 	}
 
-	.app-chip-lg {
+	.access-app-info {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.access-app-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--color-border-strong);
+		flex-shrink: 0;
+	}
+
+	.access-app-dot.granted {
+		background: var(--color-accent);
+	}
+
+	.access-app-name {
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--color-text-primary);
+		text-transform: capitalize;
+	}
+
+	.access-btn {
 		font-size: 12px;
 		font-weight: 600;
-		padding: 5px 10px;
+		padding: 4px 12px;
 		border-radius: var(--radius-md);
-		background: color-mix(in oklab, #6366f1 12%, transparent);
-		color: #6366f1;
-		text-transform: capitalize;
-		flex: 1;
-		text-align: center;
-	}
-
-	.app-chip-lg.available {
-		background: var(--color-bg-2);
-		color: var(--color-text-subtle);
-	}
-
-	.chip-action {
-		width: 24px;
-		height: 24px;
 		border: none;
-		border-radius: var(--radius-sm);
-		display: flex;
-		align-items: center;
-		justify-content: center;
 		cursor: pointer;
-		flex-shrink: 0;
+		font-family: inherit;
 		transition: background var(--duration-fast) var(--ease-out);
+		white-space: nowrap;
 	}
 
-	.chip-action.remove {
-		background: var(--color-danger-muted);
-		color: var(--color-danger);
-	}
-
-	.chip-action.remove:hover {
-		background: color-mix(in oklab, var(--color-danger) 20%, transparent);
-	}
-
-	.chip-action.add {
+	.access-btn.grant {
 		background: var(--color-accent-muted);
 		color: var(--color-accent);
 	}
 
-	.chip-action.add:hover {
-		background: color-mix(in oklab, var(--color-accent) 22%, transparent);
+	.access-btn.grant:hover {
+		background: color-mix(in oklab, var(--color-accent) 20%, transparent);
 	}
 
-	.col-empty {
-		font-size: 12px;
-		color: var(--color-text-faint);
-		font-style: italic;
-		margin: 0;
+	.access-btn.revoke {
+		background: var(--color-danger-muted);
+		color: var(--color-danger);
 	}
 
+	.access-btn.revoke:hover {
+		background: color-mix(in oklab, var(--color-danger) 18%, transparent);
+	}
+
+	/* ── Danger zone ────────────────────────────────────────────── */
 	.detail-danger {
 		margin-top: auto;
 		padding-top: 20px;
 		border-top: 1px solid var(--color-border-subtle);
+	}
+
+	.btn-danger-outline {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		padding: 9px 16px;
+		background: transparent;
+		color: var(--color-danger);
+		border: 1px solid color-mix(in oklab, var(--color-danger) 30%, transparent);
+		border-radius: var(--radius-md);
+		font-size: 13px;
+		font-weight: 500;
+		cursor: pointer;
+		font-family: inherit;
+		transition:
+			background var(--duration-fast) var(--ease-out),
+			border-color var(--duration-fast) var(--ease-out);
+	}
+
+	.btn-danger-outline:hover {
+		background: var(--color-danger-muted);
+		border-color: color-mix(in oklab, var(--color-danger) 45%, transparent);
 	}
 
 	.confirm-box {
@@ -767,7 +827,7 @@
 		gap: 8px;
 	}
 
-	/* Buttons */
+	/* ── Buttons ────────────────────────────────────────────────── */
 	.btn-primary {
 		display: inline-flex;
 		align-items: center;
@@ -826,20 +886,60 @@
 		white-space: nowrap;
 	}
 
-	.btn-danger-ghost {
-		display: inline-flex;
-		align-items: center;
-		padding: 7px 0;
-		background: transparent;
-		color: var(--color-danger);
-		border: none;
-		font-size: 13px;
-		font-weight: 500;
-		cursor: pointer;
-		font-family: inherit;
-	}
+	/* ── Mobile ─────────────────────────────────────────────────── */
+	@media (max-width: 640px) {
+		.workspace {
+			display: block;
+			height: auto;
+			overflow: visible;
+		}
 
-	.btn-danger-ghost:hover {
-		text-decoration: underline;
+		.list-pane {
+			padding-right: 0;
+			overflow-y: visible;
+		}
+
+		.detail-pane {
+			position: fixed;
+			inset: 0;
+			z-index: 50;
+			background: var(--color-bg-0);
+			border-left: none;
+			opacity: 1;
+			transform: translateX(100%);
+			transition: transform var(--duration-base) var(--ease-out);
+			overflow-y: auto;
+			padding: 0 16px calc(var(--bottom-bar-height) + env(safe-area-inset-bottom) + 20px);
+			display: flex;
+			flex-direction: column;
+		}
+
+		.detail-pane.open {
+			transform: translateX(0);
+			border-left: none;
+			padding-left: 16px;
+		}
+
+		.back-btn {
+			display: flex;
+			align-items: center;
+			gap: 4px;
+			padding: 16px 0 8px;
+			background: none;
+			border: none;
+			font-size: 14px;
+			font-weight: 600;
+			color: var(--color-accent);
+			cursor: pointer;
+			font-family: inherit;
+		}
+
+		.close-btn {
+			display: none;
+		}
+
+		.profile-card {
+			padding-top: 8px;
+		}
 	}
 </style>
