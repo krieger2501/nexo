@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/krieger2501/nexo/compare/nexo-v0.8.0...nexo-v0.8.1) (2026-05-11)
+
+
+### Bug Fixes
+
+* admin Dockerfile include @nexo/email, Caddy bot proxy, CI docker builds ([3531f28](https://github.com/krieger2501/nexo/commit/3531f28d46eeebb2a9468759a74a0608462e4050))
+
 ## [0.8.0](https://github.com/krieger2501/nexo/compare/nexo-v0.7.0...nexo-v0.8.0) (2026-05-11)
 
 
