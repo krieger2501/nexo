@@ -25,13 +25,21 @@ if (
 	process.exit(1);
 }
 
+// ── In-memory deploy state ────────────────────────────────────────────────────
+
+type DeployStatus = 'deploying' | 'deployed';
+
+const deployState = new Map<number, { sha: string; status: DeployStatus }>();
+
+// ── Comment templates ─────────────────────────────────────────────────────────
+
 const MARKER = (prNumber: number) => `<!-- nexo-preview pr:${prNumber} -->`;
 
 const IDLE_COMMENT = (prNumber: number) =>
 	[
 		'### Nexo Preview',
 		'',
-		'**Status:** 💤 Idle',
+		'**Status:** 💤 Idle — no deployment yet',
 		'',
 		'- [ ] Deploy to preview environment',
 		'',
@@ -44,7 +52,18 @@ const DEPLOYING_COMMENT = (prNumber: number, sha: string) =>
 		'',
 		`**Status:** ⏳ Deploying \`${sha.slice(0, 7)}\`…`,
 		'',
-		'- [ ] Deploy to preview environment _(in progress — uncheck has no effect)_',
+		'- [x] Deploy to preview environment _(in progress)_',
+		'',
+		MARKER(prNumber)
+	].join('\n');
+
+const DEPLOYED_COMMENT = (prNumber: number, sha: string) =>
+	[
+		'### Nexo Preview',
+		'',
+		`**Status:** ✅ Live at \`${sha.slice(0, 7)}\``,
+		'',
+		'- [x] Deploy to preview environment',
 		'',
 		MARKER(prNumber)
 	].join('\n');
@@ -53,12 +72,14 @@ const STALE_COMMENT = (prNumber: number, liveSha: string, newSha: string) =>
 	[
 		'### Nexo Preview',
 		'',
-		`**Status:** ⚠️ Stale — \`${liveSha.slice(0, 7)}\` is still live, but the PR has moved to \`${newSha.slice(0, 7)}\``,
+		`**Status:** ⚠️ Stale — \`${liveSha.slice(0, 7)}\` is live, PR is now at \`${newSha.slice(0, 7)}\``,
 		'',
 		'- [ ] Deploy latest commit to preview',
 		'',
 		MARKER(prNumber)
 	].join('\n');
+
+// ── Octokit helpers ───────────────────────────────────────────────────────────
 
 async function getInstallationOctokit(): Promise<Octokit> {
 	const appOctokit = new Octokit({
@@ -102,6 +123,8 @@ async function findBotComment(
 async function triggerDeploy(prNumber: number, sha: string, commentId: number) {
 	const octokit = await getInstallationOctokit();
 
+	deployState.set(prNumber, { sha, status: 'deploying' });
+
 	await octokit.issues.updateComment({
 		owner: GH_REPO_OWNER!,
 		repo: GH_REPO_NAME!,
@@ -123,6 +146,8 @@ async function triggerDeploy(prNumber: number, sha: string, commentId: number) {
 	});
 }
 
+// ── Webhook handlers ──────────────────────────────────────────────────────────
+
 const webhooks = new Webhooks({ secret: GH_WEBHOOK_SECRET! });
 
 webhooks.on(['pull_request.opened', 'pull_request.reopened'], async ({ payload }) => {
@@ -138,7 +163,7 @@ webhooks.on(['pull_request.opened', 'pull_request.reopened'], async ({ payload }
 	});
 });
 
-// When a new commit is pushed, mark any existing deployed/idle/failed comment as stale
+// When a new commit is pushed, mark comment as stale only if something was deployed
 webhooks.on('pull_request.synchronize', async ({ payload }) => {
 	const prNumber = payload.pull_request.number;
 	const newSha = payload.pull_request.head.sha;
@@ -147,12 +172,17 @@ webhooks.on('pull_request.synchronize', async ({ payload }) => {
 	const comment = await findBotComment(octokit, prNumber);
 	if (!comment) return;
 
-	// Don't interrupt an in-flight deploy
-	if (comment.body.includes('in progress')) return;
+	// Only mark stale if a deployment is live or was deployed (has a SHA in the body)
+	const isDeployed = comment.body.includes('✅');
+	const isDeploying = comment.body.includes('⏳');
+	const state = deployState.get(prNumber);
 
-	// Extract live SHA from a deployed or stale comment (first backtick-quoted 7-char hex)
+	if (!isDeployed && !state) return; // Never deployed
+	if (isDeploying || state?.status === 'deploying') return; // Don't interrupt in-flight
+
+	// Extract the live SHA from the comment or state
 	const shaMatch = comment.body.match(/`([0-9a-f]{7})`/);
-	const liveSha = shaMatch ? shaMatch[1] : newSha.slice(0, 7);
+	const liveSha = shaMatch ? shaMatch[1] : (state?.sha ?? newSha.slice(0, 7));
 
 	await octokit.issues.updateComment({
 		owner: GH_REPO_OWNER!,
@@ -171,6 +201,10 @@ webhooks.on('issue_comment.edited', async ({ payload }) => {
 	const prNumber = Number(markerMatch[1]);
 	const checked = body.includes('[x] ') || body.includes('[X] ');
 	if (!checked) return;
+
+	// Ignore ticks on the deploying comment (already in progress)
+	const state = deployState.get(prNumber);
+	if (state?.status === 'deploying') return;
 
 	const octokit = await getInstallationOctokit();
 	const { data: pr } = await octokit.pulls.get({
