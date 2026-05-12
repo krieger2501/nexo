@@ -25,7 +25,7 @@
 </script>
 
 <div
-	class="relative overflow-hidden rounded-3xl bg-primary-500 p-6 shadow-xl shadow-primary-500/20"
+	class="bg-primary-500 shadow-primary-500/20 relative overflow-hidden rounded-3xl p-6 shadow-xl"
 >
 	<!-- Decorative circles -->
 	<div class="pointer-events-none absolute -top-8 -right-8 h-40 w-40 rounded-full bg-white/5"></div>

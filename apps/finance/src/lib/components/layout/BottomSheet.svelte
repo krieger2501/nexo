@@ -83,7 +83,7 @@
 		<div
 			bind:this={sheetEl}
 			role="presentation"
-			class="sheet-panel relative rounded-t-3xl bg-surface shadow-2xl"
+			class="sheet-panel bg-surface relative rounded-t-3xl shadow-2xl"
 			style="transform: translateY({dragY}px); transition: {isDragging
 				? 'none'
 				: 'transform 300ms cubic-bezier(0.32, 0.72, 0, 1)'};"
@@ -94,7 +94,7 @@
 		>
 			<!-- Drag handle -->
 			<div class="flex justify-center pt-3 pb-1">
-				<div class="h-1 w-10 rounded-full bg-border"></div>
+				<div class="bg-border h-1 w-10 rounded-full"></div>
 			</div>
 
 			<!-- Header -->
@@ -103,7 +103,7 @@
 				<button
 					type="button"
 					onclick={close}
-					class="flex h-7 w-7 items-center justify-center rounded-full bg-surface-muted text-neutral transition-colors hover:bg-border"
+					class="bg-surface-muted text-neutral hover:bg-border flex h-7 w-7 items-center justify-center rounded-full transition-colors"
 					aria-label="Close"
 				>
 					<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">

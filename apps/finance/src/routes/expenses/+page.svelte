@@ -277,7 +277,7 @@
 				<button
 					type="button"
 					onclick={openNew}
-					class="flex items-center gap-1 rounded-md bg-expense px-3 py-1.5 text-xs font-medium text-white"
+					class="bg-expense flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium text-white"
 				>
 					<Plus size={14} /> Add
 				</button>
@@ -285,7 +285,7 @@
 		</PageHeader>
 	</div>
 
-	<div class="mx-4 mb-4 overflow-hidden rounded-lg border border-border bg-surface">
+	<div class="border-border bg-surface mx-4 mb-4 overflow-hidden rounded-lg border">
 		<button
 			type="button"
 			onclick={() => (breakdownOpen = !breakdownOpen)}
@@ -293,7 +293,7 @@
 		>
 			<span class="text-neutral">Monthly equivalent</span>
 			<div class="flex items-center gap-2">
-				<span class="font-semibold text-expense tabular-nums">{fmt(monthlyTotal)}</span>
+				<span class="text-expense font-semibold tabular-nums">{fmt(monthlyTotal)}</span>
 				<ChevronDown
 					size={14}
 					class="text-neutral transition-transform duration-200 {breakdownOpen ? 'rotate-180' : ''}"
@@ -301,22 +301,22 @@
 			</div>
 		</button>
 		{#if breakdownOpen}
-			<div class="space-y-2 border-t border-border px-4 py-3">
+			<div class="border-border space-y-2 border-t px-4 py-3">
 				{#each monthlyBreakdown as row (row.recurrence)}
 					<div class="flex items-center justify-between text-xs">
-						<div class="flex min-w-0 items-center gap-2 text-neutral">
+						<div class="text-neutral flex min-w-0 items-center gap-2">
 							<span class="w-24 shrink-0 capitalize">{row.label}</span>
 							<span class="shrink-0 tabular-nums">{fmt(row.raw)}</span>
-							<span class="shrink-0 text-border">{BREAKDOWN_LABEL[row.recurrence] ?? ''}</span>
+							<span class="text-border shrink-0">{BREAKDOWN_LABEL[row.recurrence] ?? ''}</span>
 						</div>
-						<span class="ml-2 shrink-0 font-semibold text-expense tabular-nums"
+						<span class="text-expense ml-2 shrink-0 font-semibold tabular-nums"
 							>{fmt(row.monthly)}/mo</span
 						>
 					</div>
 				{/each}
-				<div class="flex items-center justify-between border-t border-border pt-2 text-xs">
-					<span class="font-semibold text-neutral">Total</span>
-					<span class="font-semibold text-expense tabular-nums">{fmt(monthlyTotal)}/mo</span>
+				<div class="border-border flex items-center justify-between border-t pt-2 text-xs">
+					<span class="text-neutral font-semibold">Total</span>
+					<span class="text-expense font-semibold tabular-nums">{fmt(monthlyTotal)}/mo</span>
 				</div>
 			</div>
 		{/if}
@@ -348,7 +348,7 @@
 			>
 				Most expensive
 			</button>
-			<span class="self-center text-xs text-border">|</span>
+			<span class="text-border self-center text-xs">|</span>
 			<button
 				type="button"
 				onclick={() => (filterStatus = 'all')}
@@ -414,7 +414,7 @@
 				Most expensive
 			</button>
 			{#if availableCategories.length > 1}
-				<span class="self-center text-xs text-border">|</span>
+				<span class="text-border self-center text-xs">|</span>
 				{#each availableCategories as cat (cat)}
 					<button
 						type="button"
@@ -477,16 +477,16 @@
 				{#each recurringView as group (group.recurrence)}
 					<div>
 						<div class="mb-2 flex items-center justify-between">
-							<p class="text-xs font-semibold tracking-widest text-neutral uppercase">
+							<p class="text-neutral text-xs font-semibold tracking-widest uppercase">
 								{group.label}
 							</p>
 							{#if group.subtotal > 0}
 								<div class="text-right">
-									<p class="text-xs font-semibold text-expense tabular-nums">
+									<p class="text-expense text-xs font-semibold tabular-nums">
 										{fmt(group.subtotal)}
 									</p>
 									{#if group.recurrence !== 'monthly'}
-										<p class="text-[10px] text-neutral tabular-nums">
+										<p class="text-neutral text-[10px] tabular-nums">
 											{fmt(group.monthlyEquiv)}/mo
 										</p>
 									{/if}
@@ -502,8 +502,8 @@
 				{/each}
 			</div>
 			{#if recurringView.length === 0}
-				<div class="rounded-xl border border-dashed border-border p-8 text-center">
-					<p class="text-sm text-neutral">No recurring expenses.</p>
+				<div class="border-border rounded-xl border border-dashed p-8 text-center">
+					<p class="text-neutral text-sm">No recurring expenses.</p>
 				</div>
 			{/if}
 		{:else if activeTab === 'once'}
@@ -513,8 +513,8 @@
 				{/each}
 			</div>
 			{#if onceView.length === 0}
-				<div class="rounded-xl border border-dashed border-border p-8 text-center">
-					<p class="text-sm text-neutral">No upcoming one-time expenses.</p>
+				<div class="border-border rounded-xl border border-dashed p-8 text-center">
+					<p class="text-neutral text-sm">No upcoming one-time expenses.</p>
 				</div>
 			{/if}
 		{:else if activeTab === 'past'}
@@ -524,8 +524,8 @@
 				{/each}
 			</div>
 			{#if pastView.length === 0}
-				<div class="rounded-xl border border-dashed border-border p-8 text-center">
-					<p class="text-sm text-neutral">Paid expenses will appear here.</p>
+				<div class="border-border rounded-xl border border-dashed p-8 text-center">
+					<p class="text-neutral text-sm">Paid expenses will appear here.</p>
 				</div>
 			{/if}
 		{/if}
@@ -536,9 +536,9 @@
 	<BottomSheet bind:open={showForm} title={editing ? 'Edit Expense' : 'New Expense'}>
 		{#if confirmDelete}
 			<div class="space-y-4 py-2">
-				<div class="rounded-xl bg-surface-muted px-4 py-4 text-center">
+				<div class="bg-surface-muted rounded-xl px-4 py-4 text-center">
 					<p class="text-sm font-medium">Delete "{editing?.name}"?</p>
-					<p class="mt-1 text-xs text-neutral">This can't be undone.</p>
+					<p class="text-neutral mt-1 text-xs">This can't be undone.</p>
 				</div>
 				<form
 					method="POST"
@@ -553,7 +553,7 @@
 					<input type="hidden" name="id" value={editing?.id} />
 					<button
 						type="submit"
-						class="w-full rounded-lg bg-expense py-3 text-sm font-semibold text-white"
+						class="bg-expense w-full rounded-lg py-3 text-sm font-semibold text-white"
 					>
 						Yes, delete
 					</button>
@@ -561,7 +561,7 @@
 				<button
 					type="button"
 					onclick={() => (confirmDelete = false)}
-					class="w-full rounded-lg py-3 text-sm font-semibold text-neutral"
+					class="text-neutral w-full rounded-lg py-3 text-sm font-semibold"
 				>
 					Cancel
 				</button>
@@ -586,7 +586,7 @@
 				<input type="hidden" name="starting_month" value={needsMonth ? form.starting_month : ''} />
 				<div class="space-y-3">
 					<div>
-						<label for="exp-name" class="mb-1 block text-xs font-medium text-neutral">Name</label>
+						<label for="exp-name" class="text-neutral mb-1 block text-xs font-medium">Name</label>
 						<input
 							id="exp-name"
 							name="name"
@@ -597,7 +597,7 @@
 					</div>
 					<div class="grid grid-cols-2 gap-3">
 						<div>
-							<label for="exp-category" class="mb-1 block text-xs font-medium text-neutral"
+							<label for="exp-category" class="text-neutral mb-1 block text-xs font-medium"
 								>Category</label
 							>
 							<select id="exp-category" name="category" bind:value={form.category} class="input">
@@ -605,7 +605,7 @@
 							</select>
 						</div>
 						<div>
-							<label for="exp-recurrence" class="mb-1 block text-xs font-medium text-neutral"
+							<label for="exp-recurrence" class="text-neutral mb-1 block text-xs font-medium"
 								>Recurrence</label
 							>
 							<select
@@ -619,7 +619,7 @@
 						</div>
 					</div>
 					<div>
-						<label for="exp-amount" class="mb-1 block text-xs font-medium text-neutral"
+						<label for="exp-amount" class="text-neutral mb-1 block text-xs font-medium"
 							>Amount</label
 						>
 						<input
@@ -634,7 +634,7 @@
 					</div>
 					{#if isOnce}
 						<div>
-							<label for="exp-due" class="mb-1 block text-xs font-medium text-neutral"
+							<label for="exp-due" class="text-neutral mb-1 block text-xs font-medium"
 								>Due date (optional)</label
 							>
 							<input id="exp-due" bind:value={form.due_date} type="date" class="input" />
@@ -648,7 +648,7 @@
 					{:else}
 						<div class="grid grid-cols-2 gap-3">
 							<div>
-								<label for="exp-dom" class="mb-1 block text-xs font-medium text-neutral"
+								<label for="exp-dom" class="text-neutral mb-1 block text-xs font-medium"
 									>Day of month</label
 								>
 								<select id="exp-dom" bind:value={form.day_of_month} class="input">
@@ -662,7 +662,7 @@
 							</div>
 							{#if needsMonth}
 								<div>
-									<label for="exp-month" class="mb-1 block text-xs font-medium text-neutral"
+									<label for="exp-month" class="text-neutral mb-1 block text-xs font-medium"
 										>Starting month</label
 									>
 									<select id="exp-month" bind:value={form.starting_month} class="input">
@@ -684,7 +684,7 @@
 				</div>
 				<button
 					type="submit"
-					class="mt-5 w-full rounded-lg bg-expense py-3 text-sm font-semibold text-white"
+					class="bg-expense mt-5 w-full rounded-lg py-3 text-sm font-semibold text-white"
 				>
 					{editing ? 'Save Changes' : 'Create Expense'}
 				</button>
@@ -692,7 +692,7 @@
 					<button
 						type="button"
 						onclick={() => (confirmDelete = true)}
-						class="mt-2 w-full rounded-lg py-3 text-sm font-semibold text-expense"
+						class="text-expense mt-2 w-full rounded-lg py-3 text-sm font-semibold"
 					>
 						Delete Expense
 					</button>

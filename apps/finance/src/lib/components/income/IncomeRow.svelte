@@ -15,9 +15,9 @@
 <button
 	type="button"
 	onclick={() => onEdit?.(income)}
-	class="flex w-full items-center gap-3 rounded-lg border bg-surface p-4 text-left shadow-sm transition-colors
+	class="bg-surface flex w-full items-center gap-3 rounded-lg border p-4 text-left shadow-sm transition-colors
 	       {once
-		? 'border-dashed border-border hover:border-income/40'
+		? 'border-border hover:border-income/40 border-dashed'
 		: 'border-border hover:border-income/30'}
 	       {once && income.received ? 'opacity-60' : ''}"
 >
@@ -31,7 +31,7 @@
 		<p class="truncate text-sm font-medium {once && income.received ? 'line-through' : ''}">
 			{income.name}
 		</p>
-		<p class="text-xs text-neutral capitalize">
+		<p class="text-neutral text-xs capitalize">
 			{#if once}
 				{#if income.expectedDate}
 					due {new Date(income.expectedDate).toLocaleDateString('en-GB', {
@@ -56,7 +56,7 @@
 		{#if income.received}
 			<CheckCircle size={14} style="color: var(--color-income);" />
 		{/if}
-		<p class="text-sm font-semibold text-income tabular-nums">
+		<p class="text-income text-sm font-semibold tabular-nums">
 			{fmt(income.amount)}
 		</p>
 		<ChevronRight size={14} class="text-neutral" />

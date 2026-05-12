@@ -187,7 +187,7 @@
 				<button
 					type="button"
 					onclick={openNew}
-					class="flex items-center gap-1 rounded-md bg-income px-3 py-1.5 text-xs font-medium text-white"
+					class="bg-income flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium text-white"
 				>
 					<Plus size={14} /> Add
 				</button>
@@ -196,15 +196,15 @@
 	</div>
 
 	<div class="mx-4 mb-4 grid grid-cols-2 gap-3">
-		<div class="rounded-lg border border-border bg-surface px-4 py-3">
-			<p class="text-xs text-neutral">Monthly expected</p>
-			<p class="mt-0.5 text-sm font-semibold text-income tabular-nums">
+		<div class="border-border bg-surface rounded-lg border px-4 py-3">
+			<p class="text-neutral text-xs">Monthly expected</p>
+			<p class="text-income mt-0.5 text-sm font-semibold tabular-nums">
 				{fmt(monthlyTotal)}
 			</p>
 		</div>
-		<div class="rounded-lg border border-border bg-surface px-4 py-3">
-			<p class="text-xs text-neutral">Received</p>
-			<p class="mt-0.5 text-sm font-semibold text-income tabular-nums">
+		<div class="border-border bg-surface rounded-lg border px-4 py-3">
+			<p class="text-neutral text-xs">Received</p>
+			<p class="text-income mt-0.5 text-sm font-semibold tabular-nums">
 				{fmt(receivedTotal)}
 			</p>
 		</div>
@@ -331,8 +331,8 @@
 				<IncomeRow {income} onEdit={openEdit} />
 			{/each}
 			{#if recurringView.length === 0}
-				<div class="rounded-xl border border-dashed border-border p-8 text-center">
-					<p class="text-sm text-neutral">No recurring income.</p>
+				<div class="border-border rounded-xl border border-dashed p-8 text-center">
+					<p class="text-neutral text-sm">No recurring income.</p>
 				</div>
 			{/if}
 		{:else if activeTab === 'once'}
@@ -340,8 +340,8 @@
 				<IncomeRow {income} once={true} onEdit={openEdit} />
 			{/each}
 			{#if onceView.length === 0}
-				<div class="rounded-xl border border-dashed border-border p-8 text-center">
-					<p class="text-sm text-neutral">No upcoming one-time income.</p>
+				<div class="border-border rounded-xl border border-dashed p-8 text-center">
+					<p class="text-neutral text-sm">No upcoming one-time income.</p>
 				</div>
 			{/if}
 		{:else if activeTab === 'past'}
@@ -349,8 +349,8 @@
 				<IncomeRow {income} once={true} onEdit={openEdit} />
 			{/each}
 			{#if pastView.length === 0}
-				<div class="rounded-xl border border-dashed border-border p-8 text-center">
-					<p class="text-sm text-neutral">Received income will appear here.</p>
+				<div class="border-border rounded-xl border border-dashed p-8 text-center">
+					<p class="text-neutral text-sm">Received income will appear here.</p>
 				</div>
 			{/if}
 		{/if}
@@ -361,9 +361,9 @@
 	<BottomSheet bind:open={showForm} title={editing ? 'Edit Income' : 'New Income'}>
 		{#if confirmDelete}
 			<div class="space-y-4 py-2">
-				<div class="rounded-xl bg-surface-muted px-4 py-4 text-center">
+				<div class="bg-surface-muted rounded-xl px-4 py-4 text-center">
 					<p class="text-sm font-medium">Delete "{editing?.name}"?</p>
-					<p class="mt-1 text-xs text-neutral">This can't be undone.</p>
+					<p class="text-neutral mt-1 text-xs">This can't be undone.</p>
 				</div>
 				<form
 					method="POST"
@@ -378,7 +378,7 @@
 					<input type="hidden" name="id" value={editing?.id} />
 					<button
 						type="submit"
-						class="w-full rounded-lg bg-income py-3 text-sm font-semibold text-white"
+						class="bg-income w-full rounded-lg py-3 text-sm font-semibold text-white"
 					>
 						Yes, delete
 					</button>
@@ -386,7 +386,7 @@
 				<button
 					type="button"
 					onclick={() => (confirmDelete = false)}
-					class="w-full rounded-lg py-3 text-sm font-semibold text-neutral"
+					class="text-neutral w-full rounded-lg py-3 text-sm font-semibold"
 				>
 					Cancel
 				</button>
@@ -411,7 +411,7 @@
 				<input type="hidden" name="starting_month" value={needsMonth ? form.starting_month : ''} />
 				<div class="space-y-3">
 					<div>
-						<label for="inc-name" class="mb-1 block text-xs font-medium text-neutral">Name</label>
+						<label for="inc-name" class="text-neutral mb-1 block text-xs font-medium">Name</label>
 						<input
 							id="inc-name"
 							name="name"
@@ -422,7 +422,7 @@
 					</div>
 					<div class="grid grid-cols-2 gap-3">
 						<div>
-							<label for="inc-amount" class="mb-1 block text-xs font-medium text-neutral"
+							<label for="inc-amount" class="text-neutral mb-1 block text-xs font-medium"
 								>Amount</label
 							>
 							<input
@@ -436,7 +436,7 @@
 							/>
 						</div>
 						<div>
-							<label for="inc-recurrence" class="mb-1 block text-xs font-medium text-neutral"
+							<label for="inc-recurrence" class="text-neutral mb-1 block text-xs font-medium"
 								>Recurrence</label
 							>
 							<select
@@ -451,7 +451,7 @@
 					</div>
 					{#if isOnce}
 						<div>
-							<label for="inc-exp-date" class="mb-1 block text-xs font-medium text-neutral"
+							<label for="inc-exp-date" class="text-neutral mb-1 block text-xs font-medium"
 								>Expected date (optional)</label
 							>
 							<input id="inc-exp-date" bind:value={form.expected_date} type="date" class="input" />
@@ -459,7 +459,7 @@
 					{:else}
 						<div class="grid grid-cols-2 gap-3">
 							<div>
-								<label for="inc-dom" class="mb-1 block text-xs font-medium text-neutral"
+								<label for="inc-dom" class="text-neutral mb-1 block text-xs font-medium"
 									>Day of month</label
 								>
 								<select id="inc-dom" bind:value={form.day_of_month} class="input">
@@ -473,7 +473,7 @@
 							</div>
 							{#if needsMonth}
 								<div>
-									<label for="inc-month" class="mb-1 block text-xs font-medium text-neutral"
+									<label for="inc-month" class="text-neutral mb-1 block text-xs font-medium"
 										>Starting month</label
 									>
 									<select id="inc-month" bind:value={form.starting_month} class="input">
@@ -495,7 +495,7 @@
 				</div>
 				<button
 					type="submit"
-					class="mt-5 w-full rounded-lg bg-income py-3 text-sm font-semibold text-white"
+					class="bg-income mt-5 w-full rounded-lg py-3 text-sm font-semibold text-white"
 				>
 					{editing ? 'Save Changes' : 'Create Income'}
 				</button>
@@ -503,7 +503,7 @@
 					<button
 						type="button"
 						onclick={() => (confirmDelete = true)}
-						class="mt-2 w-full rounded-lg py-3 text-sm font-semibold text-income"
+						class="text-income mt-2 w-full rounded-lg py-3 text-sm font-semibold"
 					>
 						Delete Income
 					</button>
