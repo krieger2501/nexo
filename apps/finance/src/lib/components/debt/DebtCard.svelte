@@ -11,9 +11,9 @@
 <button
 	type="button"
 	onclick={() => onEdit?.(debt)}
-	class="flex w-full items-center gap-3 rounded-lg border border-border
-         bg-surface p-4 text-left shadow-sm transition-colors
-         hover:border-debt/30 {debt.paid ? 'opacity-50' : ''}"
+	class="border-border bg-surface hover:border-debt/30 flex w-full items-center gap-3
+         rounded-lg border p-4 text-left shadow-sm
+         transition-colors {debt.paid ? 'opacity-50' : ''}"
 >
 	<div
 		class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
@@ -27,7 +27,7 @@
 	</div>
 	<div class="min-w-0 flex-1">
 		<p class="truncate text-sm font-medium">{debt.counterparty}</p>
-		<p class="text-xs text-neutral">
+		<p class="text-neutral text-xs">
 			{debt.direction === 'owe' ? 'I owe' : 'Owed to me'}
 			{#if debt.dueDate}
 				· due {new Date(debt.dueDate).toLocaleDateString('en-GB', {

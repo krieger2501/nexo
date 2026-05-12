@@ -28,7 +28,7 @@
 </script>
 
 <div
-	class="flex items-center gap-3.5 rounded-2xl border border-border bg-surface p-4
+	class="border-border bg-surface flex items-center gap-3.5 rounded-2xl border p-4
 	       shadow-sm transition-shadow hover:shadow-md"
 >
 	<div
@@ -39,12 +39,12 @@
 	</div>
 	<div class="min-w-0 flex-1">
 		<p class="truncate text-sm font-semibold">{account.name}</p>
-		<p class="text-xs text-neutral capitalize">{account.type}</p>
+		<p class="text-neutral text-xs capitalize">{account.type}</p>
 	</div>
 	<div class="text-right">
 		<p class="text-sm font-semibold tabular-nums">{fmt(account.balance)}</p>
 		{#if !account.includeInTotal}
-			<p class="text-[10px] text-neutral">excluded</p>
+			<p class="text-neutral text-[10px]">excluded</p>
 		{/if}
 	</div>
 </div>

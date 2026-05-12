@@ -37,8 +37,8 @@
 </script>
 
 <div
-	class="flex w-full items-center gap-3 rounded-lg border bg-surface text-left shadow-sm transition-colors
-	       {once ? 'border-dashed border-border' : 'border-border'}
+	class="bg-surface flex w-full items-center gap-3 rounded-lg border text-left shadow-sm transition-colors
+	       {once ? 'border-border border-dashed' : 'border-border'}
 	       {isPaid ? 'opacity-60' : ''}"
 >
 	<button
@@ -54,7 +54,7 @@
 		</div>
 		<div class="min-w-0 flex-1">
 			<p class="truncate text-sm font-medium {isPaid ? 'line-through' : ''}">{expense.name}</p>
-			<p class="text-xs text-neutral capitalize">
+			<p class="text-neutral text-xs capitalize">
 				{#if once}
 					{#if expense.dueDate}
 						due {new Date(expense.dueDate).toLocaleDateString('en-GB', {
@@ -74,14 +74,14 @@
 	</button>
 	<div class="flex shrink-0 items-center gap-1 pr-4">
 		<div class="text-right">
-			<p class="text-sm font-semibold text-expense tabular-nums">
+			<p class="text-expense text-sm font-semibold tabular-nums">
 				{fmt(expense.amount)}
 			</p>
 			{#if showMonthly}
 				<button
 					type="button"
 					onclick={() => (breakdownOpen = !breakdownOpen)}
-					class="text-[10px] text-neutral tabular-nums transition-colors hover:text-expense"
+					class="text-neutral hover:text-expense text-[10px] tabular-nums transition-colors"
 				>
 					{fmt(monthlyEquiv)}/mo
 				</button>
@@ -94,13 +94,13 @@
 </div>
 
 {#if breakdownOpen}
-	<div class="mx-1 -mt-1 rounded-b-lg border border-t-0 border-border bg-surface-muted px-4 py-3">
-		<p class="mb-2 text-[11px] font-semibold tracking-wider text-neutral uppercase">
+	<div class="border-border bg-surface-muted mx-1 -mt-1 rounded-b-lg border border-t-0 px-4 py-3">
+		<p class="text-neutral mb-2 text-[11px] font-semibold tracking-wider uppercase">
 			Monthly breakdown
 		</p>
 		<div class="flex items-center justify-between text-xs">
 			<span class="text-neutral">{fmt(expense.amount)} {BREAKDOWN_LABEL[expense.recurrence]}</span>
-			<span class="font-semibold text-expense tabular-nums">= {fmt(monthlyEquiv)}/mo</span>
+			<span class="text-expense font-semibold tabular-nums">= {fmt(monthlyEquiv)}/mo</span>
 		</div>
 	</div>
 {/if}

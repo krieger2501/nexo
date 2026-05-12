@@ -12,7 +12,7 @@
 	} = $props();
 </script>
 
-<div class="flex min-h-11 items-stretch rounded-full border border-border bg-surface-muted p-1">
+<div class="border-border bg-surface-muted flex min-h-11 items-stretch rounded-full border p-1">
 	{#each tabs as tab (tab.id)}
 		<button
 			type="button"

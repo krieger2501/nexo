@@ -24,7 +24,7 @@
 
 	{#if data.accounts.length > 0}
 		<section>
-			<p class="mb-2 text-xs font-semibold tracking-widest text-neutral uppercase">Accounts</p>
+			<p class="text-neutral mb-2 text-xs font-semibold tracking-widest uppercase">Accounts</p>
 			<div class="space-y-2">
 				{#each data.accounts as account (account.id)}
 					<a href="/accounts" class="block">
@@ -38,9 +38,9 @@
 	<UpcomingEvents events={data.upcoming} />
 
 	{#if data.accounts.length === 0}
-		<div class="rounded-xl border border-dashed border-border p-8 text-center">
-			<p class="text-sm font-medium text-neutral">No accounts yet</p>
-			<p class="mt-1 text-xs text-neutral">
+		<div class="border-border rounded-xl border border-dashed p-8 text-center">
+			<p class="text-neutral text-sm font-medium">No accounts yet</p>
+			<p class="text-neutral mt-1 text-xs">
 				<a href="/accounts" class="text-primary-500 underline-offset-2 hover:underline">
 					Add your first account
 				</a>

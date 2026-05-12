@@ -33,7 +33,7 @@
 						type="text"
 						value={data.displayName}
 						placeholder="Your name"
-						class="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm outline-none focus:ring-2 focus:ring-primary-500/40"
+						class="border-border bg-surface focus:ring-primary-500/40 h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
 					/>
 				</div>
 			</CardContent>
@@ -49,7 +49,7 @@
 					<select
 						id="currency"
 						name="currency"
-						class="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm outline-none focus:ring-2 focus:ring-primary-500/40"
+						class="border-border bg-surface focus:ring-primary-500/40 h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
 					>
 						{#each currencies as c (c.code)}
 							<option value={c.code} selected={data.currency === c.code}>{c.label}</option>
@@ -62,7 +62,7 @@
 					<select
 						id="weekStartDay"
 						name="weekStartDay"
-						class="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm outline-none focus:ring-2 focus:ring-primary-500/40"
+						class="border-border bg-surface focus:ring-primary-500/40 h-10 w-full rounded-lg border px-3 text-sm outline-none focus:ring-2"
 					>
 						<option value="monday" selected={data.weekStartDay === 'monday'}>Monday</option>
 						<option value="sunday" selected={data.weekStartDay === 'sunday'}>Sunday</option>
@@ -72,16 +72,16 @@
 		</Card>
 
 		{#if form?.error}
-			<p class="text-sm text-expense">{form.error}</p>
+			<p class="text-expense text-sm">{form.error}</p>
 		{/if}
 
 		{#if form?.success}
-			<p class="text-sm text-income">Settings saved.</p>
+			<p class="text-income text-sm">Settings saved.</p>
 		{/if}
 
 		<button
 			type="submit"
-			class="h-10 w-full rounded-xl bg-primary-500 text-sm font-semibold text-white transition-colors hover:bg-primary-600 active:bg-primary-700"
+			class="bg-primary-500 hover:bg-primary-600 active:bg-primary-700 h-10 w-full rounded-xl text-sm font-semibold text-white transition-colors"
 		>
 			Save
 		</button>

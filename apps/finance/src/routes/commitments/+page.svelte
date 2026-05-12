@@ -107,13 +107,13 @@
 	<!-- Account allocation summary -->
 	{#if data.accounts.length > 0}
 		<div class="mb-4 px-4">
-			<p class="mb-2 text-xs font-semibold tracking-widest text-neutral uppercase">
+			<p class="text-neutral mb-2 text-xs font-semibold tracking-widest uppercase">
 				Fund Allocation
 			</p>
 			<div class="space-y-2">
 				{#each data.accounts as account (account.id)}
 					{@const em = data.earmarks[account.id] ?? { earmarked: 0, available: account.balance }}
-					<div class="rounded-lg border border-border bg-surface px-4 py-3">
+					<div class="border-border bg-surface rounded-lg border px-4 py-3">
 						<div class="flex items-center justify-between">
 							<div class="flex items-center gap-2">
 								{#if account.color}
@@ -124,13 +124,13 @@
 								{/if}
 								<p class="text-sm font-medium">{account.name}</p>
 							</div>
-							<p class="text-xs text-neutral">{fmt(account.balance)}</p>
+							<p class="text-neutral text-xs">{fmt(account.balance)}</p>
 						</div>
 						{#if em.earmarked > 0}
 							<div class="mt-2 space-y-1">
 								<div class="flex justify-between text-xs">
 									<span class="text-neutral">Earmarked</span>
-									<span class="font-medium text-expense tabular-nums">{fmt(em.earmarked)}</span>
+									<span class="text-expense font-medium tabular-nums">{fmt(em.earmarked)}</span>
 								</div>
 								<div class="flex justify-between text-xs">
 									<span class="text-neutral">Available</span>
@@ -142,7 +142,7 @@
 										{fmt(em.available)}
 									</span>
 								</div>
-								<div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-muted">
+								<div class="bg-surface-muted mt-1.5 h-1.5 overflow-hidden rounded-full">
 									<div
 										class="h-full rounded-full transition-all {em.available < 0
 											? 'bg-expense'
@@ -152,7 +152,7 @@
 								</div>
 							</div>
 						{:else}
-							<p class="mt-1 text-xs text-neutral">Nothing earmarked</p>
+							<p class="text-neutral mt-1 text-xs">Nothing earmarked</p>
 						{/if}
 					</div>
 				{/each}
@@ -163,19 +163,19 @@
 	<!-- One-time expenses -->
 	<div class="px-4">
 		<div class="mb-2 flex items-center justify-between">
-			<p class="text-xs font-semibold tracking-widest text-neutral uppercase">Upcoming Expenses</p>
+			<p class="text-neutral text-xs font-semibold tracking-widest uppercase">Upcoming Expenses</p>
 			<button
 				type="button"
 				onclick={openNewExpense}
-				class="flex items-center gap-1 rounded-md bg-expense px-2.5 py-1 text-xs font-medium text-white"
+				class="bg-expense flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-white"
 			>
 				<Plus size={12} /> Add
 			</button>
 		</div>
 
 		{#if data.expenses.length === 0}
-			<div class="rounded-xl border border-dashed border-border p-6 text-center">
-				<p class="text-sm text-neutral">No upcoming one-time expenses.</p>
+			<div class="border-border rounded-xl border border-dashed p-6 text-center">
+				<p class="text-neutral text-sm">No upcoming one-time expenses.</p>
 			</div>
 		{:else}
 			<div class="space-y-2">
@@ -184,7 +184,7 @@
 					<button
 						type="button"
 						onclick={() => openEditExpense(expense)}
-						class="flex w-full items-center gap-3 rounded-lg border border-border bg-surface p-4 text-left shadow-sm transition-colors hover:border-expense/30"
+						class="border-border bg-surface hover:border-expense/30 flex w-full items-center gap-3 rounded-lg border p-4 text-left shadow-sm transition-colors"
 					>
 						<div
 							class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold"
@@ -194,7 +194,7 @@
 						</div>
 						<div class="min-w-0 flex-1">
 							<p class="truncate text-sm font-medium">{expense.name}</p>
-							<p class="text-xs text-neutral">
+							<p class="text-neutral text-xs">
 								{#if expense.dueDate}
 									Due {new Date(expense.dueDate).toLocaleDateString('en-GB', {
 										day: 'numeric',
@@ -212,7 +212,7 @@
 							</p>
 						</div>
 						<div class="flex items-center gap-1">
-							<p class="text-sm font-semibold text-expense tabular-nums">{fmt(expense.amount)}</p>
+							<p class="text-expense text-sm font-semibold tabular-nums">{fmt(expense.amount)}</p>
 							<ChevronRight size={14} class="text-neutral" />
 						</div>
 					</button>
@@ -221,7 +221,7 @@
 		{/if}
 
 		{#if unallocatedExpenses.length > 0}
-			<p class="mt-2 text-xs text-neutral">
+			<p class="text-neutral mt-2 text-xs">
 				{unallocatedExpenses.length} expense{unallocatedExpenses.length === 1 ? '' : 's'} not linked to
 				an account
 			</p>
@@ -231,19 +231,19 @@
 	<!-- Debts -->
 	<div class="mt-5 px-4">
 		<div class="mb-2 flex items-center justify-between">
-			<p class="text-xs font-semibold tracking-widest text-neutral uppercase">Open Debts</p>
+			<p class="text-neutral text-xs font-semibold tracking-widest uppercase">Open Debts</p>
 			<button
 				type="button"
 				onclick={openNewDebt}
-				class="flex items-center gap-1 rounded-md bg-debt px-2.5 py-1 text-xs font-medium text-white"
+				class="bg-debt flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-white"
 			>
 				<Plus size={12} /> Add
 			</button>
 		</div>
 
 		{#if data.debts.length === 0}
-			<div class="rounded-xl border border-dashed border-border p-6 text-center">
-				<p class="text-sm text-neutral">No open debts.</p>
+			<div class="border-border rounded-xl border border-dashed p-6 text-center">
+				<p class="text-neutral text-sm">No open debts.</p>
 			</div>
 		{:else}
 			<div class="space-y-2">
@@ -253,7 +253,7 @@
 					<button
 						type="button"
 						onclick={() => openEditDebt(debt)}
-						class="flex w-full items-center gap-3 rounded-lg border border-border bg-surface p-4 text-left shadow-sm transition-colors hover:border-debt/30"
+						class="border-border bg-surface hover:border-debt/30 flex w-full items-center gap-3 rounded-lg border p-4 text-left shadow-sm transition-colors"
 					>
 						<div
 							class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
@@ -267,7 +267,7 @@
 						</div>
 						<div class="min-w-0 flex-1">
 							<p class="truncate text-sm font-medium">{debt.counterparty}</p>
-							<p class="text-xs text-neutral">
+							<p class="text-neutral text-xs">
 								{debt.direction === 'owe' ? 'I owe' : 'Owed to me'}
 								{#if debt.dueDate}
 									· due {new Date(debt.dueDate).toLocaleDateString('en-GB', {
@@ -295,7 +295,7 @@
 		{/if}
 
 		{#if unallocatedDebts.length > 0}
-			<p class="mt-2 text-xs text-neutral">
+			<p class="text-neutral mt-2 text-xs">
 				{unallocatedDebts.length} debt{unallocatedDebts.length === 1 ? '' : 's'} not linked to an account
 			</p>
 		{/if}
@@ -303,10 +303,10 @@
 
 	<!-- Total -->
 	{#if totalCommitted > 0}
-		<div class="mx-4 mt-5 rounded-lg border border-border bg-surface px-4 py-3">
+		<div class="border-border bg-surface mx-4 mt-5 rounded-lg border px-4 py-3">
 			<div class="flex items-center justify-between">
-				<p class="text-sm text-neutral">Total committed</p>
-				<p class="text-sm font-semibold text-expense tabular-nums">{fmt(totalCommitted)}</p>
+				<p class="text-neutral text-sm">Total committed</p>
+				<p class="text-expense text-sm font-semibold tabular-nums">{fmt(totalCommitted)}</p>
 			</div>
 		</div>
 	{/if}
@@ -317,9 +317,9 @@
 	<BottomSheet bind:open={showExpenseForm} title={editingExpense ? 'Edit Expense' : 'New Expense'}>
 		{#if confirmDeleteExpense}
 			<div class="space-y-4 py-2">
-				<div class="rounded-xl bg-surface-muted px-4 py-4 text-center">
+				<div class="bg-surface-muted rounded-xl px-4 py-4 text-center">
 					<p class="text-sm font-medium">Delete "{editingExpense?.name}"?</p>
-					<p class="mt-1 text-xs text-neutral">This can't be undone.</p>
+					<p class="text-neutral mt-1 text-xs">This can't be undone.</p>
 				</div>
 				<form
 					method="POST"
@@ -334,7 +334,7 @@
 					<input type="hidden" name="id" value={editingExpense?.id} />
 					<button
 						type="submit"
-						class="w-full rounded-lg bg-expense py-3 text-sm font-semibold text-white"
+						class="bg-expense w-full rounded-lg py-3 text-sm font-semibold text-white"
 					>
 						Yes, delete
 					</button>
@@ -342,7 +342,7 @@
 				<button
 					type="button"
 					onclick={() => (confirmDeleteExpense = false)}
-					class="w-full rounded-lg py-3 text-sm font-semibold text-neutral"
+					class="text-neutral w-full rounded-lg py-3 text-sm font-semibold"
 				>
 					Cancel
 				</button>
@@ -363,7 +363,7 @@
 				{/if}
 				<div class="space-y-3">
 					<div>
-						<label for="exp-name" class="mb-1 block text-xs font-medium text-neutral">Name</label>
+						<label for="exp-name" class="text-neutral mb-1 block text-xs font-medium">Name</label>
 						<input
 							id="exp-name"
 							name="name"
@@ -373,7 +373,7 @@
 						/>
 					</div>
 					<div>
-						<label for="exp-amount" class="mb-1 block text-xs font-medium text-neutral"
+						<label for="exp-amount" class="text-neutral mb-1 block text-xs font-medium"
 							>Amount</label
 						>
 						<input
@@ -387,7 +387,7 @@
 						/>
 					</div>
 					<div>
-						<label for="exp-due" class="mb-1 block text-xs font-medium text-neutral">
+						<label for="exp-due" class="text-neutral mb-1 block text-xs font-medium">
 							Due date (optional)
 						</label>
 						<input
@@ -399,7 +399,7 @@
 						/>
 					</div>
 					<div>
-						<label for="exp-account" class="mb-1 block text-xs font-medium text-neutral">
+						<label for="exp-account" class="text-neutral mb-1 block text-xs font-medium">
 							Account (optional)
 						</label>
 						<select
@@ -415,7 +415,7 @@
 						</select>
 					</div>
 					<div>
-						<label for="exp-notes" class="mb-1 block text-xs font-medium text-neutral">
+						<label for="exp-notes" class="text-neutral mb-1 block text-xs font-medium">
 							Notes (optional)
 						</label>
 						<input
@@ -429,7 +429,7 @@
 				</div>
 				<button
 					type="submit"
-					class="mt-5 w-full rounded-lg bg-expense py-3 text-sm font-semibold text-white"
+					class="bg-expense mt-5 w-full rounded-lg py-3 text-sm font-semibold text-white"
 				>
 					{editingExpense ? 'Save Changes' : 'Create Expense'}
 				</button>
@@ -437,7 +437,7 @@
 					<button
 						type="button"
 						onclick={() => (confirmDeleteExpense = true)}
-						class="mt-2 w-full rounded-lg py-3 text-sm font-semibold text-expense"
+						class="text-expense mt-2 w-full rounded-lg py-3 text-sm font-semibold"
 					>
 						Delete Expense
 					</button>
@@ -452,9 +452,9 @@
 	<BottomSheet bind:open={showDebtForm} title={editingDebt ? 'Edit Debt' : 'New Debt'}>
 		{#if confirmDeleteDebt}
 			<div class="space-y-4 py-2">
-				<div class="rounded-xl bg-surface-muted px-4 py-4 text-center">
+				<div class="bg-surface-muted rounded-xl px-4 py-4 text-center">
 					<p class="text-sm font-medium">Delete debt with "{editingDebt?.counterparty}"?</p>
-					<p class="mt-1 text-xs text-neutral">This can't be undone.</p>
+					<p class="text-neutral mt-1 text-xs">This can't be undone.</p>
 				</div>
 				<form
 					method="POST"
@@ -469,7 +469,7 @@
 					<input type="hidden" name="id" value={editingDebt?.id} />
 					<button
 						type="submit"
-						class="w-full rounded-lg bg-debt py-3 text-sm font-semibold text-white"
+						class="bg-debt w-full rounded-lg py-3 text-sm font-semibold text-white"
 					>
 						Yes, delete
 					</button>
@@ -477,7 +477,7 @@
 				<button
 					type="button"
 					onclick={() => (confirmDeleteDebt = false)}
-					class="w-full rounded-lg py-3 text-sm font-semibold text-neutral"
+					class="text-neutral w-full rounded-lg py-3 text-sm font-semibold"
 				>
 					Cancel
 				</button>
@@ -498,7 +498,7 @@
 				{/if}
 				<div class="space-y-3">
 					<div>
-						<label for="dbt-direction" class="mb-1 block text-xs font-medium text-neutral"
+						<label for="dbt-direction" class="text-neutral mb-1 block text-xs font-medium"
 							>Direction</label
 						>
 						<select
@@ -512,7 +512,7 @@
 						</select>
 					</div>
 					<div>
-						<label for="dbt-counterparty" class="mb-1 block text-xs font-medium text-neutral">
+						<label for="dbt-counterparty" class="text-neutral mb-1 block text-xs font-medium">
 							Person / entity
 						</label>
 						<input
@@ -524,7 +524,7 @@
 						/>
 					</div>
 					<div>
-						<label for="dbt-amount" class="mb-1 block text-xs font-medium text-neutral"
+						<label for="dbt-amount" class="text-neutral mb-1 block text-xs font-medium"
 							>Amount</label
 						>
 						<input
@@ -538,7 +538,7 @@
 						/>
 					</div>
 					<div>
-						<label for="dbt-due" class="mb-1 block text-xs font-medium text-neutral">
+						<label for="dbt-due" class="text-neutral mb-1 block text-xs font-medium">
 							Due date (optional)
 						</label>
 						<input
@@ -550,7 +550,7 @@
 						/>
 					</div>
 					<div>
-						<label for="dbt-account" class="mb-1 block text-xs font-medium text-neutral">
+						<label for="dbt-account" class="text-neutral mb-1 block text-xs font-medium">
 							Account (optional)
 						</label>
 						<select
@@ -566,7 +566,7 @@
 						</select>
 					</div>
 					<div>
-						<label for="dbt-notes" class="mb-1 block text-xs font-medium text-neutral">
+						<label for="dbt-notes" class="text-neutral mb-1 block text-xs font-medium">
 							Notes (optional)
 						</label>
 						<input
@@ -580,7 +580,7 @@
 				</div>
 				<button
 					type="submit"
-					class="mt-5 w-full rounded-lg bg-debt py-3 text-sm font-semibold text-white"
+					class="bg-debt mt-5 w-full rounded-lg py-3 text-sm font-semibold text-white"
 				>
 					{editingDebt ? 'Save Changes' : 'Create Debt'}
 				</button>
@@ -589,14 +589,14 @@
 						<button
 							type="submit"
 							form="mark-debt-paid-form"
-							class="rounded-lg bg-income py-3 text-sm font-semibold text-white"
+							class="bg-income rounded-lg py-3 text-sm font-semibold text-white"
 						>
 							Mark Paid
 						</button>
 						<button
 							type="button"
 							onclick={() => (confirmDeleteDebt = true)}
-							class="rounded-lg py-3 text-sm font-semibold text-debt"
+							class="text-debt rounded-lg py-3 text-sm font-semibold"
 						>
 							Delete
 						</button>

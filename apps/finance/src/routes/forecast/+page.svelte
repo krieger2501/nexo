@@ -121,8 +121,8 @@
 	</div>
 
 	<div class="mx-4 mb-4 grid grid-cols-2 gap-3">
-		<div class="rounded-lg border border-border bg-surface px-4 py-3">
-			<p class="text-xs text-neutral">Today</p>
+		<div class="border-border bg-surface rounded-lg border px-4 py-3">
+			<p class="text-neutral text-xs">Today</p>
 			<p
 				class="mt-0.5 text-sm font-semibold tabular-nums {currentBalance >= 0
 					? 'text-income'
@@ -131,8 +131,8 @@
 				{fmt(currentBalance)}
 			</p>
 		</div>
-		<div class="rounded-lg border border-border bg-surface px-4 py-3">
-			<p class="text-xs text-neutral">In 90 days</p>
+		<div class="border-border bg-surface rounded-lg border px-4 py-3">
+			<p class="text-neutral text-xs">In 90 days</p>
 
 			<p
 				class="mt-0.5 text-sm font-semibold tabular-nums {endBalance >= 0
@@ -145,8 +145,8 @@
 	</div>
 
 	{#if minBalance < 0}
-		<div class="mx-4 mb-4 rounded-lg border border-expense/30 bg-expense/5 px-4 py-3">
-			<p class="text-xs font-medium text-expense">
+		<div class="border-expense/30 bg-expense/5 mx-4 mb-4 rounded-lg border px-4 py-3">
+			<p class="text-expense text-xs font-medium">
 				⚠️ Balance goes negative{firstNegativeDate ? ` on ${fmtDate(firstNegativeDate)}` : ''}.
 				Lowest: {fmt(minBalance)}
 			</p>
@@ -156,9 +156,9 @@
 	<div class="space-y-1 px-4">
 		{#each forecast() as point (point.date.toISOString())}
 			{#if point.events.length > 0}
-				<div class="rounded-lg border border-border bg-surface p-3">
+				<div class="border-border bg-surface rounded-lg border p-3">
 					<div class="mb-2 flex items-center justify-between">
-						<p class="text-xs font-semibold text-neutral">{fmtDate(point.date)}</p>
+						<p class="text-neutral text-xs font-semibold">{fmtDate(point.date)}</p>
 						<p
 							class="text-xs font-semibold tabular-nums {point.balance >= 0
 								? 'text-income'
@@ -189,9 +189,9 @@
 		{/each}
 
 		{#if forecast().filter((p) => p.events.length > 0).length === 0}
-			<div class="rounded-xl border border-dashed border-border p-8 text-center">
-				<p class="text-sm text-neutral">No upcoming cashflow events in the next 90 days.</p>
-				<p class="mt-1 text-xs text-neutral">
+			<div class="border-border rounded-xl border border-dashed p-8 text-center">
+				<p class="text-neutral text-sm">No upcoming cashflow events in the next 90 days.</p>
+				<p class="text-neutral mt-1 text-xs">
 					Add expenses, income, or debts with due dates to see your forecast.
 				</p>
 			</div>

@@ -51,10 +51,10 @@
 		onclick={toggle}
 		aria-label="Account menu"
 		aria-expanded={open}
-		class="relative flex size-9 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+		class="focus-visible:outline-primary-500 relative flex size-9 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2"
 	>
 		<span
-			class="flex size-9 items-center justify-center rounded-full bg-primary-100 text-[13px] font-semibold text-primary-600 ring-2 ring-border"
+			class="bg-primary-100 text-primary-600 ring-border flex size-9 items-center justify-center rounded-full text-[13px] font-semibold ring-2"
 		>
 			{initials}
 		</span>
@@ -62,7 +62,7 @@
 			<img
 				src={avatarUrl}
 				alt={name}
-				class="absolute inset-0 size-9 rounded-full object-cover ring-2 ring-border transition-opacity duration-200 {avatarLoaded
+				class="ring-border absolute inset-0 size-9 rounded-full object-cover ring-2 transition-opacity duration-200 {avatarLoaded
 					? 'opacity-100'
 					: 'opacity-0'}"
 				onload={() => (avatarLoaded = true)}
@@ -83,14 +83,14 @@
 		></button>
 
 		<div
-			class="absolute top-full right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-border bg-surface shadow-lg"
+			class="border-border bg-surface absolute top-full right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border shadow-lg"
 			role="menu"
 		>
 			<!-- User info header -->
 			<div class="flex items-center gap-3 px-4 py-3">
 				<div class="relative size-10 flex-shrink-0">
 					<span
-						class="flex size-10 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-600"
+						class="bg-primary-100 text-primary-600 flex size-10 items-center justify-center rounded-full text-sm font-semibold"
 					>
 						{initials}
 					</span>
@@ -108,7 +108,7 @@
 				</div>
 				<div class="min-w-0">
 					<p class="truncate text-sm font-semibold">{name}</p>
-					<p class="truncate text-[11px] text-neutral">{user.email}</p>
+					<p class="text-neutral truncate text-[11px]">{user.email}</p>
 				</div>
 			</div>
 
@@ -116,15 +116,15 @@
 				<span class="text-faint text-[10px]">v{env.PUBLIC_APP_VERSION}</span>
 			</div>
 
-			<div class="h-px bg-border"></div>
+			<div class="bg-border h-px"></div>
 
 			<!-- Settings -->
 			<a
 				href="/settings"
 				onclick={close}
-				class="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-surface-muted {currentPath ===
+				class="hover:bg-surface-muted flex items-center gap-3 px-4 py-2.5 text-sm transition-colors {currentPath ===
 				'/settings'
-					? 'font-medium text-primary-500'
+					? 'text-primary-500 font-medium'
 					: ''}"
 				role="menuitem"
 			>
@@ -132,13 +132,13 @@
 				Settings
 			</a>
 
-			<div class="h-px bg-border"></div>
+			<div class="bg-border h-px"></div>
 
 			<!-- Sign out -->
 			<form method="post" action="/auth/sign-out">
 				<button
 					type="submit"
-					class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-expense transition-colors hover:bg-surface-muted"
+					class="text-expense hover:bg-surface-muted flex w-full items-center gap-3 px-4 py-2.5 text-sm transition-colors"
 					role="menuitem"
 				>
 					<LogOut size={16} stroke-width={1.75} />

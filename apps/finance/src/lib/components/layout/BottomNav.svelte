@@ -59,8 +59,8 @@
 {/if}
 
 <nav
-	class="fixed right-0 bottom-0 left-0 z-50 flex min-h-(--bottom-nav-height) items-center
-	       justify-around border-t border-border bg-surface/95 px-1 backdrop-blur-md"
+	class="border-border bg-surface/95 fixed right-0 bottom-0 left-0 z-50 flex
+	       min-h-(--bottom-nav-height) items-center justify-around border-t px-1 backdrop-blur-md"
 	style="padding-bottom: env(safe-area-inset-bottom);"
 >
 	{#each topLeft as item (item.href)}
@@ -72,7 +72,7 @@
 			       {active ? 'text-primary-500' : 'text-neutral hover:text-primary-400'}"
 		>
 			{#if active}
-				<span class="absolute top-0 h-0.5 w-5 rounded-full bg-primary-500"></span>
+				<span class="bg-primary-500 absolute top-0 h-0.5 w-5 rounded-full"></span>
 			{/if}
 			<item.icon size={20} stroke-width={active ? 2.5 : 1.75} />
 			<span class="text-[10px] leading-none font-medium">{item.label}</span>
@@ -83,8 +83,8 @@
 	<div class="relative flex flex-1 flex-col items-center">
 		{#if popoverOpen}
 			<div
-				class="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 overflow-hidden
-				       rounded-xl border border-border bg-surface shadow-lg"
+				class="border-border bg-surface absolute bottom-full left-1/2 mb-2
+				       -translate-x-1/2 overflow-hidden rounded-xl border shadow-lg"
 				style="width: 188px;"
 			>
 				<div class="grid grid-cols-2">
@@ -114,7 +114,7 @@
 			       {groupActive || popoverOpen ? 'text-primary-500' : 'text-neutral hover:text-primary-400'}"
 		>
 			{#if groupActive}
-				<span class="absolute top-0 h-0.5 w-5 rounded-full bg-primary-500"></span>
+				<span class="bg-primary-500 absolute top-0 h-0.5 w-5 rounded-full"></span>
 			{/if}
 			<Layers size={20} stroke-width={groupActive || popoverOpen ? 2.5 : 1.75} />
 			<span class="text-[10px] leading-none font-medium">Flows</span>
@@ -130,7 +130,7 @@
 			       {active ? 'text-primary-500' : 'text-neutral hover:text-primary-400'}"
 		>
 			{#if active}
-				<span class="absolute top-0 h-0.5 w-5 rounded-full bg-primary-500"></span>
+				<span class="bg-primary-500 absolute top-0 h-0.5 w-5 rounded-full"></span>
 			{/if}
 			<item.icon size={20} stroke-width={active ? 2.5 : 1.75} />
 			<span class="text-[10px] leading-none font-medium">{item.label}</span>
