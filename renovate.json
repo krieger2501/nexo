@@ -91,7 +91,7 @@
 			"matchManagers": ["github-actions"],
 			"automerge": true,
 			"automergeType": "pr",
-			"automergeStrategy": "squash"
+			"automergeStrategy": "rebase"
 		},
 		{
 			"description": "Automerge non-major devDependencies",
@@ -99,7 +99,7 @@
 			"matchUpdateTypes": ["minor", "patch"],
 			"automerge": true,
 			"automergeType": "pr",
-			"automergeStrategy": "squash"
+			"automergeStrategy": "rebase"
 		}
 	]
 }

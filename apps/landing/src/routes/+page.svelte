@@ -161,7 +161,7 @@
 		</div>
 
 		<div class="reveal grid grid-cols-1 gap-4 sm:grid-cols-2" style="transition-delay: 60ms">
-			{#each apps as app}
+			{#each apps as app (app.id)}
 				<a
 					href={app.href}
 					data-app={app.id}
@@ -224,7 +224,7 @@
 			style="transition-delay: 60ms"
 		>
 			<div class="flex flex-col gap-0.5">
-				{#each steps as s, i}
+				{#each steps as s, i (s.title)}
 					<button
 						type="button"
 						class="step"
