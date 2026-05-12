@@ -127,11 +127,14 @@ const webhooks = new Webhooks({ secret: GH_WEBHOOK_SECRET! });
 
 webhooks.on(['pull_request.opened', 'pull_request.reopened'], async ({ payload }) => {
 	const octokit = await getInstallationOctokit();
+	const prNumber = payload.pull_request.number;
+	const existing = await findBotComment(octokit, prNumber);
+	if (existing) return;
 	await octokit.issues.createComment({
 		owner: GH_REPO_OWNER!,
 		repo: GH_REPO_NAME!,
-		issue_number: payload.pull_request.number,
-		body: IDLE_COMMENT(payload.pull_request.number)
+		issue_number: prNumber,
+		body: IDLE_COMMENT(prNumber)
 	});
 });
 
