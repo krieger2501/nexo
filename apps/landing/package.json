@@ -6,13 +6,10 @@
 	"scripts": {
 		"build": "vite build",
 		"dev": "vite dev --port 3000",
-		"format": "prettier --write .",
-		"format:check": "prettier --check .",
-		"knip": "svelte-kit sync && knip",
-		"package:check": "sort-package-json --check",
-		"package:format": "sort-package-json",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
 		"preview": "vite preview",
-		"qc": "run-s package:check format:check knip type:check build",
+		"qc": "run-s lint type:check build",
 		"type:check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"type:check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},
@@ -22,16 +19,9 @@
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@tailwindcss/vite": "^4.3.0",
 		"@types/node": "catalog:",
-		"knip": "^6.12.2",
-		"npm-run-all2": "^8.0.4",
-		"prettier": "^3.8.3",
-		"prettier-plugin-svelte": "^3.5.1",
-		"prettier-plugin-tailwindcss": "^0.8.0",
-		"sort-package-json": "^3.6.1",
 		"svelte": "^5.55.5",
 		"svelte-check": "^4.4.8",
 		"tailwindcss": "^4.3.0",
-		"typescript": "^6.0.3",
 		"vite": "^8.0.11"
 	}
 }
