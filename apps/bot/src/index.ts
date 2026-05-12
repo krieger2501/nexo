@@ -57,17 +57,6 @@ const DEPLOYING_COMMENT = (prNumber: number, sha: string) =>
 		MARKER(prNumber)
 	].join('\n');
 
-const DEPLOYED_COMMENT = (prNumber: number, sha: string) =>
-	[
-		'### Nexo Preview',
-		'',
-		`**Status:** ✅ Live at \`${sha.slice(0, 7)}\``,
-		'',
-		'- [x] Deploy to preview environment',
-		'',
-		MARKER(prNumber)
-	].join('\n');
-
 const STALE_COMMENT = (prNumber: number, liveSha: string, newSha: string) =>
 	[
 		'### Nexo Preview',
