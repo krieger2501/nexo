@@ -8,13 +8,16 @@ Nexo is a monorepo of independent SvelteKit apps that share a single PostgreSQL 
 nexo/
 ├── apps/
 │   ├── auth/        → auth.krieger2501.de   — OIDC provider, login UI
+│   ├── admin/       → admin.krieger2501.de  — Admin dashboard
 │   ├── finance/     → finance.krieger2501.de — Finance PWA
 │   ├── landing/     → krieger2501.de         — App directory, not a PWA
+│   ├── bot/         → internal               — GitHub webhook bot
 │   ├── gym/         → (planned)
 │   ├── time/        → (planned)
 │   └── pomodoro/    → (planned)
 └── packages/
-    └── db/          → shared Drizzle schemas + migration runner
+    ├── db/          → shared Drizzle schemas + migration runner
+    └── email/       → shared email templates (React Email)
 ```
 
 ---
@@ -58,6 +61,7 @@ nexo (database)
 │   ├── expenses           — recurring and one-off expenses
 │   ├── income             — recurring and one-off income
 │   ├── debts              — money owed to/from others
+│   ├── commitments        — financial commitments / planned spend
 │   └── user_settings      — per-user preferences (currency, display name)
 ├── gym (schema)           — planned
 ├── time (schema)          — planned
@@ -75,11 +79,12 @@ Every app-schema table has a `user_id UUID` foreign key referencing `auth.users.
 ```
 nexo/
 ├── .env                        ← secrets (gitignored)
-├── .env.local                  ← local overrides, e.g. localhost DATABASE_URL (gitignored)
+├── .env.local                  ← local overrides (localhost DATABASE_URL for Drizzle CLI)
 ├── .env.example                ← template, committed
-├── docker-compose.yml          ← production-ready service definitions
-├── docker-compose.override.yml ← local dev overrides (auto-loaded by Docker Compose)
+├── docker-compose.yml          ← all service definitions (production, preview, server profiles)
+├── docker-compose.override.yml ← local dev overrides (auto-loaded; swaps https URLs for localhost)
 ├── Caddyfile                   ← reverse proxy + TLS config
+├── knip.config.ts              ← workspace-aware dead-code config
 ├── turbo.json                  ← task pipeline (build order, caching)
 ├── pnpm-workspace.yaml         ← workspace package globs
 ├── package.json                ← root scripts, shared dev deps
@@ -103,17 +108,21 @@ nexo/
 │       │           └── +page.svelte
 │       ├── svelte.config.js    ← adapter-node, Svelte compiler options
 │       ├── vite.config.ts      ← Vite + PWA plugin config
+│       ├── eslint.config.js
 │       ├── Dockerfile
 │       └── package.json
 └── packages/
-    └── db/
-        ├── schema/
-        │   ├── auth.ts
-        │   └── finance.ts
-        ├── src/
-        │   ├── index.ts        ← Drizzle client + all schema exports
-        │   └── migrate.ts      ← migration runner (used by Docker)
-        ├── drizzle.config.ts
+    ├── db/
+    │   ├── schema/
+    │   │   ├── auth.ts
+    │   │   └── finance.ts
+    │   ├── src/
+    │   │   ├── index.ts        ← Drizzle client + all schema exports
+    │   │   └── migrate.ts      ← migration runner (used by Docker)
+    │   ├── drizzle.config.ts
+    │   └── package.json
+    └── email/
+        ├── src/                ← React Email templates
         └── package.json
 ```
 

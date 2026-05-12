@@ -60,15 +60,14 @@ You need real OAuth credentials even locally. Each provider needs a redirect URI
 cp .env.example .env
 ```
 
-Edit `.env` with your values:
+Edit `.env` — the minimum required values:
 
 ```bash
 POSTGRES_PASSWORD=devpassword
 DATABASE_URL=postgres://nexo:devpassword@postgres:5432/nexo
 
 # Generate with: openssl rand -hex 32
-AUTH_SECRET=<random>
-FINANCE_CLIENT_SECRET=<random>
+BETTER_AUTH_SECRET=<random>
 
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
@@ -78,14 +77,17 @@ DISCORD_CLIENT_ID=...
 DISCORD_CLIENT_SECRET=...
 ```
 
-The root `.env.local` already exists and overrides `DATABASE_URL` to `localhost:5432` for CLI tools (Drizzle migrations) that run outside Docker. You shouldn't need to touch it unless you change your Postgres password.
+You also need three per-app `.env.local` files and one root `.env.local`. `.env.example` has the exact contents for each — copy the relevant block and create the file. In short:
 
-The `apps/auth/.env.local` and `apps/finance/.env.local` are used by `pnpm dev` inside each app directory. They're already configured to point at `http://localhost:3001` for auth.
+- `apps/auth/.env.local` — `DATABASE_URL` (localhost), `BETTER_AUTH_SECRET`, `PUBLIC_AUTH_URL`, OAuth keys
+- `apps/finance/.env.local` — `DATABASE_URL` (localhost), `BETTER_AUTH_SECRET`, `PUBLIC_AUTH_URL`
+- `apps/landing/.env.local` — `PUBLIC_FINANCE_URL`
+- `.env.local` (repo root) — `DATABASE_URL` with `localhost:5433` for Drizzle CLI tools
 
 ### 4. Start Postgres and run migrations
 
 ```bash
-pnpm docker:db       # starts only the postgres container
+pnpm docker:db       # starts only the postgres container (production profile)
 pnpm db:migrate      # creates all schemas and tables
 ```
 
@@ -109,6 +111,7 @@ Turborepo starts all apps concurrently:
 | Landing | http://localhost:3000 |
 | Auth    | http://localhost:3001 |
 | Finance | http://localhost:3002 |
+| Admin   | http://localhost:3004 |
 
 Open `http://localhost:3002` — you'll be redirected to the auth server, sign in, and land back in the finance app.
 
@@ -153,6 +156,12 @@ Opens Drizzle Studio at `https://local.drizzle.studio` — a visual browser for 
 ### Running checks before committing
 
 ```bash
+pnpm qc   # full quality gate: format, knip, lint, type:check, build, test
+```
+
+Or run individual steps while developing:
+
+```bash
 pnpm type:check   # TypeScript + svelte-check
 pnpm lint         # ESLint
 pnpm format       # Prettier
@@ -169,7 +178,7 @@ If you want to run everything inside Docker exactly as it runs in production:
 pnpm docker:up
 ```
 
-`docker-compose.override.yml` is automatically merged, which replaces the production URLs (`https://auth.krieger2501.de`) with `http://localhost:3001`. You don't need to do anything special.
+`docker-compose.override.yml` is automatically merged when you run `docker compose`, which maps ports and swaps the hardcoded production URLs (`https://auth.krieger2501.de`) with `http://localhost:300x`. Without it the production compose hardcodes `https://` URLs and won't work locally, so keep both files.
 
 To stop:
 
@@ -186,7 +195,8 @@ pnpm docker:down
 | Landing  | 3000       | 3000   |
 | Auth     | 3001       | 3001   |
 | Finance  | 3002       | 3002   |
-| Postgres | 5432       | 5432   |
+| Admin    | 3004       | 3004   |
+| Postgres | 5432       | 5433   |
 
 ---
 

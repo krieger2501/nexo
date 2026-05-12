@@ -277,4 +277,4 @@ variable.
 
 ---
 
-_Last updated: 2026-05-06 · Nexo v0.1_
+_Last updated: 2026-05-12 · Nexo v0.8.2_

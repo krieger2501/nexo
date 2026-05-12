@@ -66,6 +66,7 @@ In the IONOS domain control panel, add A records for each subdomain:
 | `krieger2501.de`         | A    | `<VPS IP>` |
 | `auth.krieger2501.de`    | A    | `<VPS IP>` |
 | `finance.krieger2501.de` | A    | `<VPS IP>` |
+| `admin.krieger2501.de`   | A    | `<VPS IP>` |
 
 Wait for propagation before continuing (5–30 min). Verify:
 
@@ -87,13 +88,15 @@ In each provider's developer console, **add** the production URI alongside the l
 | GitHub   | `https://auth.krieger2501.de/api/auth/callback/github`  |
 | Discord  | `https://auth.krieger2501.de/api/auth/callback/discord` |
 
+OAuth credentials are only registered against the **auth** app — admin and finance authenticate through the auth server, so no additional redirect URIs are needed for them.
+
 ---
 
 ## Clone and configure
 
 ```bash
 cd ~
-git clone https://github.com/YOUR_ORG/nexo
+git clone https://github.com/krieger2501/nexo
 cd nexo
 cp .env.example .env
 nano .env
@@ -102,7 +105,7 @@ nano .env
 Generate strong secrets:
 
 ```bash
-openssl rand -hex 32   # run twice: once for AUTH_SECRET, once for FINANCE_CLIENT_SECRET
+openssl rand -hex 32   # for BETTER_AUTH_SECRET
 ```
 
 Fill in `.env`:
@@ -110,8 +113,7 @@ Fill in `.env`:
 ```bash
 POSTGRES_PASSWORD=<strong password>
 DATABASE_URL=postgres://nexo:<POSTGRES_PASSWORD>@postgres:5432/nexo
-AUTH_SECRET=<openssl output 1>
-FINANCE_CLIENT_SECRET=<openssl output 2>
+BETTER_AUTH_SECRET=<openssl output>
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 GITHUB_CLIENT_ID=...
@@ -124,10 +126,33 @@ DISCORD_CLIENT_SECRET=...
 
 ## Deploy
 
-On the server, always pass `-f docker-compose.yml` explicitly to skip the local override file:
+### Via CI/CD (normal path)
+
+Production deployments are fully automated via GitHub Actions. No manual SSH required.
+
+1. Merge your changes into `main`
+2. release-please opens (or updates) a release PR with the version bump and changelog
+3. Merge the release PR — this pushes a `nexo-v*` tag
+4. The `Deploy Production` workflow triggers, SSHes into the VPS, and runs:
+   ```bash
+   git pull origin main
+   docker compose --profile production --profile server --env-file .env up -d --build
+   docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+   docker compose --profile preview --env-file .env.preview up -d --build
+   ```
+5. All services rebuild with the new images. The preview environment is also redeployed against `main`.
+
+Monitor the run in the [Actions tab](https://github.com/krieger2501/nexo/actions).
+
+### Manual deployment (emergency / first-time)
+
+SSH into the VPS and run directly:
 
 ```bash
-docker compose -f docker-compose.yml up -d --build
+cd ~/nexo
+git pull origin main
+docker compose --profile production --profile server --env-file .env up -d --build
+docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
 ```
 
 This will:
@@ -135,8 +160,9 @@ This will:
 1. Build all Docker images
 2. Start PostgreSQL
 3. Run migrations (waits for Postgres to be healthy)
-4. Start auth, finance, landing
-5. Start Caddy — issues Let's Encrypt certificates automatically
+4. Start auth, admin, finance, landing
+5. Start Caddy and bot (server profile)
+6. Caddy issues Let's Encrypt certificates automatically
 
 Monitor startup:
 
@@ -162,16 +188,14 @@ Open `https://auth.krieger2501.de/login` and sign in. That's your admin account.
 
 ## Updating after a push
 
+The normal path is CI/CD — merge to main and let release-please handle it (see Deploy above).
+
+To rebuild a single service without a full release (emergency hotfix):
+
 ```bash
 cd ~/nexo
-git pull
-docker compose -f docker-compose.yml up -d --build
-```
-
-To rebuild a single service without touching the others:
-
-```bash
-docker compose -f docker-compose.yml up -d --build finance
+git pull origin main
+docker compose --profile production --env-file .env up -d --build finance
 ```
 
 ---
@@ -190,7 +214,7 @@ crontab -e
 Add:
 
 ```
-0 3 * * * docker compose -f /home/nexo/nexo/docker-compose.yml exec -T postgres pg_dump -U nexo nexo | gzip > /backups/nexo-$(date +\%Y\%m\%d).sql.gz
+0 3 * * * docker compose --profile production exec -T postgres pg_dump -U nexo nexo | gzip > /backups/nexo-$(date +\%Y\%m\%d).sql.gz
 ```
 
 ### Restoring from a backup
@@ -228,21 +252,21 @@ docker compose exec postgres psql -U nexo -d nexo
 # Restart a single service
 docker compose restart finance
 
-# Stop everything
-docker compose -f docker-compose.yml down
+# Stop everything (production + server profiles)
+docker compose --profile production --profile server down
 
 # Stop and remove volumes (DESTRUCTIVE — wipes the database)
-docker compose -f docker-compose.yml down -v
+docker compose --profile production --profile server down -v
 ```
 
 ---
 
 ## When adding a new app
 
-1. Add the service to `docker-compose.yml`
+1. Add the service to `docker-compose.yml` with `profiles: [production]` (and a `_preview` variant with `profiles: [preview]`)
 2. Add the subdomain to `Caddyfile`
-3. Add the DNS A record in IONOS
+3. Add the DNS A records in IONOS (production + `*.preview` subdomain)
 4. Add the OAuth redirect URI in each provider's console
-5. Deploy: `docker compose -f docker-compose.yml up -d --build`
+5. Let CI/CD deploy on next release, or run manually: `docker compose --profile production --profile server --env-file .env up -d --build`
 
 See [Adding a New App](adding-an-app.md) for the full checklist.

@@ -226,19 +226,44 @@ PUBLIC_AUTH_URL=http://localhost:3001
 
 ## 8. Add to Docker Compose
 
-In `docker-compose.yml`, add the new service:
+In `docker-compose.yml`, add two service blocks — production and preview:
 
 ```yaml
 gym:
+  profiles: [production]
   build:
     context: .
     dockerfile: apps/gym/Dockerfile
   restart: unless-stopped
+  networks: [production]
   environment:
     DATABASE_URL: ${DATABASE_URL}
+    BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
     PUBLIC_AUTH_URL: https://auth.krieger2501.de
+    PUBLIC_GYM_URL: https://gym.krieger2501.de
+    PROTOCOL_HEADER: x-forwarded-proto
+    HOST_HEADER: x-forwarded-host
   depends_on:
-    - auth
+    migrate:
+      condition: service_completed_successfully
+
+gym_preview:
+  profiles: [preview]
+  build:
+    context: .
+    dockerfile: apps/gym/Dockerfile
+  restart: unless-stopped
+  networks: [preview]
+  environment:
+    DATABASE_URL: ${DATABASE_URL}
+    BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+    PUBLIC_AUTH_URL: https://auth.preview.krieger2501.de
+    PUBLIC_GYM_URL: https://gym.preview.krieger2501.de
+    PROTOCOL_HEADER: x-forwarded-proto
+    HOST_HEADER: x-forwarded-host
+  depends_on:
+    migrate_preview:
+      condition: service_completed_successfully
 ```
 
 Add to the Caddyfile:
@@ -246,6 +271,10 @@ Add to the Caddyfile:
 ```
 gym.krieger2501.de {
   reverse_proxy gym:3000
+}
+
+gym.preview.krieger2501.de {
+  reverse_proxy gym_preview:3000
 }
 ```
 
@@ -262,7 +291,21 @@ In root `package.json`, add:
 
 ---
 
-## 10. Update the landing page
+## 10. Add to knip.config.ts
+
+In the root `knip.config.ts`, add a workspace entry:
+
+```typescript
+'apps/gym': {
+  entry: ['src/routes/**/+*.{ts,js,svelte}'],
+  project: ['src/**/*.{ts,js,svelte}'],
+  ignoreDependencies: ['tailwindcss']
+},
+```
+
+---
+
+## 11. Update the landing page
 
 In `apps/landing/src/routes/+page.svelte`, add the new app to the `apps` array:
 
@@ -279,12 +322,13 @@ In `apps/landing/src/routes/+page.svelte`, add the new app to the `apps` array:
 
 ---
 
-## 11. Add DNS
+## 12. Add DNS
 
-In your IONOS domain control panel, add:
+In your IONOS domain control panel, add A records for both production and preview:
 
 ```
-gym.krieger2501.de  A  <VPS IP>
+gym.krieger2501.de          A  <VPS IP>
+gym.preview.krieger2501.de  A  <VPS IP>
 ```
 
 ---
@@ -300,8 +344,9 @@ gym.krieger2501.de  A  <VPS IP>
 - [ ] `routes/auth/callback/+server.ts`
 - [ ] `apps/gym/.env.local`
 - [ ] `apps/gym/Dockerfile`
-- [ ] `docker-compose.yml` service added
-- [ ] `Caddyfile` entry added
-- [ ] Root `package.json` scripts added
+- [ ] `docker-compose.yml` production + preview service blocks added
+- [ ] `Caddyfile` production + preview entries added
+- [ ] `knip.config.ts` workspace entry added
+- [ ] Root `package.json` `dev:gym` / `build:gym` scripts added
 - [ ] Landing page updated
-- [ ] DNS A record added
+- [ ] DNS A records added (production + preview)
