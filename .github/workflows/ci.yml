@@ -33,11 +33,14 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
-      - name: Lint
-        run: pnpm lint
+      - name: Sync SvelteKit types
+        run: pnpm sync
 
       - name: Check unused exports
         run: pnpm knip
+
+      - name: Lint
+        run: pnpm lint
 
       - name: Type check
         run: pnpm type:check

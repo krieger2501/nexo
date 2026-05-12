@@ -11,4 +11,4 @@ const db = drizzle(sql);
 
 await migrate(db, { migrationsFolder: join(__dirname, '../migrations') });
 await sql.end();
-console.log('Migrations complete');
+console.info('Migrations complete');

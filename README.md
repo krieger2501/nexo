@@ -8,13 +8,15 @@ A self-hosted personal app suite delivered as individual PWAs. Each app installs
 
 ## Apps
 
-| App           | URL                       | Status    |
-| ------------- | ------------------------- | --------- |
-| Finance       | `finance.krieger2501.de`  | ✅ Active |
-| Gym           | `gym.krieger2501.de`      | Planned   |
-| Time Tracking | `time.krieger2501.de`     | Planned   |
-| Pomodoro      | `pomodoro.krieger2501.de` | Planned   |
-| Landing       | `krieger2501.de`          | ✅ Active |
+| App           | URL                        | Status    |
+| ------------- | -------------------------- | --------- |
+| Finance       | `finance.krieger2501.de`   | ✅ Active |
+| Admin         | `admin.krieger2501.de`     | ✅ Active |
+| Bot           | internal / GitHub webhooks | ✅ Active |
+| Gym           | `gym.krieger2501.de`       | Planned   |
+| Time Tracking | `time.krieger2501.de`      | Planned   |
+| Pomodoro      | `pomodoro.krieger2501.de`  | Planned   |
+| Landing       | `krieger2501.de`           | ✅ Active |
 
 ---
 
@@ -33,7 +35,7 @@ A self-hosted personal app suite delivered as individual PWAs. Each app installs
 ## Quick start (local)
 
 ```bash
-git clone https://github.com/YOUR_ORG/nexo
+git clone https://github.com/krieger2501/nexo
 cd nexo
 pnpm install
 cp .env.example .env      # fill in OAuth credentials + secrets
@@ -73,9 +75,11 @@ pnpm type:check           # tsc + svelte-check everywhere
 pnpm lint                 # eslint everywhere
 pnpm format               # prettier write
 pnpm test                 # vitest everywhere
+pnpm qc                   # full quality gate (format, knip, lint, type:check, build, test)
+pnpm package:check        # verify package.json sort order
 pnpm db:generate          # generate migration SQL from schema changes
 pnpm db:migrate           # apply pending migrations
 pnpm db:studio            # Drizzle Studio in browser
-pnpm docker:up            # full local Docker stack
-pnpm docker:up:prod       # production deploy (no dev overrides)
+pnpm docker:db            # start local Postgres container
+pnpm docker:up            # full local Docker stack (all apps)
 ```
