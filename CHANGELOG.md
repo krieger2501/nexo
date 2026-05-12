@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.4](https://github.com/krieger2501/nexo/compare/nexo-v0.8.3...nexo-v0.8.4) (2026-05-12)
+
+
+### Bug Fixes
+
+* export APP_VERSION so it overrides .env file in docker compose ([9ac58af](https://github.com/krieger2501/nexo/commit/9ac58afebfe9d8c2ebf978a9b39d7c6b4f20a908))
+* remove cross-profile depends_on from caddy, default APP_VERSION to dev ([f37b822](https://github.com/krieger2501/nexo/commit/f37b8225e8882128c51dc8f625f5767273d3bcbf))
+
 ## [0.8.3](https://github.com/krieger2501/nexo/compare/nexo-v0.8.2...nexo-v0.8.3) (2026-05-12)
 
 
