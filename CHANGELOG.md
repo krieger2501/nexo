@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.8.2](https://github.com/krieger2501/nexo/compare/nexo-v0.8.1...nexo-v0.8.2) (2026-05-12)
+
+
+### Bug Fixes
+
+* **bot:** skip comment if one already exists on PR open ([0accd34](https://github.com/krieger2501/nexo/commit/0accd349ab4697d91d3bcea7b48d9e2691eddef1))
+* **bot:** stale comment only after deploy, keep checkbox checked while deploying, derive state from comment body ([a4ae2a4](https://github.com/krieger2501/nexo/commit/a4ae2a41031568abeb7f547e9a55edcc34cae986))
+* resolve lint and knip CI failures ([67b721d](https://github.com/krieger2501/nexo/commit/67b721de9ea4bf5019fde6f88ce25fc0bc2b72c0))
+* separate production/preview Docker networks, fix Caddy service routing ([22f3b5c](https://github.com/krieger2501/nexo/commit/22f3b5cfe49c70ce0c88a65657fa89aaf5101933))
+
 ## [0.8.1](https://github.com/krieger2501/nexo/compare/nexo-v0.8.0...nexo-v0.8.1) (2026-05-11)
 
 
