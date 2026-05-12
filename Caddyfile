@@ -15,21 +15,21 @@ finance.krieger2501.de {
 	reverse_proxy finance:3000
 }
 
-# Preview (host-port services from docker-compose.preview.yml)
+# Preview
 preview.krieger2501.de {
-	reverse_proxy localhost:4000
+	reverse_proxy landing_preview:3000
 }
 
 auth.preview.krieger2501.de {
-	reverse_proxy localhost:4001
+	reverse_proxy auth_preview:3000
 }
 
 finance.preview.krieger2501.de {
-	reverse_proxy localhost:4002
+	reverse_proxy finance_preview:3000
 }
 
 admin.preview.krieger2501.de {
-	reverse_proxy localhost:4003
+	reverse_proxy admin_preview:3000
 }
 
 # Bot

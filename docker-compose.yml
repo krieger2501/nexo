@@ -1,7 +1,17 @@
+name: nexo-prod
+
+networks:
+  production:
+    name: nexo-production
+  preview:
+    name: nexo-preview
+    external: true
+
 services:
   postgres:
     image: postgres:17
     restart: unless-stopped
+    networks: [production]
     volumes:
       - pgdata:/var/lib/postgresql/data
     environment:
@@ -18,6 +28,7 @@ services:
     build:
       context: .
       dockerfile: packages/db/Dockerfile
+    networks: [production]
     environment:
       DATABASE_URL: ${DATABASE_URL}
     depends_on:
@@ -30,6 +41,7 @@ services:
       context: .
       dockerfile: apps/auth/Dockerfile
     restart: unless-stopped
+    networks: [production]
     environment:
       DATABASE_URL: ${DATABASE_URL}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
@@ -53,6 +65,7 @@ services:
       context: .
       dockerfile: apps/admin/Dockerfile
     restart: unless-stopped
+    networks: [production]
     environment:
       DATABASE_URL: ${DATABASE_URL}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
@@ -73,6 +86,7 @@ services:
       args:
         PUBLIC_APP_VERSION: ${APP_VERSION}
     restart: unless-stopped
+    networks: [production]
     environment:
       DATABASE_URL: ${DATABASE_URL}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
@@ -92,6 +106,7 @@ services:
         PUBLIC_FINANCE_URL: https://finance.krieger2501.de
         PUBLIC_APP_VERSION: ${APP_VERSION}
     restart: unless-stopped
+    networks: [production]
     environment:
       PUBLIC_FINANCE_URL: https://finance.krieger2501.de
       PUBLIC_APP_VERSION: ${APP_VERSION}
@@ -102,6 +117,7 @@ services:
       context: .
       dockerfile: apps/bot/Dockerfile
     restart: unless-stopped
+    networks: [production]
     ports:
       - '3003:3003'
     environment:
@@ -116,6 +132,7 @@ services:
     profiles: [server]
     image: caddy:2
     restart: unless-stopped
+    networks: [production, preview]
     ports:
       - '80:80'
       - '443:443'
