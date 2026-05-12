@@ -14,7 +14,10 @@ const config: KnipConfig = {
 	],
 	ignoreDependencies: [
 		// Imported via CSS @import in app.css — not visible to knip
-		'@fontsource-variable/inter'
+		'@fontsource-variable/inter',
+		// Used via root .prettierrc, not imported directly
+		'prettier-plugin-svelte',
+		'prettier-plugin-tailwindcss'
 	]
 };
 
