@@ -4,5 +4,15 @@
 		"strict": true,
 		"resolveJsonModule": true,
 		"skipLibCheck": true
-	}
+	},
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.svelte",
+		".svelte-kit/ambient.d.ts",
+		".svelte-kit/non-ambient.d.ts",
+		".svelte-kit/types",
+		"vite.config.ts",
+		"knip.config.ts",
+		"vitest.config.ts"
+	]
 }

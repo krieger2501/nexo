@@ -2,13 +2,16 @@
 	"extends": "./.svelte-kit/tsconfig.json",
 	"compilerOptions": {
 		"strict": true,
-		"resolveJsonModule": true
+		"resolveJsonModule": true,
+		"skipLibCheck": true
 	},
 	"include": [
 		"src/**/*.ts",
 		"src/**/*.svelte",
 		".svelte-kit/ambient.d.ts",
 		".svelte-kit/non-ambient.d.ts",
-		".svelte-kit/types"
+		".svelte-kit/types",
+		"vite.config.ts",
+		"knip.config.ts"
 	]
 }
