@@ -1,5 +1,4 @@
 import { redirect } from '@sveltejs/kit';
-import { getAuth } from '$lib/server/auth';
 import { db, userAppAccess } from '@nexo/db';
 import { eq } from 'drizzle-orm';
 import { env as publicEnv } from '$env/dynamic/public';

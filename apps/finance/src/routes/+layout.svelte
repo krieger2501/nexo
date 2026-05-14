@@ -1,6 +1,6 @@
 <script lang="ts">
 	import '../app.css';
-	import { page } from '$app/state';
+	import { page, navigating } from '$app/state';
 	import { userMessage } from '@nexo/errors';
 	import { ParaglideJS } from '@inlang/paraglide-sveltekit';
 	import { i18n } from '$lib/i18n';
@@ -26,6 +26,9 @@
 </script>
 
 <ParaglideJS {i18n}>
+	{#if navigating.to}
+		<div class="nav-progress"></div>
+	{/if}
 	<main
 		class="mx-auto min-h-screen max-w-md"
 		style="padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom))"
@@ -65,3 +68,34 @@
 		<BottomNav />
 	{/if}
 </ParaglideJS>
+
+<style>
+	.nav-progress {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 2px;
+		z-index: 100;
+		background: var(--color-accent);
+		animation: progress 1.5s ease-in-out infinite;
+	}
+
+	@keyframes progress {
+		0% {
+			transform: scaleX(0);
+			transform-origin: left;
+		}
+		50% {
+			transform: scaleX(0.7);
+			transform-origin: left;
+		}
+		51% {
+			transform-origin: right;
+		}
+		100% {
+			transform: scaleX(0);
+			transform-origin: right;
+		}
+	}
+</style>

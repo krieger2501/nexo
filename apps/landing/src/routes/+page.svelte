@@ -117,6 +117,10 @@
 <svelte:head>
 	<title>Nexo — my little corner of the internet</title>
 	<meta name="description" content="A small collection of self-hosted apps, built for me." />
+	<meta property="og:title" content="Nexo" />
+	<meta property="og:description" content="A small collection of self-hosted apps, built for me." />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content="https://krieger2501.de" />
 </svelte:head>
 
 <!-- ─── NAV ─── -->
