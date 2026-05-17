@@ -61,7 +61,7 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const email = (data.get('email') as string)?.trim().toLowerCase();
 		if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-			return fail(400, { addError: 'Invalid email address.' });
+			return fail(400, { error: 'VALIDATION_INVALID_EMAIL' });
 		}
 		try {
 			await db.insert(allowedEmails).values({ email }).onConflictDoNothing();
@@ -71,7 +71,7 @@ export const actions: Actions = {
 				error: String(e),
 				correlationId: locals.correlationId
 			});
-			return fail(500, { addError: 'Failed to add email.', correlationId: locals.correlationId });
+			return fail(500, { error: 'SAVE_FAILED', correlationId: locals.correlationId });
 		}
 		sendInviteEmail({ apiKey: RESEND_KEY(), to: email, landingUrl: LANDING_URL() }).catch((e) =>
 			console.error('invite email failed:', e)
@@ -82,7 +82,7 @@ export const actions: Actions = {
 	removeEmail: async ({ request, locals }) => {
 		const data = await request.formData();
 		const email = (data.get('email') as string)?.trim().toLowerCase();
-		if (!email) return fail(400, { error: 'Missing email.' });
+		if (!email) return fail(400, { error: 'VALIDATION_REQUIRED' });
 		try {
 			await db.delete(allowedEmails).where(eq(allowedEmails.email, email));
 		} catch (e) {
@@ -91,7 +91,7 @@ export const actions: Actions = {
 				error: String(e),
 				correlationId: locals.correlationId
 			});
-			return fail(500, { error: 'Failed to remove email.', correlationId: locals.correlationId });
+			return fail(500, { error: 'DELETE_FAILED', correlationId: locals.correlationId });
 		}
 		return { success: true };
 	},
@@ -99,7 +99,7 @@ export const actions: Actions = {
 	updateAccess: async ({ request, locals }) => {
 		const data = await request.formData();
 		const userId = data.get('userId') as string;
-		if (!userId) return fail(400, { error: 'Missing userId.' });
+		if (!userId) return fail(400, { error: 'VALIDATION_REQUIRED' });
 
 		// Desired set comes as repeated "apps" fields (empty form = no fields = empty array)
 		const desiredApps = data.getAll('apps') as string[];
@@ -114,7 +114,7 @@ export const actions: Actions = {
 				error: String(e),
 				correlationId: locals.correlationId
 			});
-			return fail(500, { error: 'Failed to update access.', correlationId: locals.correlationId });
+			return fail(500, { error: 'SAVE_FAILED', correlationId: locals.correlationId });
 		}
 		const currentApps = currentRows.map((r) => r.app);
 
@@ -139,7 +139,7 @@ export const actions: Actions = {
 				error: String(e),
 				correlationId: locals.correlationId
 			});
-			return fail(500, { error: 'Failed to update access.', correlationId: locals.correlationId });
+			return fail(500, { error: 'SAVE_FAILED', correlationId: locals.correlationId });
 		}
 
 		// Send one email for all newly granted apps

@@ -4,7 +4,7 @@ import { error } from '@sveltejs/kit';
 import { logger } from '$lib/server/logger';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
 	const container = await dockerGet<ContainerInspect>(
 		`/containers/${encodeURIComponent(params.name)}/json`
 	).catch((e) => {
@@ -12,7 +12,8 @@ export const load: PageServerLoad = async ({ params }) => {
 		return null;
 	});
 
-	if (!container) error(404, `Container "${params.name}" not found`);
+	if (!container)
+		error(404, { message: 'Not found', code: 'NOT_FOUND', correlationId: locals.correlationId });
 
 	return { container };
 };
