@@ -1,638 +1,359 @@
 <script lang="ts">
 	import type { ContainerInfo } from '$lib/server/docker';
-	import { Activity, Database, ChevronRight, Users, TrendingUp, TrendingDown } from 'lucide-svelte';
+	import { Activity, TrendingDown, TrendingUp, Users } from 'lucide-svelte';
+	import { ctnName, ctnGroup } from '$lib/utils/containers';
+	import SearchInput from '$lib/components/SearchInput.svelte';
+	import FilterChips from '$lib/components/FilterChips.svelte';
+	import ContainerCard from './ContainerCard.svelte';
 
 	let { data } = $props();
 
-	function containerName(c: ContainerInfo): string {
-		return (c.Names[0] ?? c.Id).replace(/^\//, '');
-	}
+	// ── Grouping ──────────────────────────────────────────────────────────────
 
-	function isPreview(c: ContainerInfo): boolean {
-		const n = containerName(c);
-		return n.includes('_preview') || n.includes('preview');
-	}
+	const GROUP_ORDER = ['core', 'app', 'data', 'infra'];
+	const GROUP_LABELS: Record<string, string> = {
+		core: 'Core',
+		app: 'Apps',
+		data: 'Data',
+		infra: 'Infra'
+	};
 
-	function serviceLabel(c: ContainerInfo): string {
-		return containerName(c)
-			.replace(/^nexo-/, '')
-			.replace(/-\d+$/, '')
-			.replace(/_preview$/, '')
-			.replace(/_/g, ' ');
-	}
+	let filter = $state<'all' | 'running' | 'issues' | 'stopped'>('all');
+	let query = $state('');
 
-	function serviceMonogram(c: ContainerInfo): string {
-		return serviceLabel(c).slice(0, 2).toUpperCase();
-	}
+	const counts = $derived({
+		all: data.containers.length,
+		running: data.containers.filter(
+			(c) => c.State.toLowerCase() === 'running' && c.State.toLowerCase() !== 'restarting'
+		).length,
+		issues: data.containers.filter((c) => c.State.toLowerCase() === 'restarting').length,
+		stopped: data.containers.filter(
+			(c) => c.State.toLowerCase() === 'exited' || c.State.toLowerCase() === 'dead'
+		).length
+	});
 
-	function uptimeLabel(c: ContainerInfo): string {
-		if (c.State !== 'running') return 'Stopped';
-		return c.Status.replace(/^Up\s+/i, '');
-	}
+	const filtered = $derived(
+		data.containers.filter((c) => {
+			const s = c.State.toLowerCase();
+			if (filter === 'running' && s !== 'running') return false;
+			if (filter === 'issues' && s !== 'restarting') return false;
+			if (filter === 'stopped' && s !== 'exited' && s !== 'dead') return false;
+			if (query) {
+				const q = query.trim().toLowerCase();
+				const search = (ctnName(c) + ' ' + c.Image + ' ' + c.Status).toLowerCase();
+				if (!search.includes(q)) return false;
+			}
+			return true;
+		})
+	);
 
-	const production = $derived(data.containers.filter((c) => !isPreview(c)));
-	const preview = $derived(data.containers.filter((c) => isPreview(c)));
-	const totalRunning = $derived(data.containers.filter((c) => c.State === 'running').length);
-	const totalContainers = $derived(data.containers.length);
+	const grouped = $derived(() => {
+		const g: Record<string, ContainerInfo[]> = {};
+		for (const c of filtered) {
+			const grp = ctnGroup(c);
+			(g[grp] ??= []).push(c);
+		}
+		return g;
+	});
 
+	const runningCount = $derived(
+		data.containers.filter((c) => c.State.toLowerCase() === 'running').length
+	);
+	const issueCount = $derived(
+		data.containers.filter((c) => c.State.toLowerCase() === 'restarting').length
+	);
+
+	// ── DB stats ──────────────────────────────────────────────────────────────
 	const totals = $derived(data.dbStats.totals);
 	const activity = $derived(data.dbStats.activity);
 
-	// Activity rows: each entity with today/week/month counts
 	const activityRows = $derived([
 		{ label: 'New users', icon: Users, ...activity.users },
 		{ label: 'Expenses added', icon: TrendingDown, ...activity.expenses },
 		{ label: 'Income added', icon: TrendingUp, ...activity.income }
 	]);
-
-	// Bar height for sparkline — scale relative to month max
-	function barHeight(val: number, max: number): number {
-		if (max === 0) return 0;
-		return Math.max(3, Math.round((val / max) * 28));
-	}
 </script>
 
-<div class="page">
-	<div class="page-header">
-		<div class="header-top">
-			<h1 class="page-title">Services</h1>
-			{#if totalContainers > 0}
-				<div class="header-badge">
-					<span class="status-dot {totalRunning === totalContainers ? 'all-up' : 'partial'}"></span>
-					{totalRunning}/{totalContainers} running
-				</div>
+<div class="screen">
+	<!-- Header -->
+	<div>
+		<div class="label-eyebrow">Containers</div>
+		<h1 class="screen-title">
+			{runningCount} running
+		</h1>
+		<div class="screen-sub">
+			{#if issueCount > 0}
+				<span style="color:var(--err-ink);font-weight:600">{issueCount} need attention</span> · {counts.stopped}
+				stopped
+			{:else}
+				All running · {counts.stopped} stopped
 			{/if}
 		</div>
 	</div>
 
-	<!-- Containers -->
-	<section class="section">
-		<span class="section-label">01 — Production</span>
-		<div class="container-list">
-			{#each production as c (c.Id)}
-				<a href="/services/{containerName(c)}" class="container-row">
-					<div class="row-icon">
-						<span class="row-monogram">{serviceMonogram(c)}</span>
+	<!-- Summary cards -->
+	<div class="summary">
+		<div class="summary-card">
+			<div class="summary-num {issueCount > 0 ? 'warn' : 'ok'}">
+				{runningCount}<span style="font-size:16px;color:var(--color-text-faint)">/{counts.all}</span
+				>
+			</div>
+			<div class="summary-label">up</div>
+			<div class="summary-sub">across {GROUP_ORDER.length} groups</div>
+		</div>
+		<div class="summary-card">
+			<div class="summary-num {issueCount > 0 ? 'err' : 'ok'}">{issueCount}</div>
+			<div class="summary-label">issues</div>
+			<div class="summary-sub">{issueCount > 0 ? 'Tap to filter' : 'All checks passing'}</div>
+		</div>
+	</div>
+
+	<!-- Search -->
+	<SearchInput bind:value={query} placeholder="Filter containers…" />
+
+	<!-- Chips -->
+	<FilterChips
+		bind:value={filter}
+		options={[
+			{ value: 'all', label: 'All', count: counts.all },
+			{ value: 'running', label: 'Healthy', count: counts.running },
+			{ value: 'issues', label: 'Issues', count: issueCount },
+			{ value: 'stopped', label: 'Stopped', count: counts.stopped }
+		]}
+	/>
+
+	<!-- Grouped container list -->
+	<div class="groups">
+		{#each GROUP_ORDER as grp (grp)}
+			{#if grouped()[grp]?.length}
+				<div>
+					<div class="group-h">
+						<span>{GROUP_LABELS[grp]}</span>
+						<span class="count">{grouped()[grp].length}</span>
 					</div>
-					<div class="row-body">
-						<span class="row-name">{serviceLabel(c)}</span>
-						<span class="row-image">{c.Image.split('/').pop()?.split(':')[0]}</span>
+					<div class="row-stack">
+						{#each grouped()[grp] as c (c.Id)}
+							<ContainerCard container={c} />
+						{/each}
 					</div>
-					<div class="row-right">
-						<span class="uptime-text">{uptimeLabel(c)}</span>
-						<span class="state-dot {c.State === 'running' ? 'up' : 'down'}"></span>
-					</div>
-					<ChevronRight size={13} class="row-chevron" />
-				</a>
-			{/each}
-			{#if production.length === 0}
-				<div class="empty-row">
-					<Activity size={16} />
-					No containers found — is the Docker socket mounted?
 				</div>
 			{/if}
-		</div>
-	</section>
+		{/each}
 
-	{#if preview.length > 0}
-		<section class="section">
-			<span class="section-label">02 — Preview</span>
-			<div class="container-list">
-				{#each preview as c (c.Id)}
-					<a href="/services/{containerName(c)}" class="container-row preview">
-						<div class="row-icon preview">
-							<span class="row-monogram">{serviceMonogram(c)}</span>
-						</div>
-						<div class="row-body">
-							<span class="row-name">{serviceLabel(c)}</span>
-							<span class="row-image">{c.Image.split('/').pop()?.split(':')[0]}</span>
-						</div>
-						<div class="row-right">
-							<span class="uptime-text">{uptimeLabel(c)}</span>
-							<span class="state-dot {c.State === 'running' ? 'up' : 'down'}"></span>
-						</div>
-						<ChevronRight size={13} class="row-chevron" />
-					</a>
-				{/each}
+		{#if filtered.length === 0}
+			<div class="empty">
+				<div class="em">○</div>
+				{query ? 'Nothing matches.' : 'No containers found.'}
 			</div>
-		</section>
-	{/if}
+		{/if}
+	</div>
 
-	<!-- Database totals -->
-	<section class="section">
-		<span class="section-label">{preview.length > 0 ? '03' : '02'} — Database</span>
-		<div class="totals-strip">
-			<div class="totals-icon">
-				<Database size={15} />
+	<!-- DB totals -->
+	<div class="section-header">
+		<svg
+			class="section-icon"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="1.5"
+		>
+			<ellipse cx="12" cy="5" rx="9" ry="3" />
+			<path d="M21 5v6c0 1.66-4.03 3-9 3S3 12.66 3 11V5" />
+			<path d="M21 11v6c0 1.66-4.03 3-9 3s-9-1.34-9-3v-6" />
+		</svg>
+		<span class="section-title">Database</span>
+	</div>
+	<div class="row-stack">
+		{#each [['Users', totals.users], ['Accounts', totals.accounts], ['Expenses', totals.expenses], ['Income', totals.income], ['Debts', totals.debts]] as [lbl, val] (lbl)}
+			<div class="kv">
+				<span class="k">{lbl}</span>
+				<span class="v mono">{val}</span>
 			</div>
-			<div class="totals-row">
-				<div class="total-item">
-					<span class="total-val">{totals.users}</span>
-					<span class="total-lbl">users</span>
-				</div>
-				<div class="total-sep"></div>
-				<div class="total-item">
-					<span class="total-val">{totals.accounts}</span>
-					<span class="total-lbl">accounts</span>
-				</div>
-				<div class="total-sep"></div>
-				<div class="total-item">
-					<span class="total-val">{totals.expenses}</span>
-					<span class="total-lbl">expenses</span>
-				</div>
-				<div class="total-sep"></div>
-				<div class="total-item">
-					<span class="total-val">{totals.income}</span>
-					<span class="total-lbl">income</span>
-				</div>
-				<div class="total-sep"></div>
-				<div class="total-item">
-					<span class="total-val">{totals.debts}</span>
-					<span class="total-lbl">debts</span>
-				</div>
-			</div>
-		</div>
-	</section>
+		{/each}
+	</div>
 
 	<!-- Activity -->
-	<section class="section">
-		<span class="section-label">{preview.length > 0 ? '04' : '03'} — Activity</span>
-		<div class="activity-grid">
-			{#each activityRows as row (row.label)}
-				{@const maxVal = Math.max(row.month, 1)}
-				<div class="activity-card">
-					<div class="activity-header">
-						<div class="activity-icon">
-							<row.icon size={14} />
-						</div>
-						<span class="activity-label">{row.label}</span>
-					</div>
-
-					<!-- Mini bar chart: today / week / month -->
-					<div class="spark-wrap">
-						<div class="spark-bars">
-							<div class="spark-bar-group">
-								<div
-									class="spark-bar accent"
-									style="height: {barHeight(row.today, maxVal)}px"
-								></div>
-								<div class="spark-bar mid" style="height: {barHeight(row.week, maxVal)}px"></div>
-								<div class="spark-bar base" style="height: {barHeight(row.month, maxVal)}px"></div>
-							</div>
-						</div>
-						<div class="spark-legend">
-							<span class="spark-dot accent-dot"></span><span>today</span>
-							<span class="spark-dot mid-dot"></span><span>week</span>
-							<span class="spark-dot base-dot"></span><span>month</span>
-						</div>
-					</div>
-
-					<div class="activity-counts">
-						<div class="activity-count">
-							<span class="count-val accent-val">{row.today}</span>
-							<span class="count-lbl">today</span>
-						</div>
-						<div class="activity-count">
-							<span class="count-val">{row.week}</span>
-							<span class="count-lbl">this week</span>
-						</div>
-						<div class="activity-count">
-							<span class="count-val">{row.month}</span>
-							<span class="count-lbl">this month</span>
-						</div>
-					</div>
+	<div class="section-header">
+		<Activity size={14} class="section-icon" />
+		<span class="section-title">Activity</span>
+	</div>
+	<div class="row-stack">
+		{#each activityRows as row (row.label)}
+			<div class="act-row">
+				<div class="act-icon"><row.icon size={14} /></div>
+				<span class="act-label">{row.label}</span>
+				<div class="act-counts">
+					<span class="act-val accent">{row.today}</span>
+					<span class="act-sep">·</span>
+					<span class="act-val">{row.week}</span>
+					<span class="act-sep">·</span>
+					<span class="act-val muted">{row.month}</span>
 				</div>
-			{/each}
-		</div>
-	</section>
+			</div>
+		{/each}
+	</div>
 </div>
 
 <style>
-	.page {
-		max-width: 800px;
+	.screen {
+		gap: 16px; /* local reminder — matches global */
 	}
 
-	/* ── Header ── */
-	.page-header {
-		margin-bottom: 40px;
-	}
-
-	.header-top {
-		display: flex;
-		align-items: center;
-		gap: 14px;
-	}
-
-	.page-title {
-		font-size: var(--text-h1);
-		font-weight: 600;
-		color: var(--color-text-primary);
-		letter-spacing: -0.025em;
-		line-height: 1.05;
-	}
-
-	.header-badge {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		font-size: 12px;
-		color: var(--color-text-subtle);
-		background: var(--color-bg-1);
-		border: 1px solid var(--color-border-subtle);
-		border-radius: 999px;
-		padding: 3px 10px 3px 8px;
-	}
-
-	.status-dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		flex-shrink: 0;
-	}
-
-	.status-dot.all-up {
-		background: var(--color-accent);
-		box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 25%, transparent);
-	}
-
-	.status-dot.partial {
-		background: #f59e0b;
-		box-shadow: 0 0 0 2px color-mix(in oklab, #f59e0b 25%, transparent);
-	}
-
-	/* ── Sections ── */
-	.section {
-		margin-bottom: 32px;
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-	}
-
-	.section-label {
-		font-size: 11px;
-		font-weight: 600;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--color-text-faint);
-		font-family: var(--font-mono);
-	}
-
-	/* ── Container list ── */
-	.container-list {
-		display: flex;
-		flex-direction: column;
-		gap: 3px;
-	}
-
-	.container-row {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		background: var(--color-surface-1);
-		border: 1px solid var(--color-border-default);
-		border-radius: var(--radius-lg);
-		padding: 12px 14px;
-		text-decoration: none;
-		transition:
-			background var(--duration-fast) var(--ease-out),
-			border-color var(--duration-fast) var(--ease-out),
-			transform var(--duration-base) var(--ease-out);
-	}
-
-	.container-row:hover {
-		background: var(--color-surface-2);
-		border-color: color-mix(in oklab, var(--color-accent) 35%, var(--color-border-default));
-		transform: translateX(2px);
-	}
-
-	.row-icon {
-		width: 32px;
-		height: 32px;
-		border-radius: var(--radius-sm);
-		background: color-mix(in oklab, var(--color-accent) 10%, var(--color-bg-0));
-		border: 1px solid color-mix(in oklab, var(--color-accent) 22%, transparent);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-	}
-
-	.row-icon.preview {
-		background: var(--color-bg-1);
-		border-color: var(--color-border-subtle);
-	}
-
-	.row-monogram {
-		font-family: var(--font-mono);
-		font-size: 10px;
-		font-weight: 700;
-		color: var(--color-accent);
-		letter-spacing: 0.03em;
-	}
-
-	.row-icon.preview .row-monogram {
-		color: var(--color-text-subtle);
-	}
-
-	.row-body {
-		flex: 1;
-		min-width: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 1px;
-	}
-
-	.row-name {
-		font-size: 13px;
-		font-weight: 600;
-		color: var(--color-text-primary);
-		text-transform: capitalize;
-	}
-
-	.row-image {
-		font-size: 11px;
-		color: var(--color-text-faint);
-		font-family: var(--font-mono);
-	}
-
-	.row-right {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		gap: 3px;
-		flex-shrink: 0;
-	}
-
-	.uptime-text {
-		font-size: 11px;
-		color: var(--color-text-faint);
-		white-space: nowrap;
-	}
-
-	.state-dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-	}
-
-	.state-dot.up {
-		background: var(--color-accent);
-	}
-
-	.state-dot.down {
-		background: var(--color-text-faint);
-	}
-
-	:global(.row-chevron) {
-		color: var(--color-border-strong);
-		flex-shrink: 0;
-		transition: color var(--duration-fast) var(--ease-out);
-	}
-
-	.container-row:hover :global(.row-chevron) {
-		color: var(--color-accent);
-	}
-
-	.empty-row {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		padding: 16px;
-		background: var(--color-bg-1);
-		border: 1px dashed var(--color-border-default);
-		border-radius: var(--radius-lg);
-		font-size: 13px;
-		color: var(--color-text-subtle);
-	}
-
-	/* ── Totals strip ── */
-	.totals-strip {
-		background: var(--color-surface-1);
-		border: 1px solid var(--color-border-default);
-		border-radius: var(--radius-lg);
-		padding: 16px 20px;
-		display: flex;
-		align-items: center;
-		gap: 16px;
-	}
-
-	.totals-icon {
-		width: 32px;
-		height: 32px;
-		border-radius: var(--radius-sm);
-		background: color-mix(in oklab, var(--color-accent) 10%, var(--color-bg-0));
-		border: 1px solid color-mix(in oklab, var(--color-accent) 22%, transparent);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-		color: var(--color-accent);
-	}
-
-	.totals-row {
-		display: flex;
-		align-items: center;
-		flex: 1;
-		flex-wrap: wrap;
-		gap: 0;
-	}
-
-	.total-item {
-		display: flex;
-		flex-direction: column;
-		gap: 1px;
-		padding: 0 16px;
-	}
-
-	.total-item:first-child {
-		padding-left: 0;
-	}
-
-	.total-val {
-		font-size: 18px;
-		font-weight: 600;
-		color: var(--color-text-primary);
-		letter-spacing: -0.02em;
-		line-height: 1;
-	}
-
-	.total-lbl {
-		font-size: 10px;
-		color: var(--color-text-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-		font-family: var(--font-mono);
-	}
-
-	.total-sep {
-		width: 1px;
-		height: 24px;
-		background: var(--color-border-subtle);
-		flex-shrink: 0;
-	}
-
-	/* ── Activity grid ── */
-	.activity-grid {
+	/* ── Summary cards ── */
+	.summary {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 10px;
-	}
-
-	.activity-card {
-		background: var(--color-surface-1);
-		border: 1px solid var(--color-border-default);
-		border-radius: var(--radius-lg);
-		padding: 18px 18px 14px;
-		display: flex;
-		flex-direction: column;
-		gap: 14px;
-	}
-
-	.activity-header {
-		display: flex;
-		align-items: center;
+		grid-template-columns: 1fr 1fr;
 		gap: 8px;
 	}
 
-	.activity-icon {
-		width: 26px;
-		height: 26px;
-		border-radius: var(--radius-sm);
-		background: color-mix(in oklab, var(--color-accent) 10%, var(--color-bg-0));
-		border: 1px solid color-mix(in oklab, var(--color-accent) 20%, transparent);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-		color: var(--color-accent);
+	.summary-card {
+		background: var(--color-surface-1);
+		border: 1px solid var(--color-border-default);
+		border-radius: var(--radius-md);
+		padding: 12px 14px;
 	}
 
-	.activity-label {
-		font-size: 12px;
+	.summary-num {
+		font-size: 28px;
 		font-weight: 600;
-		color: var(--color-text-primary);
-	}
-
-	/* Mini bar chart */
-	.spark-wrap {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-
-	.spark-bars {
-		height: 32px;
-		display: flex;
-		align-items: flex-end;
-	}
-
-	.spark-bar-group {
-		display: flex;
-		align-items: flex-end;
-		gap: 4px;
-	}
-
-	.spark-bar {
-		width: 10px;
-		border-radius: 3px 3px 0 0;
-		transition: height 0.4s var(--ease-out);
-	}
-
-	.spark-bar.accent {
-		background: var(--color-accent);
-	}
-
-	.spark-bar.mid {
-		background: color-mix(in oklab, var(--color-accent) 50%, var(--color-bg-2));
-	}
-
-	.spark-bar.base {
-		background: var(--color-bg-2);
-	}
-
-	.spark-legend {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		font-size: 10px;
-		color: var(--color-text-faint);
-	}
-
-	.spark-dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		flex-shrink: 0;
-	}
-
-	.spark-dot.accent-dot {
-		background: var(--color-accent);
-	}
-
-	.spark-dot.mid-dot {
-		background: color-mix(in oklab, var(--color-accent) 50%, var(--color-bg-2));
-	}
-
-	.spark-dot.base-dot {
-		background: var(--color-bg-2);
-	}
-
-	/* Count row */
-	.activity-counts {
-		display: flex;
-		gap: 0;
-		border-top: 1px solid var(--color-border-subtle);
-		padding-top: 12px;
-	}
-
-	.activity-count {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		padding-right: 8px;
-	}
-
-	.count-val {
-		font-size: 20px;
-		font-weight: 600;
-		color: var(--color-text-primary);
-		letter-spacing: -0.02em;
+		letter-spacing: -0.025em;
 		line-height: 1;
 	}
 
-	.count-val.accent-val {
-		color: color-mix(in oklab, var(--color-accent) 85%, #000);
+	.summary-num.warn {
+		color: var(--warn-ink);
+	}
+	.summary-num.err {
+		color: var(--err-ink);
+	}
+	.summary-num.ok {
+		color: var(--accent-ink);
 	}
 
-	.count-lbl {
-		font-size: 10px;
-		color: var(--color-text-faint);
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
+	.summary-label {
+		color: var(--color-text-subtle);
+		font-size: 12px;
+		margin-top: 4px;
 		font-family: var(--font-mono);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
 	}
 
-	@media (max-width: 640px) {
-		.activity-grid {
-			grid-template-columns: 1fr;
-		}
+	.summary-sub {
+		color: var(--color-text-faint);
+		font-size: 11px;
+		margin-top: 2px;
+	}
 
-		.totals-strip {
-			flex-direction: column;
-			align-items: flex-start;
-		}
+	/* ── Groups ── */
+	.groups {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
 
-		.totals-row {
-			gap: 12px;
-		}
+	.group-h {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 6px 4px;
+		color: var(--color-text-subtle);
+		font-family: var(--font-mono);
+		font-size: 10px;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+	}
 
-		.total-sep {
-			display: none;
-		}
+	.group-h .count {
+		color: var(--color-text-faint);
+	}
 
-		.total-item {
-			padding: 0;
-		}
+	/* ── Empty ── */
+	.empty {
+		text-align: center;
+		padding: 32px 24px;
+		color: var(--color-text-muted);
+	}
+
+	.empty .em {
+		font-size: 32px;
+		margin-bottom: 8px;
+		opacity: 0.4;
+	}
+
+	/* ── DB / Activity section ── */
+	.section-header {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-top: 4px;
+	}
+
+	.section-header :global(.section-icon) {
+		width: 14px;
+		height: 14px;
+		color: var(--color-text-faint);
+	}
+
+	.section-icon {
+		width: 14px;
+		height: 14px;
+		color: var(--color-text-faint);
+		flex-shrink: 0;
+	}
+
+	/* ── Activity list ── */
+	.act-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 12px 14px;
+		border-bottom: 1px solid var(--color-border-subtle);
+	}
+
+	.act-row:last-child {
+		border-bottom: 0;
+	}
+
+	.act-icon {
+		width: 28px;
+		height: 28px;
+		border-radius: 8px;
+		display: grid;
+		place-items: center;
+		flex-shrink: 0;
+		background: var(--color-bg-2);
+		color: var(--color-text-muted);
+	}
+
+	.act-label {
+		flex: 1;
+		font-size: 14px;
+		font-weight: 500;
+	}
+
+	.act-counts {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-family: var(--font-mono);
+		font-size: 13px;
+	}
+
+	.act-val {
+		color: var(--color-text-primary);
+		font-weight: 600;
+	}
+
+	.act-val.accent {
+		color: var(--accent-ink);
+	}
+
+	.act-val.muted {
+		color: var(--color-text-subtle);
+	}
+
+	.act-sep {
+		color: var(--color-text-faint);
 	}
 </style>

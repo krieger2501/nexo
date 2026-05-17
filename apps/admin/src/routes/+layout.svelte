@@ -2,11 +2,9 @@
 	import '../app.css';
 	import { page, navigating } from '$app/state';
 	import { userMessage } from '@nexo/errors';
-	import { ParaglideJS } from '@inlang/paraglide-sveltekit';
-	import { i18n } from '$lib/i18n';
 	import UpdatePrompt from '$lib/components/UpdatePrompt.svelte';
 	import KonamiCode from '$lib/components/KonamiCode.svelte';
-	import * as m from '$lib/paraglide/messages';
+	import { m } from '$lib/paraglide/messages.js';
 
 	let { children } = $props();
 
@@ -49,112 +47,111 @@
 	}
 </script>
 
-<ParaglideJS {i18n}>
-	{#if navigating.to}
-		<div class="nav-progress"></div>
-	{/if}
-	<div class="shell">
-		<!-- Topbar -->
-		<header class="topbar">
-			{#if isServiceDetail}
-				<a href="/services" class="topbar-action" aria-label="Back">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-						><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" /></svg
-					>
-				</a>
-			{:else}
-				<div class="brand-mark" style="margin-left:14px"></div>
-			{/if}
-			<div class="topbar-center">
-				<span class="topbar-title">{displayTitle}</span>
-			</div>
-			<div class="topbar-right">
-				<button
-					type="button"
-					class="topbar-action"
-					onclick={() => window.location.reload()}
-					title="Refresh"
+{#if navigating.to}
+	<div class="nav-progress"></div>
+{/if}
+<div class="shell">
+	<!-- Topbar -->
+	<header class="topbar">
+		{#if isServiceDetail}
+			<a href="/services" class="topbar-action" aria-label="Back">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+					><path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" /></svg
 				>
-					<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
-						><path d="M3 8a5 5 0 018-3.5M13 8a5 5 0 01-8 3.5" /><path
-							d="M11 2v3h-3M5 14v-3h3"
-							stroke-linecap="round"
-						/></svg
-					>
-				</button>
-			</div>
-		</header>
+			</a>
+		{:else}
+			<div class="brand-mark" style="margin-left:14px"></div>
+		{/if}
+		<div class="topbar-center">
+			<span class="topbar-title">{displayTitle}</span>
+		</div>
+		<div class="topbar-right">
+			<button
+				type="button"
+				class="topbar-action"
+				onclick={() => window.location.reload()}
+				title="Refresh"
+			>
+				<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+					><path d="M3 8a5 5 0 018-3.5M13 8a5 5 0 01-8 3.5" /><path
+						d="M11 2v3h-3M5 14v-3h3"
+						stroke-linecap="round"
+					/></svg
+				>
+			</button>
+		</div>
+	</header>
 
-		<!-- Main content -->
-		<main class="app-body">
-			{#if errorMsg}
-				<div class="error-toast" role="alert">
-					<div class="error-toast-body">
-						<p class="error-toast-title">{errorMsg}</p>
-						{#if errorId}
-							<p class="error-toast-sub">
-								Ref: <code class="error-id">{errorId}</code>
-							</p>
-						{/if}
-					</div>
+	<!-- Main content -->
+	<main class="app-body">
+		{#if errorMsg}
+			<div class="error-toast" role="alert">
+				<div class="error-toast-body">
+					<p class="error-toast-title">{errorMsg}</p>
 					{#if errorId}
-						<button type="button" class="error-toast-copy" onclick={copyId}>
-							{copied ? 'Copied!' : 'Copy'}
-						</button>
+						<p class="error-toast-sub">
+							Ref: <code class="error-id">{errorId}</code>
+						</p>
 					{/if}
 				</div>
-			{/if}
-			{@render children()}
-		</main>
+				{#if errorId}
+					<button type="button" class="error-toast-copy" onclick={copyId}>
+						{copied ? 'Copied!' : 'Copy'}
+					</button>
+				{/if}
+			</div>
+		{/if}
+		{@render children()}
+	</main>
 
-		<!-- Bottom tab bar -->
-		<nav class="tabbar">
-			<a href="/services" class="tab" class:active={activeTab === 'containers'}>
-				<div class="tab-icon">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-						><path d="M12 3l8 4v10l-8 4-8-4V7z" /><path d="M4 7l8 4 8-4M12 11v10" /></svg
-					>
-				</div>
-				<span>{m.nav_containers()}</span>
-			</a>
-			<a href="/users" class="tab" class:active={activeTab === 'users'}>
-				<div class="tab-icon">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-						><circle cx="9" cy="8" r="3.5" /><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5" /><circle
-							cx="17"
-							cy="9"
-							r="2.5"
-						/><path d="M15 14.5c2.5 0 4 1.5 4 4" /></svg
-					>
-				</div>
-				<span>{m.nav_users()}</span>
-			</a>
-			<a href="/settings" class="tab" class:active={activeTab === 'settings'}>
-				<div class="tab-icon">
-					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-						><circle cx="12" cy="12" r="3" /><path
-							d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
-							stroke-linecap="round"
-						/></svg
-					>
-				</div>
-				<span>{m.nav_settings()}</span>
-			</a>
-		</nav>
-	</div>
-	<UpdatePrompt />
-	<KonamiCode />
-</ParaglideJS>
+	<!-- Bottom tab bar -->
+	<nav class="tabbar">
+		<a href="/services" class="tab" class:active={activeTab === 'containers'}>
+			<div class="tab-icon">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+					><path d="M12 3l8 4v10l-8 4-8-4V7z" /><path d="M4 7l8 4 8-4M12 11v10" /></svg
+				>
+			</div>
+			<span>{m.nav_containers()}</span>
+		</a>
+		<a href="/users" class="tab" class:active={activeTab === 'users'}>
+			<div class="tab-icon">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+					><circle cx="9" cy="8" r="3.5" /><path d="M3 20c0-3 2.5-5 6-5s6 2 6 5" /><circle
+						cx="17"
+						cy="9"
+						r="2.5"
+					/><path d="M15 14.5c2.5 0 4 1.5 4 4" /></svg
+				>
+			</div>
+			<span>{m.nav_users()}</span>
+		</a>
+		<a href="/settings" class="tab" class:active={activeTab === 'settings'}>
+			<div class="tab-icon">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+					><circle cx="12" cy="12" r="3" /><path
+						d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+						stroke-linecap="round"
+					/></svg
+				>
+			</div>
+			<span>{m.nav_settings()}</span>
+		</a>
+	</nav>
+</div>
+<UpdatePrompt />
+<KonamiCode />
 
 <style>
 	.shell {
-		min-height: 100dvh;
+		height: 100dvh;
 		display: flex;
 		flex-direction: column;
 		max-width: 480px;
 		margin: 0 auto;
 		position: relative;
 		background: var(--color-bg-1);
+		overflow: hidden;
 	}
 
 	/* ── Topbar ── */
