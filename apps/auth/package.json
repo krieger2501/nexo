@@ -10,6 +10,8 @@
 		"lint:fix": "eslint . --fix",
 		"preview": "vite preview",
 		"qc": "run-s lint type:check build",
+		"translate": "pnpm dlx @inlang/paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide",
+		"translate:watch": "pnpm dlx @inlang/paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --watch",
 		"type:check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"type:check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
 	},

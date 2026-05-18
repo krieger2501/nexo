@@ -36,6 +36,9 @@ jobs:
       - name: Sync SvelteKit types
         run: pnpm sync
 
+      - name: Compile translations
+        run: pnpm translate
+
       - name: Check unused exports
         run: pnpm knip
 
