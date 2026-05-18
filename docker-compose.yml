@@ -121,8 +121,6 @@ services:
     build:
       context: .
       dockerfile: apps/finance/Dockerfile
-      args:
-        PUBLIC_APP_VERSION: ${APP_VERSION:-dev}
     restart: unless-stopped
     networks: [production]
     logging:
@@ -157,7 +155,6 @@ services:
       dockerfile: apps/landing/Dockerfile
       args:
         PUBLIC_FINANCE_URL: https://finance.krieger2501.de
-        PUBLIC_APP_VERSION: ${APP_VERSION:-dev}
     restart: unless-stopped
     networks: [production]
     logging:
@@ -171,7 +168,6 @@ services:
       PUBLIC_ADMIN_URL: https://admin.krieger2501.de
       PUBLIC_AUTH_URL: https://auth.krieger2501.de
       PUBLIC_LANDING_URL: https://krieger2501.de
-      PUBLIC_APP_VERSION: ${APP_VERSION:-dev}
       DATABASE_URL: ${DATABASE_URL}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
     depends_on:
@@ -263,8 +259,6 @@ services:
     build:
       context: .
       dockerfile: apps/finance/Dockerfile
-      args:
-        PUBLIC_APP_VERSION: ${PUBLIC_APP_VERSION:-preview}
     restart: unless-stopped
     networks: [preview]
     environment:
@@ -285,12 +279,10 @@ services:
       dockerfile: apps/landing/Dockerfile
       args:
         PUBLIC_FINANCE_URL: https://finance.preview.krieger2501.de
-        PUBLIC_APP_VERSION: ${PUBLIC_APP_VERSION:-preview}
     restart: unless-stopped
     networks: [preview]
     environment:
       PUBLIC_FINANCE_URL: https://finance.preview.krieger2501.de
-      PUBLIC_APP_VERSION: ${PUBLIC_APP_VERSION:-preview}
     depends_on:
       migrate_preview:
         condition: service_completed_successfully
