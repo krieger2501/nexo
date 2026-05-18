@@ -19,8 +19,6 @@ COPY packages/logger ./packages/logger
 COPY packages/ui ./packages/ui
 COPY apps/finance ./apps/finance
 
-ARG PUBLIC_APP_VERSION=0.0.0
-RUN echo "PUBLIC_APP_VERSION=$PUBLIC_APP_VERSION" > apps/finance/.env
 RUN pnpm --filter=@nexo/finance run build
 
 FROM node:24-alpine

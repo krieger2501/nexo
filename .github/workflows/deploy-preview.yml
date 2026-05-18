@@ -34,8 +34,6 @@ jobs:
             git fetch --prune origin
             git checkout ${{ inputs.sha }}
 
-            export PUBLIC_APP_VERSION=pr-${{ inputs.pr_number }}
-
             docker compose --profile preview \
               --env-file .env.preview \
               up -d --build
