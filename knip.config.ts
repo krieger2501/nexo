@@ -4,7 +4,6 @@ const SVELTE_ENTRY = ['src/routes/**/+*.{ts,js,svelte}'];
 const SVELTE_PROJECT = ['src/**/*.{ts,js,svelte}'];
 
 const config: KnipConfig = {
-	ignoreUnresolved: [/^\$lib\/paraglide\//],
 	workspaces: {
 		'.': {},
 		'apps/landing': {
