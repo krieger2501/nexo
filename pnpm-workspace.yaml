@@ -6,4 +6,4 @@ allowBuilds:
   sharp: true
 
 catalog:
-  '@types/node': '^24.12.3'
+  '@types/node': '^24.12.4'

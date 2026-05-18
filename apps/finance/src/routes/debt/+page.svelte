@@ -1,7 +1,7 @@
 <script lang="ts">
 	import BottomSheet from '$lib/components/layout/BottomSheet.svelte';
 	import Toggle from '$lib/components/ui/Toggle.svelte';
-	import { Plus, Check, ChevronRight } from 'lucide-svelte';
+	import { Plus, Check, ChevronRight } from '@lucide/svelte';
 	import { enhance } from '$app/forms';
 
 	import type { Debt } from '$lib/types';

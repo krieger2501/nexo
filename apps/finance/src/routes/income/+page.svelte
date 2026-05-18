@@ -1,7 +1,7 @@
 <script lang="ts">
 	import IncomeForm from '$lib/components/income/IncomeForm.svelte';
 	import Tabs from '$lib/components/ui/Tabs.svelte';
-	import { Plus } from 'lucide-svelte';
+	import { Plus } from '@lucide/svelte';
 	import { normalizeToMonthly, formatCurrency, getIntlLocale } from '$lib/utils';
 
 	import type { Income } from '$lib/types';

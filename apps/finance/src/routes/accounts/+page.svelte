@@ -1,7 +1,7 @@
 <script lang="ts">
 	import BottomSheet from '$lib/components/layout/BottomSheet.svelte';
 	import Toggle from '$lib/components/ui/Toggle.svelte';
-	import { Plus } from 'lucide-svelte';
+	import { Plus } from '@lucide/svelte';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 

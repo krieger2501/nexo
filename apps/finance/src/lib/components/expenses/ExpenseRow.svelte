@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ChevronRight } from 'lucide-svelte';
+	import { ChevronRight } from '@lucide/svelte';
 	import { formatCurrency, getIntlLocale, normalizeToMonthly } from '$lib/utils';
 	import type { Expense } from '$lib/types';
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ChevronRight, CheckCircle } from 'lucide-svelte';
+	import { ChevronRight, CheckCircle } from '@lucide/svelte';
 	import { formatCurrency, getIntlLocale } from '$lib/utils';
 	import type { Income } from '$lib/types';
 

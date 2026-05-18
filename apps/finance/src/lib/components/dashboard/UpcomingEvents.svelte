@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { UpcomingEvent } from '$lib/types';
-	import { ArrowDownLeft, ArrowUpRight, Users } from 'lucide-svelte';
+	import { ArrowDownLeft, ArrowUpRight, Users } from '@lucide/svelte';
 	import { formatCurrency, getIntlLocale } from '$lib/utils';
 
 	let { events }: { events: UpcomingEvent[] } = $props();

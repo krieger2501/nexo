@@ -22,32 +22,32 @@
 	"dependencies": {
 		"@fontsource-variable/inter": "^5.2.8",
 		"@fontsource-variable/jetbrains-mono": "^5.2.8",
+		"@lucide/svelte": "^1.16.0",
 		"@nexo/db": "workspace:*",
 		"@nexo/errors": "workspace:*",
 		"@nexo/logger": "workspace:*",
 		"@nexo/ui": "workspace:*",
-		"better-auth": "^1.6.10",
+		"better-auth": "^1.6.11",
 		"clsx": "^2.1.1",
 		"drizzle-orm": "^0.45.2",
-		"lucide-svelte": "^1.0.1",
-		"tailwind-merge": "^3.5.0"
+		"tailwind-merge": "^3.6.0"
 	},
 	"devDependencies": {
 		"@inlang/paraglide-js": "^2.18.0",
-		"@playwright/test": "^1.59.1",
+		"@playwright/test": "^1.60.0",
 		"@sveltejs/adapter-node": "^5.5.4",
-		"@sveltejs/kit": "^2.59.1",
+		"@sveltejs/kit": "^2.60.1",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@tailwindcss/vite": "^4.3.0",
 		"@testing-library/jest-dom": "^6.9.1",
 		"@types/node": "catalog:",
 		"@vite-pwa/sveltekit": "^1.1.0",
-		"@vitest/coverage-v8": "^4.1.5",
+		"@vitest/coverage-v8": "^4.1.6",
 		"happy-dom": "^20.9.0",
-		"svelte": "^5.55.5",
+		"svelte": "^5.55.7",
 		"svelte-check": "^4.4.8",
 		"tailwindcss": "^4.3.0",
-		"vite": "^8.0.11",
-		"vitest": "^4.1.5"
+		"vite": "^8.0.13",
+		"vitest": "^4.1.6"
 	}
 }

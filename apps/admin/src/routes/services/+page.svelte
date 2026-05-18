@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ContainerInfo } from '$lib/server/docker';
-	import { Activity, TrendingDown, TrendingUp, Users } from 'lucide-svelte';
+	import { Activity, TrendingDown, TrendingUp, Users } from '@lucide/svelte';
 	import { ctnName, ctnGroup } from '$lib/utils/containers';
 	import SearchInput from '$lib/components/SearchInput.svelte';
 	import FilterChips from '$lib/components/FilterChips.svelte';

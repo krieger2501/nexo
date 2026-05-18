@@ -2,7 +2,7 @@
 	import { resolveMonthlyDate, toDateStr } from '$lib/dateUtils';
 	import { formatCurrency, getIntlLocale } from '$lib/utils';
 	import FlowPip from '$lib/components/ui/FlowPip.svelte';
-	import { TrendingUp, TrendingDown, AlertTriangle } from 'lucide-svelte';
+	import { TrendingUp, TrendingDown, AlertTriangle } from '@lucide/svelte';
 
 	import { SvelteDate } from 'svelte/reactivity';
 

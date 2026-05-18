@@ -1,6 +1,6 @@
 <script lang="ts">
 	import BottomSheet from '$lib/components/layout/BottomSheet.svelte';
-	import { Plus, ChevronRight, ArrowUpRight, ArrowDownLeft } from 'lucide-svelte';
+	import { Plus, ChevronRight, ArrowUpRight, ArrowDownLeft } from '@lucide/svelte';
 	import { enhance } from '$app/forms';
 	import { formatCurrency, getIntlLocale } from '$lib/utils';
 	import type { Account, Expense, Debt } from '$lib/types';
