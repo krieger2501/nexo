@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ChevronRight, ArrowUpRight, ArrowDownLeft } from 'lucide-svelte';
+	import { ChevronRight, ArrowUpRight, ArrowDownLeft } from '@lucide/svelte';
 	import { formatCurrency, getIntlLocale } from '$lib/utils';
 	import type { Debt } from '$lib/types';
 

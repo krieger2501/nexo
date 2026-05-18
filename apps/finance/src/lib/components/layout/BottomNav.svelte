@@ -11,7 +11,7 @@
 		TrendingUp,
 		Users,
 		Bookmark
-	} from 'lucide-svelte';
+	} from '@lucide/svelte';
 
 	const tabs = $derived([
 		{ href: '/', label: m.nav_home(), icon: Home },

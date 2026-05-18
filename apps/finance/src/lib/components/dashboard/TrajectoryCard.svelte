@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { TrendingUp } from 'lucide-svelte';
+	import { TrendingUp } from '@lucide/svelte';
 	import { getIntlLocale } from '$lib/utils';
 
 	let {

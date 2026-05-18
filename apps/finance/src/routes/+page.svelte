@@ -6,7 +6,7 @@
 	import SpotlightCard from '$lib/components/dashboard/SpotlightCard.svelte';
 	import UpcomingCompact from '$lib/components/dashboard/UpcomingCompact.svelte';
 	import SectionLabel from '$lib/components/ui/SectionLabel.svelte';
-	import { Search, X } from 'lucide-svelte';
+	import { Search, X } from '@lucide/svelte';
 	import { getIntlLocale } from '$lib/utils';
 
 	let { data } = $props();

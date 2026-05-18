@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { Settings, LogOut } from 'lucide-svelte';
+	import { Settings, LogOut } from '@lucide/svelte';
 	import type { User } from 'better-auth';
 	import { env } from '$env/dynamic/public';
 
