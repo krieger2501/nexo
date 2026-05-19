@@ -8,7 +8,7 @@ const config = {
 		adapter: adapter(),
 		csp: {
 			mode: 'auto',
-			reportOnly: {
+			directives: {
 				'default-src': ['self'],
 				'script-src': ['self'],
 				'style-src': ['self', 'unsafe-inline'],
