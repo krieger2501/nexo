@@ -13,6 +13,8 @@ WORKDIR /app
 RUN corepack enable
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
+# pnpm v10+ refuses to purge node_modules without a TTY unless CI=true.
+ENV CI=true
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
