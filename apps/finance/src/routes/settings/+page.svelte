@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { beforeNavigate, goto } from '$app/navigation';
+	import { dev } from '$app/environment';
 	import { env } from '$env/dynamic/public';
 	import { getLocale } from '$lib/paraglide/runtime.js';
 	import BottomSheet from '$lib/components/layout/BottomSheet.svelte';
@@ -141,7 +142,11 @@
 	}
 
 	const hubUrl = $derived(
-		env.PUBLIC_LANDING_URL ? `${env.PUBLIC_LANDING_URL}/apps` : 'https://krieger2501.de/apps'
+		env.PUBLIC_LANDING_URL
+			? `${env.PUBLIC_LANDING_URL}/apps`
+			: dev
+				? 'http://localhost:3000/apps'
+				: 'https://krieger2501.de/apps'
 	);
 </script>
 
