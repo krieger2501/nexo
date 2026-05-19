@@ -11,7 +11,7 @@ services:
 
   postgres:
     profiles: [production]
-    image: postgres:17
+    image: postgres:18
     restart: unless-stopped
     networks: [production]
     volumes:
@@ -179,7 +179,7 @@ services:
 
   postgres_preview:
     profiles: [preview]
-    image: postgres:17
+    image: postgres:18
     restart: unless-stopped
     networks: [preview]
     volumes:
