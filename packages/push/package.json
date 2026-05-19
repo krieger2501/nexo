@@ -1,0 +1,30 @@
+{
+	"name": "@nexo/push",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./schema": "./src/schema.ts",
+		"./server": "./src/server.ts",
+		"./routes": "./src/routes.ts",
+		"./client": "./src/client.ts",
+		"./sw": "./src/sw.ts"
+	},
+	"scripts": {
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
+		"qc": "run-s lint type:check",
+		"type:check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@nexo/db": "workspace:*",
+		"drizzle-orm": "^0.45.2",
+		"web-push": "^3.6.7"
+	},
+	"devDependencies": {
+		"@sveltejs/kit": "^2.60.1",
+		"@types/node": "catalog:",
+		"@types/web-push": "^3.6.4"
+	}
+}
