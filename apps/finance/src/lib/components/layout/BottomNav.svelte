@@ -40,8 +40,17 @@
 				? 'var(--color-income)'
 				: url.pathname === '/debt'
 					? 'var(--color-debt)'
-					: null
+					: url.pathname === '/commitments'
+						? 'var(--color-text-muted)'
+						: null
 	);
+
+	const flowSoftBg: Record<string, string> = {
+		'/expenses': 'var(--expense-soft)',
+		'/income': 'var(--income-soft)',
+		'/debt': 'var(--debt-soft)',
+		'/commitments': 'var(--color-bg-1)'
+	};
 
 	function togglePopover() {
 		popoverOpen = !popoverOpen;
@@ -84,6 +93,7 @@
 				onclick={closePopover}
 				class="active:bg-bg-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14.5px] font-medium tracking-tight transition-colors
 				       {active ? 'text-text-primary' : 'text-text-primary'}"
+				style={active ? `background: ${flowSoftBg[item.href]};` : ''}
 			>
 				<span
 					class="grid size-7 place-items-center rounded-[7px] text-[14px]"
