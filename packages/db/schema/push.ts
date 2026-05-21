@@ -1,5 +1,5 @@
 import { pgSchema, uuid, text, timestamp, unique, index } from 'drizzle-orm/pg-core';
-import { users } from './auth';
+import { users } from './auth.js';
 
 export const pushSchema = pgSchema('push');
 
