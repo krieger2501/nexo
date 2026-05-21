@@ -24,7 +24,6 @@
 		"@nexo/i18n": "workspace:*",
 		"@nexo/security": "workspace:*",
 		"@nexo/ui": "workspace:*",
-		"better-auth": "catalog:",
 		"drizzle-orm": "catalog:",
 		"postgres": "catalog:"
 	},
