@@ -5,10 +5,12 @@ import { logger } from './logger';
 import { dockerGet, fetchHealthz } from './docker';
 import type { ContainerInfo, ContainerInspect } from './docker';
 
-const TICK_INTERVAL_MS = Number(env.ADMIN_HEALTH_TICK_MS ?? 30_000);
-const PRUNE_EVERY_N_TICKS = 60;
+const TICK_INTERVAL_MS = Number(env.ADMIN_HEALTH_TICK_MS ?? 300_000);
+const PRUNE_EVERY_N_TICKS = 12;
 const RETENTION_DAYS = 7;
-const FAIL_STREAK_FOR_ALERT = 2;
+const FAIL_STREAK_FOR_ALERT = 3;
+const FETCH_TIMEOUT_MS = 10_000;
+const HEALTHZ_LABEL = 'nexo.healthz';
 
 type Source = 'poller' | 'manual' | 'docker';
 
@@ -53,7 +55,7 @@ async function pollContainer(c: ContainerInfo): Promise<void> {
 	const inspect = await dockerGet<ContainerInspect>(`/containers/${c.Id}/json`).catch(() => null);
 	if (!inspect || !inspect.State?.Running) return;
 
-	const result = await fetchHealthz(inspect, 5_000);
+	const result = await fetchHealthz(inspect, FETCH_TIMEOUT_MS);
 	await recordHealth({
 		target,
 		ok: result.ok,
@@ -87,6 +89,30 @@ async function pollContainer(c: ContainerInfo): Promise<void> {
 	}
 }
 
+function shouldPoll(c: ContainerInfo): boolean {
+	return c.Labels?.[HEALTHZ_LABEL] === 'true';
+}
+
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => {
+		const t = setTimeout(resolve, ms);
+		t.unref?.();
+	});
+}
+
+// Spread polls across the tick window so we don't dogpile the host.
+const JITTER_FRACTION = 0.6;
+
+async function scheduleWithJitter(c: ContainerInfo): Promise<void> {
+	const delay = Math.floor(Math.random() * TICK_INTERVAL_MS * JITTER_FRACTION);
+	await sleep(delay);
+	if (stopping) return;
+	await pollContainer(c).catch((e) => {
+		const target = (c.Names?.[0] ?? c.Id).replace(/^\//, '');
+		logger.error('poll container failed', { target, error: String(e) });
+	});
+}
+
 async function tick(): Promise<void> {
 	if (stopping || ticking) return;
 	ticking = true;
@@ -97,7 +123,9 @@ async function tick(): Promise<void> {
 			)}`
 		).catch(() => [] as ContainerInfo[]);
 
-		await Promise.all(containers.map((c) => pollContainer(c).catch(() => {})));
+		const targets = containers.filter(shouldPoll);
+
+		await Promise.all(targets.map((c) => scheduleWithJitter(c)));
 
 		tickCount += 1;
 		if (tickCount % PRUNE_EVERY_N_TICKS === 0) {

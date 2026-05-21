@@ -23,7 +23,7 @@
 	let lastChecked = $state<number>(Date.now());
 	let busy = $state(false);
 
-	const dockerLog = $derived(container.State.Health?.Log?.slice().reverse() ?? []);
+	const dockerLog = $derived(container.State.Health?.Log?.slice() ?? []);
 	const checks = $derived(healthz?.body?.checks ?? {});
 	const checkEntries = $derived(Object.entries(checks));
 	const passing = $derived(checkEntries.filter(([, v]) => v.ok).length);
@@ -39,29 +39,42 @@
 						? 'warn'
 						: 'err'
 	);
+
+	const dockerStats = $derived.by(() => {
+		const entries = dockerLog.slice(-20);
+		const pass = entries.filter((e) => e.ExitCode === 0).length;
+		const fail = entries.length - pass;
+		const oldest = entries[0]?.Start ? new Date(entries[0]!.Start) : null;
+		const newest = entries[entries.length - 1]?.Start
+			? new Date(entries[entries.length - 1]!.Start)
+			: null;
+		return { entries, pass, fail, oldest, newest };
+	});
 </script>
 
 <div class="fade-in">
 	<div class="health-summary">
-		<div>
+		<div class="health-summary-main">
 			{#if healthz?.body}
 				<div class="health-count {summaryTone}">{passing} / {total} passing</div>
-				<div class="health-meta">
-					checked {fmtRelative(lastChecked)} · {healthz.latency_ms}ms · v{healthz.body.version ??
-						'?'}{#if healthz.body.commit}
-						· <span class="mono">{healthz.body.commit}</span>{/if}
+				<div class="health-meta-line">
+					{fmtRelative(lastChecked)} · {healthz.latency_ms}ms
+				</div>
+				<div class="health-meta-line mono">
+					v{healthz.body.version ?? '?'}{#if healthz.body.commit}
+						· {healthz.body.commit}{/if}
 				</div>
 				{#if healthz.body.buildTime}
-					<div class="health-meta mono">
+					<div class="health-meta-line mono faint">
 						built {healthz.body.buildTime.slice(0, 16).replace('T', ' ')}
 					</div>
 				{/if}
 			{:else if healthz?.error}
 				<div class="health-count err">unreachable</div>
-				<div class="health-meta">{healthz.error}</div>
+				<div class="health-meta-line">{healthz.error}</div>
 			{:else}
 				<div class="health-count mute">—</div>
-				<div class="health-meta">No /healthz response</div>
+				<div class="health-meta-line">No /healthz response</div>
 			{/if}
 		</div>
 		<form
@@ -82,7 +95,14 @@
 				};
 			}}
 		>
-			<button type="submit" class="btn btn-ghost btn-small" disabled={busy}>
+			<button
+				type="submit"
+				class="recheck"
+				disabled={busy}
+				class:busy
+				aria-label="Recheck health"
+				title="Recheck health"
+			>
 				{#if busy}
 					<span class="spinner"></span>
 				{:else}
@@ -93,7 +113,6 @@
 						/></svg
 					>
 				{/if}
-				Recheck
 			</button>
 		</form>
 	</div>
@@ -136,16 +155,28 @@
 		</div>
 	{/if}
 
-	{#if dockerLog.length > 0}
+	{#if dockerStats.entries.length > 0}
 		<div class="docker-log">
-			<div class="docker-log-h">Docker healthcheck history</div>
+			<div class="docker-log-head">
+				<div class="docker-log-h">Docker healthchecks</div>
+				<div class="docker-log-counts">
+					<span class="ct"><span class="ct-dot ok"></span>{dockerStats.pass} pass</span>
+					{#if dockerStats.fail > 0}
+						<span class="ct"><span class="ct-dot err"></span>{dockerStats.fail} fail</span>
+					{/if}
+				</div>
+			</div>
 			<div class="docker-pips">
-				{#each dockerLog.slice(0, 20) as entry, i (i)}
+				{#each dockerStats.entries as entry, i (i)}
 					<span
 						class="pip {entry.ExitCode === 0 ? 'ok' : 'err'}"
-						title={`${new Date(entry.Start).toLocaleString()}: ${entry.ExitCode === 0 ? 'pass' : 'fail'}`}
+						title={`${new Date(entry.Start).toLocaleString()} · ${entry.ExitCode === 0 ? 'pass' : `fail (exit ${entry.ExitCode})`}`}
 					></span>
 				{/each}
+			</div>
+			<div class="docker-axis">
+				<span>{dockerStats.oldest ? fmtRelative(dockerStats.oldest.toISOString()) : ''}</span>
+				<span>newest →</span>
 			</div>
 		</div>
 	{/if}
@@ -156,13 +187,18 @@
 <style>
 	.health-summary {
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		justify-content: space-between;
 		gap: 12px;
 		padding: 14px;
 		background: var(--color-surface-1);
 		border: 1px solid var(--color-border-default);
 		border-radius: var(--radius-lg);
+	}
+
+	.health-summary-main {
+		flex: 1;
+		min-width: 0;
 	}
 
 	.health-count {
@@ -184,37 +220,50 @@
 		color: var(--color-text-faint);
 	}
 
-	.health-meta {
+	.health-meta-line {
 		font-family: var(--font-mono);
 		font-size: 11px;
 		color: var(--color-text-subtle);
 		margin-top: 4px;
+		overflow-wrap: anywhere;
+	}
+	.health-meta-line.faint {
+		color: var(--color-text-faint);
 	}
 
-	.btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: 6px;
-		min-height: 32px;
-		padding: 0 10px;
-		font-size: 12px;
-		font-weight: 500;
-		border-radius: var(--radius-md);
-		border: 0;
-		background: var(--color-bg-2);
-		color: var(--color-text-primary);
+	.recheck {
+		flex-shrink: 0;
+		width: 36px;
+		height: 36px;
+		display: grid;
+		place-items: center;
+		border-radius: 999px;
+		border: 1px solid var(--color-border-default);
+		background: var(--color-surface-1);
+		color: var(--color-text-subtle);
 		cursor: pointer;
 		-webkit-tap-highlight-color: transparent;
+		transition:
+			background var(--duration-fast) var(--ease-out),
+			color var(--duration-fast) var(--ease-out),
+			transform var(--duration-fast) var(--ease-out);
 	}
-	.btn:disabled {
-		opacity: 0.55;
+	.recheck:hover:not(:disabled) {
+		background: var(--color-bg-2);
+		color: var(--color-text-primary);
+	}
+	.recheck:active:not(:disabled) {
+		transform: rotate(-30deg);
+	}
+	.recheck:disabled {
 		cursor: not-allowed;
+		opacity: 0.6;
 	}
-	.btn svg {
+	.recheck svg {
 		width: 14px;
 		height: 14px;
 	}
+
 	.spinner {
 		width: 12px;
 		height: 12px;
@@ -248,13 +297,44 @@
 		border: 1px solid var(--color-border-default);
 		border-radius: var(--radius-md);
 	}
+	.docker-log-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 8px;
+		margin-bottom: 10px;
+	}
 	.docker-log-h {
 		font-family: var(--font-mono);
 		font-size: 10px;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
 		color: var(--color-text-subtle);
-		margin-bottom: 8px;
+	}
+	.docker-log-counts {
+		display: flex;
+		gap: 10px;
+		font-family: var(--font-mono);
+		font-size: 11px;
+		color: var(--color-text-subtle);
+	}
+	.ct {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+	}
+	.ct-dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 999px;
+		display: inline-block;
+	}
+	.ct-dot.ok {
+		background: var(--accent-ink);
+		opacity: 0.85;
+	}
+	.ct-dot.err {
+		background: var(--err-ink);
 	}
 	.docker-pips {
 		display: flex;
@@ -273,6 +353,14 @@
 	}
 	.pip.err {
 		background: var(--err-ink);
+	}
+	.docker-axis {
+		display: flex;
+		justify-content: space-between;
+		margin-top: 8px;
+		font-family: var(--font-mono);
+		font-size: 10px;
+		color: var(--color-text-faint);
 	}
 	.mono {
 		font-family: var(--font-mono);

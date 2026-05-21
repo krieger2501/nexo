@@ -41,7 +41,6 @@
 	};
 
 	let filter = $state<'all' | 'running' | 'issues' | 'stopped'>('all');
-	let profileFilter = $state<'all' | 'production' | 'preview'>('all');
 	let query = $state('');
 	let menuOpen = $state(false);
 	let confirmOpen = $state(false);
@@ -58,46 +57,54 @@
 		if (e.key === 'Escape' && menuOpen) menuOpen = false;
 	}
 
-	const counts = $derived({
-		all: data.containers.length,
-		running: data.containers.filter(ctnIsHealthy).length,
-		issues: data.containers.filter(ctnHasIssue).length,
-		stopped: data.containers.filter(ctnIsStopped).length
+	const productionContainers = $derived(data.containers.filter((c) => c.Profile === 'production'));
+	const previewContainers = $derived(data.containers.filter((c) => c.Profile === 'preview'));
+
+	const prodCounts = $derived({
+		all: productionContainers.length,
+		running: productionContainers.filter(ctnIsHealthy).length,
+		issues: productionContainers.filter(ctnHasIssue).length,
+		stopped: productionContainers.filter(ctnIsStopped).length
 	});
 
-	const profileCounts = $derived({
-		all: data.containers.length,
-		production: data.containers.filter((c) => c.Profile === 'production').length,
-		preview: data.containers.filter((c) => c.Profile === 'preview').length
+	const previewCounts = $derived({
+		all: previewContainers.length,
+		running: previewContainers.filter(ctnIsHealthy).length,
+		issues: previewContainers.filter(ctnHasIssue).length,
+		stopped: previewContainers.filter(ctnIsStopped).length
 	});
 
-	const filtered = $derived(
-		data.containers.filter((c) => {
+	function applyFilters(list: EnrichedContainer[]): EnrichedContainer[] {
+		return list.filter((c) => {
 			if (filter === 'running' && !ctnIsHealthy(c)) return false;
 			if (filter === 'issues' && !ctnHasIssue(c)) return false;
 			if (filter === 'stopped' && !ctnIsStopped(c)) return false;
-			if (profileFilter !== 'all' && c.Profile !== profileFilter) return false;
 			if (query) {
 				const q = query.trim().toLowerCase();
 				const search = (ctnName(c) + ' ' + c.Image + ' ' + c.Status).toLowerCase();
 				if (!search.includes(q)) return false;
 			}
 			return true;
-		})
-	);
+		});
+	}
 
-	const grouped = $derived(() => {
+	const prodFiltered = $derived(applyFilters(productionContainers));
+	const previewFiltered = $derived(applyFilters(previewContainers));
+
+	function groupBy(list: EnrichedContainer[]): Record<string, EnrichedContainer[]> {
 		const g: Record<string, EnrichedContainer[]> = {};
-		for (const c of filtered) {
+		for (const c of list) {
 			const grp = ctnGroup(c);
 			(g[grp] ??= []).push(c);
 		}
 		return g;
-	});
+	}
 
-	const runningCount = $derived(data.containers.filter(ctnIsHealthy).length);
-	const issueCount = $derived(data.containers.filter(ctnHasIssue).length);
-	const attention = $derived(data.containers.filter(ctnHasIssue));
+	const prodGrouped = $derived(groupBy(prodFiltered));
+	const previewGrouped = $derived(groupBy(previewFiltered));
+
+	const attentionProd = $derived(productionContainers.filter(ctnHasIssue));
+	const attentionPreview = $derived(previewContainers.filter(ctnHasIssue));
 
 	function profileTargetCount(p: 'production' | 'preview'): number {
 		return data.containers.filter((c) => c.Profile === p).length;
@@ -172,10 +179,10 @@
 
 	<!-- Summary heading -->
 	<div class="head-line">
-		{#if issueCount > 0}
-			<span class="err-text">{issueCount} need attention</span> · {counts.stopped} stopped
+		{#if prodCounts.issues > 0}
+			<span class="err-text">{prodCounts.issues} need attention</span> · {prodCounts.stopped} stopped
 		{:else}
-			All running · {counts.stopped} stopped
+			All running · {prodCounts.stopped} stopped
 		{/if}
 	</div>
 
@@ -185,24 +192,27 @@
 		</div>
 	{/if}
 
-	<!-- Summary cards -->
+	<!-- Summary cards (production-only) -->
 	<div class="summary">
 		<div class="summary-card">
-			<div class="summary-num {issueCount > 0 ? 'warn' : 'ok'}">
-				{runningCount}<span style="font-size:16px;color:var(--color-text-faint)">/{counts.all}</span
+			<div class="summary-num {prodCounts.issues > 0 ? 'warn' : 'ok'}">
+				{prodCounts.running}<span style="font-size:16px;color:var(--color-text-faint)"
+					>/{prodCounts.all}</span
 				>
 			</div>
-			<div class="summary-label">up</div>
+			<div class="summary-label">up · prod</div>
 			<div class="summary-sub">across {GROUP_ORDER.length} groups</div>
 		</div>
 		<div class="summary-card">
-			<div class="summary-num {issueCount > 0 ? 'err' : 'ok'}">{issueCount}</div>
-			<div class="summary-label">issues</div>
-			<div class="summary-sub">{issueCount > 0 ? 'Tap to filter' : 'All checks passing'}</div>
+			<div class="summary-num {prodCounts.issues > 0 ? 'err' : 'ok'}">{prodCounts.issues}</div>
+			<div class="summary-label">issues · prod</div>
+			<div class="summary-sub">
+				{prodCounts.issues > 0 ? 'Tap a card to drill in' : 'All checks passing'}
+			</div>
 		</div>
 	</div>
 
-	{#if attention.length > 0}
+	{#if attentionProd.length > 0 || attentionPreview.length > 0}
 		<div class="attention">
 			<div class="attention-h">
 				<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -210,16 +220,32 @@
 					<path d="M8 6.5v3.5M8 12v.01" stroke-linecap="round" />
 				</svg>
 				<span>Needs attention</span>
-				<span class="attention-count">{attention.length}</span>
+				<span class="attention-count">{attentionProd.length + attentionPreview.length}</span>
 			</div>
-			<div class="row-stack">
-				{#each attention as c (c.Id)}
-					<a class="att-row" href="/services/{(c.Names[0] ?? c.Id).replace(/^\//, '')}">
-						<span class="att-name">{ctnName(c)}</span>
-						<span class="att-state">{c.Status || c.State}</span>
-					</a>
-				{/each}
-			</div>
+			{#if attentionProd.length > 0}
+				<div class="row-stack">
+					{#each attentionProd as c (c.Id)}
+						<a class="att-row" href="/services/{(c.Names[0] ?? c.Id).replace(/^\//, '')}">
+							<span class="att-name">{ctnName(c)}</span>
+							<span class="att-state">{c.Status || c.State}</span>
+						</a>
+					{/each}
+				</div>
+			{/if}
+			{#if attentionPreview.length > 0}
+				<div class="att-preview-label">Preview</div>
+				<div class="row-stack">
+					{#each attentionPreview as c (c.Id)}
+						<a
+							class="att-row att-row-preview"
+							href="/services/{(c.Names[0] ?? c.Id).replace(/^\//, '')}"
+						>
+							<span class="att-name">{ctnName(c)}</span>
+							<span class="att-state">{c.Status || c.State}</span>
+						</a>
+					{/each}
+				</div>
+			{/if}
 		</div>
 	{/if}
 
@@ -230,48 +256,99 @@
 	<FilterChips
 		bind:value={filter}
 		options={[
-			{ value: 'all', label: 'All', count: counts.all },
-			{ value: 'running', label: 'Healthy', count: counts.running },
-			{ value: 'issues', label: 'Issues', count: issueCount },
-			{ value: 'stopped', label: 'Stopped', count: counts.stopped }
+			{ value: 'all', label: 'All', count: prodCounts.all + previewCounts.all },
+			{
+				value: 'running',
+				label: 'Healthy',
+				count: prodCounts.running + previewCounts.running
+			},
+			{
+				value: 'issues',
+				label: 'Issues',
+				count: prodCounts.issues + previewCounts.issues
+			},
+			{
+				value: 'stopped',
+				label: 'Stopped',
+				count: prodCounts.stopped + previewCounts.stopped
+			}
 		]}
 	/>
 
-	<!-- Profile chips -->
-	<FilterChips
-		bind:value={profileFilter}
-		options={[
-			{ value: 'all', label: 'Both', count: profileCounts.all },
-			{ value: 'production', label: 'Production', count: profileCounts.production },
-			{ value: 'preview', label: 'Preview', count: profileCounts.preview }
-		]}
-	/>
+	<!-- Production -->
+	<section class="profile-section">
+		<div class="profile-h">
+			<span class="profile-h-title">Production</span>
+			<span class="profile-h-meta">
+				{prodCounts.running}/{prodCounts.all} up{prodCounts.issues > 0
+					? ` · ${prodCounts.issues} issues`
+					: ''}
+			</span>
+		</div>
+		<div class="groups">
+			{#each GROUP_ORDER as grp (grp)}
+				{#if prodGrouped[grp]?.length}
+					<div>
+						<div class="group-h">
+							<span>{GROUP_LABELS[grp]}</span>
+							<span class="count">{prodGrouped[grp].length}</span>
+						</div>
+						<div class="row-stack">
+							{#each prodGrouped[grp] as c (c.Id)}
+								<ContainerCard container={c} />
+							{/each}
+						</div>
+					</div>
+				{/if}
+			{/each}
 
-	<!-- Grouped container list -->
-	<div class="groups">
-		{#each GROUP_ORDER as grp (grp)}
-			{#if grouped()[grp]?.length}
-				<div>
-					<div class="group-h">
-						<span>{GROUP_LABELS[grp]}</span>
-						<span class="count">{grouped()[grp].length}</span>
-					</div>
-					<div class="row-stack">
-						{#each grouped()[grp] as c (c.Id)}
-							<ContainerCard container={c} />
-						{/each}
-					</div>
+			{#if prodFiltered.length === 0}
+				<div class="empty">
+					<div class="em">○</div>
+					{query ? 'Nothing matches.' : 'No production containers.'}
 				</div>
 			{/if}
-		{/each}
+		</div>
+	</section>
 
-		{#if filtered.length === 0}
-			<div class="empty">
-				<div class="em">○</div>
-				{query ? 'Nothing matches.' : 'No containers found.'}
+	<!-- Preview (secondary) -->
+	{#if previewCounts.all > 0}
+		<section class="profile-section profile-section-preview">
+			<div class="profile-h">
+				<span class="profile-h-title">Preview</span>
+				<span class="profile-h-meta">
+					{previewCounts.running}/{previewCounts.all} up{previewCounts.issues > 0
+						? ` · ${previewCounts.issues} issues`
+						: ''}
+				</span>
 			</div>
-		{/if}
-	</div>
+			<div class="profile-h-sub">staging traffic · not user-facing</div>
+			<div class="groups">
+				{#each GROUP_ORDER as grp (grp)}
+					{#if previewGrouped[grp]?.length}
+						<div>
+							<div class="group-h">
+								<span>{GROUP_LABELS[grp]}</span>
+								<span class="count">{previewGrouped[grp].length}</span>
+							</div>
+							<div class="row-stack">
+								{#each previewGrouped[grp] as c (c.Id)}
+									<ContainerCard container={c} />
+								{/each}
+							</div>
+						</div>
+					{/if}
+				{/each}
+
+				{#if previewFiltered.length === 0}
+					<div class="empty empty-preview">
+						<div class="em">○</div>
+						{query ? 'Nothing matches in preview.' : 'No preview containers running.'}
+					</div>
+				{/if}
+			</div>
+		</section>
+	{/if}
 
 	<!-- DB totals -->
 	<div class="section-header">
@@ -591,6 +668,74 @@
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
+	}
+
+	/* ── Profile sections ── */
+	.profile-section {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.profile-h {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 0 4px;
+	}
+
+	.profile-h-title {
+		font-size: 19px;
+		font-weight: 600;
+		letter-spacing: -0.015em;
+		color: var(--color-text-primary);
+	}
+
+	.profile-h-meta {
+		font-family: var(--font-mono);
+		font-size: 11px;
+		color: var(--color-text-subtle);
+	}
+
+	.profile-h-sub {
+		font-size: 11px;
+		color: var(--color-text-faint);
+		font-style: italic;
+		padding: 0 4px;
+		margin-top: -2px;
+	}
+
+	.profile-section-preview {
+		opacity: 0.78;
+		margin-top: 8px;
+		padding-top: 16px;
+		border-top: 1px dashed var(--color-border-subtle);
+	}
+
+	.profile-section-preview .profile-h-title {
+		font-size: 15px;
+		color: var(--color-text-muted, var(--color-text-subtle));
+		font-weight: 500;
+	}
+
+	.empty-preview {
+		padding: 16px 24px;
+		font-size: 12.5px;
+	}
+
+	.att-preview-label {
+		font-family: var(--font-mono);
+		font-size: 9px;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--err-ink);
+		opacity: 0.65;
+		padding: 4px 2px 0;
+	}
+
+	.att-row-preview {
+		opacity: 0.85;
 	}
 
 	.group-h {
