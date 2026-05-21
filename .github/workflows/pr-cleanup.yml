@@ -10,6 +10,10 @@ permissions:
 
 jobs:
   delete-pr-images:
+    # Merged PRs are kept: their :pr-NN image is the source the main push retags
+    # as :main / :main-<sha> via `imagetools create`. Deleting it could orphan
+    # blobs the new manifest references.
+    if: github.event.pull_request.merged == false
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
