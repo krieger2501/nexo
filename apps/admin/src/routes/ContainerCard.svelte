@@ -5,11 +5,17 @@
 		ctnTone,
 		ctnStatusLabel,
 		ctnUptimeLabel,
-		ctnImageTag
+		ctnImageTag,
+		ctnHealthzFailing,
+		type HealthzSnapshot
 	} from '$lib/utils/containers';
 
 	interface Props {
-		container: ContainerInfo & { RestartCount?: number; Profile?: string };
+		container: ContainerInfo & {
+			RestartCount?: number;
+			Profile?: string;
+			Healthz?: HealthzSnapshot;
+		};
 	}
 
 	let { container: c }: Props = $props();
@@ -17,6 +23,7 @@
 	const href = $derived(`/services/${(c.Names[0] ?? c.Id).replace(/^\//, '')}`);
 	const restarts = $derived(c.RestartCount ?? 0);
 	const profile = $derived(c.Profile ?? 'unknown');
+	const healthzFailing = $derived(ctnHealthzFailing(c));
 </script>
 
 <a {href} class="ctn-row">
@@ -34,6 +41,9 @@
 		</div>
 	</div>
 	<div class="ctn-right">
+		{#if healthzFailing}
+			<span class="healthz-chip" title={c.Healthz?.error ?? 'health check failing'}>healthz ✕</span>
+		{/if}
 		{#if profile !== 'unknown'}
 			<span class="profile-chip" data-p={profile}>{profile === 'production' ? 'prod' : 'pre'}</span>
 		{/if}
@@ -124,6 +134,19 @@
 		color: var(--accent-ink);
 		background: color-mix(in oklab, var(--accent-ink) 8%, transparent);
 		border-color: color-mix(in oklab, var(--accent-ink) 25%, transparent);
+	}
+
+	.healthz-chip {
+		font-family: var(--font-mono);
+		font-size: 9px;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		padding: 2px 6px;
+		border-radius: 4px;
+		color: var(--err-ink);
+		background: color-mix(in oklab, var(--err-ink) 10%, transparent);
+		border: 1px solid color-mix(in oklab, var(--err-ink) 35%, transparent);
+		font-weight: 600;
 	}
 
 	.ctn-chev {

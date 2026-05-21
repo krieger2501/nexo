@@ -1,8 +1,9 @@
-import { db, users, accounts, expenses, income, debts } from '@nexo/db';
-import { count, gte, and } from 'drizzle-orm';
+import { db, users, accounts, expenses, income, debts, healthCheckRun } from '@nexo/db';
+import { count, gte, and, inArray, sql } from 'drizzle-orm';
 import { dockerGet, dockerAction } from '$lib/server/docker';
 import type { ContainerInfo } from '$lib/server/docker';
-import { ctnComposeProfile, ctnName } from '$lib/utils/containers';
+import { ctnComposeProfile, ctnHasHealthzLabel, ctnName } from '$lib/utils/containers';
+import type { HealthzSnapshot } from '$lib/utils/containers';
 import { requireOwner } from '$lib/server/auth';
 import { logger } from '$lib/server/logger';
 import { fail } from '@sveltejs/kit';
@@ -10,6 +11,7 @@ import type { PageServerLoad, Actions } from './$types';
 
 export interface EnrichedContainer extends ContainerInfo {
 	Profile: 'production' | 'preview' | 'unknown';
+	Healthz?: HealthzSnapshot;
 }
 
 function startOf(unit: 'day' | 'week' | 'month'): Date {
@@ -119,10 +121,56 @@ export const load: PageServerLoad = async ({ locals }) => {
 		return [] as ContainerInfo[];
 	});
 
-	const containers: EnrichedContainer[] = rawContainers.map((c) => ({
-		...c,
-		Profile: ctnComposeProfile(c)
-	}));
+	const targetNames = rawContainers
+		.filter(ctnHasHealthzLabel)
+		.map((c) => (c.Names[0] ?? c.Id).replace(/^\//, ''));
+
+	const latestByTarget = new Map<string, HealthzSnapshot>();
+	if (targetNames.length > 0) {
+		const rows = await db
+			.selectDistinctOn([healthCheckRun.target], {
+				target: healthCheckRun.target,
+				ok: healthCheckRun.ok,
+				checkedAt: healthCheckRun.checkedAt,
+				error: healthCheckRun.error,
+				latencyMs: healthCheckRun.latencyMs
+			})
+			.from(healthCheckRun)
+			.where(inArray(healthCheckRun.target, targetNames))
+			.orderBy(healthCheckRun.target, sql`${healthCheckRun.checkedAt} desc`)
+			.catch((e) => {
+				logger.error('latest healthz query failed', {
+					error: String(e),
+					correlationId: locals.correlationId
+				});
+				return [] as Array<{
+					target: string;
+					ok: boolean;
+					checkedAt: Date;
+					error: string | null;
+					latencyMs: number | null;
+				}>;
+			});
+
+		for (const r of rows) {
+			latestByTarget.set(r.target, {
+				ok: r.ok,
+				checkedAt: r.checkedAt,
+				error: r.error,
+				latencyMs: r.latencyMs
+			});
+		}
+	}
+
+	const containers: EnrichedContainer[] = rawContainers.map((c) => {
+		const target = (c.Names[0] ?? c.Id).replace(/^\//, '');
+		const enriched: EnrichedContainer = { ...c, Profile: ctnComposeProfile(c) };
+		if (ctnHasHealthzLabel(c)) {
+			const snap = latestByTarget.get(target);
+			if (snap) enriched.Healthz = snap;
+		}
+		return enriched;
+	});
 
 	return {
 		containers,

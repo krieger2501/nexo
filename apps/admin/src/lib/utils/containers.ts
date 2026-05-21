@@ -3,6 +3,23 @@ import type { ContainerInfo } from '$lib/server/docker';
 type CtnHealth = 'healthy' | 'unhealthy' | 'starting' | 'none';
 export type CtnTone = 'ok' | 'warn' | 'err' | 'mute';
 
+export interface HealthzSnapshot {
+	ok: boolean;
+	checkedAt: Date;
+	error: string | null;
+	latencyMs: number | null;
+}
+
+type CtnWithHealthz = ContainerInfo & { Healthz?: HealthzSnapshot };
+
+export function ctnHasHealthzLabel(c: ContainerInfo): boolean {
+	return c.Labels?.['nexo.healthz'] === 'true';
+}
+
+export function ctnHealthzFailing(c: CtnWithHealthz): boolean {
+	return c.Healthz?.ok === false;
+}
+
 export function ctnName(c: ContainerInfo): string {
 	return (c.Names[0] ?? c.Id).replace(/^\//, '').replace(/-\d+$/, '');
 }
@@ -45,17 +62,18 @@ function ctnHealth(c: ContainerInfo): CtnHealth {
 	return 'none';
 }
 
-export function ctnTone(c: ContainerInfo): CtnTone {
+export function ctnTone(c: CtnWithHealthz): CtnTone {
 	const s = c.State.toLowerCase();
 	if (s === 'restarting') return 'err';
 	if (s !== 'running') return 'mute';
+	if (ctnHealthzFailing(c)) return 'err';
 	const h = ctnHealth(c);
 	if (h === 'unhealthy') return 'err';
 	if (h === 'starting') return 'warn';
 	return 'ok';
 }
 
-export function ctnStatusLabel(c: ContainerInfo): string {
+export function ctnStatusLabel(c: CtnWithHealthz): string {
 	const s = c.State.toLowerCase();
 	if (s === 'restarting') return 'Restarting';
 	if (s === 'exited') return 'Stopped';
@@ -63,6 +81,7 @@ export function ctnStatusLabel(c: ContainerInfo): string {
 	if (s === 'created') return 'Created';
 	if (s === 'paused') return 'Paused';
 	if (s === 'running') {
+		if (ctnHealthzFailing(c)) return 'Unhealthy';
 		const h = ctnHealth(c);
 		if (h === 'unhealthy') return 'Unhealthy';
 		if (h === 'starting') return 'Starting';
@@ -72,15 +91,17 @@ export function ctnStatusLabel(c: ContainerInfo): string {
 	return c.State;
 }
 
-export function ctnHasIssue(c: ContainerInfo): boolean {
+export function ctnHasIssue(c: CtnWithHealthz): boolean {
 	const s = c.State.toLowerCase();
 	if (s === 'restarting' || s === 'dead') return true;
 	if (s === 'running' && ctnHealth(c) === 'unhealthy') return true;
+	if (s === 'running' && ctnHealthzFailing(c)) return true;
 	return false;
 }
 
-export function ctnIsHealthy(c: ContainerInfo): boolean {
+export function ctnIsHealthy(c: CtnWithHealthz): boolean {
 	if (c.State.toLowerCase() !== 'running') return false;
+	if (ctnHealthzFailing(c)) return false;
 	const h = ctnHealth(c);
 	return h === 'healthy' || h === 'none';
 }

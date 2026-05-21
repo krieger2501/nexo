@@ -117,6 +117,11 @@ function pickAlias(inspect: ContainerInspect): string | null {
 }
 
 function pickPort(inspect: ContainerInspect): number {
+	const labelPort = inspect.Config?.Labels?.['nexo.healthz.port'];
+	if (labelPort) {
+		const n = Number(labelPort);
+		if (Number.isFinite(n) && n > 0) return n;
+	}
 	const exposed = inspect.Config?.ExposedPorts ?? {};
 	for (const key of Object.keys(exposed)) {
 		const m = key.match(/^(\d+)\//);
