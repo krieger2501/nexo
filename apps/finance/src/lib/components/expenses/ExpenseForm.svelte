@@ -1,6 +1,5 @@
 <script lang="ts">
-	import BottomSheet from '$lib/components/layout/BottomSheet.svelte';
-	import Toggle from '$lib/components/ui/Toggle.svelte';
+	import { BottomSheet, ToggleRow } from '@nexo/ui';
 	import { RECURRENCES, MONTHS } from '$lib/constants';
 	import { enhance } from '$app/forms';
 	import type { Expense } from '$lib/types';
@@ -245,14 +244,14 @@
 
 			<!-- Toggle -->
 			{#if isOnce}
-				<Toggle
+				<ToggleRow
 					bind:checked={form.paid}
 					label="Paid"
 					description="Marks as completed."
 					id="exp-paid"
 				/>
 			{:else}
-				<Toggle
+				<ToggleRow
 					bind:checked={form.active}
 					label="Active"
 					description="Counted in forecasts and monthly equivalent."
@@ -318,6 +317,7 @@
 	}
 	.field-row .field {
 		flex: 1;
+		min-width: 0;
 		margin-bottom: 0;
 	}
 	.cats {
@@ -338,9 +338,9 @@
 		cursor: pointer;
 	}
 	.cat-chip.active {
-		background: var(--accent-soft);
-		border-color: var(--accent-line);
-		color: var(--accent-ink);
+		background: var(--expense-soft);
+		border-color: var(--expense-line);
+		color: var(--expense-ink);
 	}
 	.actions {
 		display: flex;

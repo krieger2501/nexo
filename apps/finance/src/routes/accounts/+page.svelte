@@ -1,11 +1,10 @@
 <script lang="ts">
-	import BottomSheet from '$lib/components/layout/BottomSheet.svelte';
-	import Toggle from '$lib/components/ui/Toggle.svelte';
-	import { PageHeader } from '@nexo/ui';
+	import { BottomSheet, PageHeader, ToggleRow } from '@nexo/ui';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
 	import { Plus } from '@lucide/svelte';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
+	import { replaceState } from '$app/navigation';
 
 	import type { Account } from '$lib/types';
 	import { getIntlLocale } from '$lib/utils';
@@ -85,7 +84,7 @@
 			openNew();
 			const url = new URL(page.url);
 			url.searchParams.delete('add');
-			history.replaceState({}, '', url.toString());
+			replaceState(url.pathname + url.search, page.state);
 		}
 	});
 
@@ -315,7 +314,7 @@
 				</div>
 
 				<!-- Include in liquid toggle -->
-				<Toggle
+				<ToggleRow
 					bind:checked={form.include_in_total}
 					label="Include in liquid total"
 					description="Used by forecast & dashboard hero."

@@ -110,8 +110,8 @@
 
 	function pillClass(isActive: boolean): string {
 		return isActive
-			? 'shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors border-[var(--accent-line)] bg-[var(--expense-soft)] text-[var(--expense-ink)]'
-			: 'shrink-0 rounded-full border border-border-default px-3 py-1.5 text-[11px] text-text-muted transition-colors hover:border-[var(--accent-line)]';
+			? 'shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-colors border-[var(--expense-line)] bg-[var(--expense-soft)] text-[var(--expense-ink)]'
+			: 'shrink-0 rounded-full border border-border-default px-3 py-1.5 text-[11px] text-text-muted transition-colors hover:border-[var(--expense-line)]';
 	}
 
 	// ── Derived views (with sort + filter applied) ────────────────────────────

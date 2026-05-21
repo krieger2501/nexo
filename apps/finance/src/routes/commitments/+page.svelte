@@ -1,6 +1,5 @@
 <script lang="ts">
-	import BottomSheet from '$lib/components/layout/BottomSheet.svelte';
-	import { PageHeader } from '@nexo/ui';
+	import { BottomSheet, PageHeader } from '@nexo/ui';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
 	import { Plus, ChevronRight, ArrowUpRight, ArrowDownLeft } from '@lucide/svelte';
 	import { enhance } from '$app/forms';

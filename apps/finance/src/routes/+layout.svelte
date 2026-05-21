@@ -1,12 +1,26 @@
 <script lang="ts">
 	import '../app.css';
+	import { onMount } from 'svelte';
 	import { page, navigating } from '$app/state';
 	import { userMessage } from '@nexo/errors';
-	import { Toast, UpdatePrompt } from '@nexo/ui';
+	import {
+		installDiagnostics,
+		KonamiCode,
+		setCurrentCorrelationId,
+		Toast,
+		UpdatePrompt
+	} from '@nexo/ui';
 	import BottomNav from '$lib/components/layout/BottomNav.svelte';
-	import KonamiCode from '$lib/components/KonamiCode.svelte';
 
-	let { children } = $props();
+	let { data, children } = $props();
+
+	onMount(() => {
+		installDiagnostics('finance');
+	});
+
+	$effect(() => {
+		setCurrentCorrelationId(data.correlationId ?? null);
+	});
 
 	const isLoginPage = $derived(page.url.pathname === '/login');
 
@@ -36,7 +50,7 @@
 {#if navigating.to}
 	<div class="nav-progress"></div>
 {/if}
-<main class="mx-auto min-h-screen max-w-md" style="padding-bottom: calc(var(--tab-h) + 6px + 32px)">
+<main class="mx-auto max-w-md" style="padding-bottom: calc(var(--tab-h) + 6px + 32px)">
 	{@render children()}
 </main>
 
