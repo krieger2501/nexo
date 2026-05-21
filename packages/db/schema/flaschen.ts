@@ -11,7 +11,7 @@ import {
 	index,
 	date
 } from 'drizzle-orm/pg-core';
-import { users } from './auth';
+import { users } from './auth.js';
 
 export const flaschenSchema = pgSchema('flaschen');
 
@@ -58,6 +58,7 @@ export const flaschenAccount = flaschenSchema.table('account', {
 	accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }).notNull(),
 	refreshTokenExpiresAt: timestamp('refresh_token_expires_at', { withTimezone: true }),
 	lastLoginAt: timestamp('last_login_at', { withTimezone: true }).notNull().defaultNow(),
+	lastRefreshAt: timestamp('last_refresh_at', { withTimezone: true }),
 	lastPollAt: timestamp('last_poll_at', { withTimezone: true }),
 	lastPollOk: boolean('last_poll_ok'),
 	lastPollError: text('last_poll_error'),

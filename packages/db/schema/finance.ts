@@ -8,7 +8,7 @@ import {
 	date,
 	jsonb
 } from 'drizzle-orm/pg-core';
-import { users } from './auth';
+import { users } from './auth.js';
 
 export const financeSchema = pgSchema('finance');
 

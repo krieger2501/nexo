@@ -1,0 +1,1 @@
+ALTER TABLE "flaschen"."account" ADD COLUMN "last_refresh_at" timestamp with time zone;
