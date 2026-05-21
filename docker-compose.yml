@@ -14,6 +14,35 @@ services:
     image: postgres:17
     restart: unless-stopped
     networks: [production]
+    mem_limit: 2g
+    mem_reservation: 768m
+    cpu_shares: 2048
+    oom_score_adj: -800
+    shm_size: 256mb
+    command:
+      - postgres
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - effective_cache_size=1536MB
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=128MB
+      - -c
+      - max_connections=80
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
+      - -c
+      - jit=off
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - track_io_timing=on
+      - -c
+      - log_min_duration_statement=500
     volumes:
       - pgdata:/var/lib/postgresql/data
     environment:
@@ -25,30 +54,89 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  pgbouncer:
+    profiles: [production]
+    image: edoburu/pgbouncer:1.23.1
+    restart: unless-stopped
+    networks: [production]
+    mem_limit: 64m
+    mem_reservation: 32m
+    cpu_shares: 512
+    oom_score_adj: -200
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: nexo
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: nexo
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 200
+      DEFAULT_POOL_SIZE: 20
+      RESERVE_POOL_SIZE: 5
+      MAX_PREPARED_STATEMENTS: 100
+      SERVER_RESET_QUERY: DISCARD ALL
+      AUTH_TYPE: scram-sha-256
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 5432 -U nexo']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   migrate:
     profiles: [production]
     image: ghcr.io/nexo-suite/nexo-db:latest
+    pull_policy: always
     networks: [production]
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: ${MIGRATE_DATABASE_URL:-${DATABASE_URL}}
     depends_on:
       postgres:
         condition: service_healthy
     restart: on-failure
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   auth:
     profiles: [production]
     image: ghcr.io/nexo-suite/nexo-auth:latest
+    pull_policy: always
     restart: unless-stopped
     init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
     networks: [production]
+    mem_limit: 256m
+    mem_reservation: 96m
+    cpu_shares: 512
+    oom_score_adj: -100
+    labels:
+      nexo.healthz: 'true'
     healthcheck:
       test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:3000/healthz']
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 30s
+      start_interval: 2s
     logging:
       driver: loki
       options:
@@ -89,9 +177,16 @@ services:
   admin:
     profiles: [production]
     image: ghcr.io/nexo-suite/nexo-admin:latest
+    pull_policy: always
     restart: unless-stopped
     init: true
-    networks: [production]
+    networks: [production, preview]
+    mem_limit: 512m
+    mem_reservation: 128m
+    cpu_shares: 1024
+    oom_score_adj: -200
+    labels:
+      nexo.healthz: 'true'
     group_add:
       - '${DOCKER_GID:-988}'
     healthcheck:
@@ -99,7 +194,8 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 30s
+      start_interval: 2s
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     logging:
@@ -140,15 +236,26 @@ services:
   finance:
     profiles: [production]
     image: ghcr.io/nexo-suite/nexo-finance:latest
+    pull_policy: always
     restart: unless-stopped
     init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
     networks: [production]
+    mem_limit: 768m
+    mem_reservation: 192m
+    cpu_shares: 2048
+    oom_score_adj: -500
+    labels:
+      nexo.healthz: 'true'
     healthcheck:
       test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:3000/healthz']
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 30s
+      start_interval: 2s
     logging:
       driver: loki
       options:
@@ -181,15 +288,26 @@ services:
   flaschen:
     profiles: [production]
     image: ghcr.io/nexo-suite/nexo-flaschen:latest
+    pull_policy: always
     restart: unless-stopped
     init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
     networks: [production]
+    mem_limit: 512m
+    mem_reservation: 128m
+    cpu_shares: 1024
+    oom_score_adj: -200
+    labels:
+      nexo.healthz: 'true'
     healthcheck:
       test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:3000/healthz']
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 30s
+      start_interval: 2s
     logging:
       driver: loki
       options:
@@ -229,10 +347,18 @@ services:
   flaschen-worker:
     profiles: [production]
     image: ghcr.io/nexo-suite/nexo-flaschen:latest
+    pull_policy: always
     command: node build/worker/index.js
     restart: unless-stopped
     init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
     networks: [production]
+    mem_limit: 256m
+    mem_reservation: 96m
+    cpu_shares: 512
+    oom_score_adj: 0
     logging:
       driver: loki
       options:
@@ -281,15 +407,26 @@ services:
   landing:
     profiles: [production]
     image: ghcr.io/nexo-suite/nexo-landing:latest
+    pull_policy: always
     restart: unless-stopped
     init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
     networks: [production]
+    mem_limit: 192m
+    mem_reservation: 64m
+    cpu_shares: 256
+    oom_score_adj: 0
+    labels:
+      nexo.healthz: 'true'
     healthcheck:
       test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:3000/healthz']
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 30s
+      start_interval: 2s
     logging:
       driver: loki
       options:
@@ -348,6 +485,8 @@ services:
     restart: unless-stopped
     init: true
     networks: [preview]
+    labels:
+      nexo.healthz: 'true'
     healthcheck:
       test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:3000/healthz']
       interval: 30s
@@ -378,6 +517,8 @@ services:
     restart: unless-stopped
     init: true
     networks: [preview]
+    labels:
+      nexo.healthz: 'true'
     group_add:
       - '${DOCKER_GID:-988}'
     healthcheck:
@@ -412,6 +553,8 @@ services:
     restart: unless-stopped
     init: true
     networks: [preview]
+    labels:
+      nexo.healthz: 'true'
     healthcheck:
       test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:3000/healthz']
       interval: 30s
@@ -436,6 +579,8 @@ services:
     restart: unless-stopped
     init: true
     networks: [preview]
+    labels:
+      nexo.healthz: 'true'
     healthcheck:
       test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:3000/healthz']
       interval: 30s
@@ -460,17 +605,30 @@ services:
     restart: unless-stopped
     command: -config.file=/etc/loki/config.yaml
     networks: [production]
+    mem_limit: 384m
+    mem_reservation: 128m
+    cpu_shares: 512
+    oom_score_adj: 200
     ports:
       - '127.0.0.1:3100:3100'
     volumes:
       - loki_data:/loki
       - ./loki/config.yaml:/etc/loki/config.yaml:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
 
   grafana:
     profiles: [server]
     image: grafana/grafana:11.5.0
     restart: unless-stopped
     networks: [production]
+    mem_limit: 192m
+    mem_reservation: 64m
+    cpu_shares: 256
+    oom_score_adj: 200
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
       GF_AUTH_ANONYMOUS_ENABLED: 'false'
@@ -478,14 +636,30 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
     depends_on: [loki]
 
   bot:
     profiles: [server]
     image: ghcr.io/nexo-suite/nexo-bot:latest
+    pull_policy: always
     restart: unless-stopped
     init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
     networks: [production]
+    mem_limit: 192m
+    mem_reservation: 64m
+    cpu_shares: 256
+    oom_score_adj: 0
+    labels:
+      nexo.healthz: 'true'
+      nexo.healthz.port: '3003'
     logging:
       driver: loki
       options:
@@ -520,6 +694,10 @@ services:
     image: caddy:2
     restart: unless-stopped
     networks: [production, preview]
+    mem_limit: 192m
+    mem_reservation: 64m
+    cpu_shares: 1024
+    oom_score_adj: -300
     logging:
       driver: loki
       options:
