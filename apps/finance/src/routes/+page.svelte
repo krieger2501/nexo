@@ -15,7 +15,7 @@
 	let searchOpen = $state(false);
 	let searchQuery = $state('');
 
-	const displayName = $derived(data.settings?.displayName || data.user?.name || 'there');
+	const displayName = $derived(data.profile?.displayName || data.user?.name || 'there');
 
 	const todayLabel = $derived(
 		new Date().toLocaleDateString(getIntlLocale(), {

@@ -1,7 +1,5 @@
 <script lang="ts">
-	import BottomSheet from '$lib/components/layout/BottomSheet.svelte';
-	import Toggle from '$lib/components/ui/Toggle.svelte';
-	import { PageHeader } from '@nexo/ui';
+	import { BottomSheet, PageHeader, ToggleRow } from '@nexo/ui';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
 	import { Plus, Check, ChevronRight } from '@lucide/svelte';
 	import { enhance } from '$app/forms';
@@ -474,7 +472,7 @@
 				</div>
 
 				<!-- Mark paid toggle -->
-				<Toggle
+				<ToggleRow
 					bind:checked={form.paid}
 					label="Mark paid"
 					description="Moves to settled, drops from forecast."

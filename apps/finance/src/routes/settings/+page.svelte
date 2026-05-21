@@ -3,8 +3,9 @@
 	import { dev } from '$app/environment';
 	import { env } from '$env/dynamic/public';
 	import { getLocale } from '$lib/paraglide/runtime.js';
-	import BottomSheet from '$lib/components/layout/BottomSheet.svelte';
 	import {
+		AboutDiagnostics,
+		BottomSheet,
 		PageHeader,
 		ProfileHubCard,
 		SaveBar,
@@ -37,9 +38,16 @@
 		tr: 'Türkçe'
 	};
 
-	const weekLabels: Record<string, string> = {
+	const weekStartLabels: Record<string, string> = {
 		monday: 'Monday',
-		sunday: 'Sunday'
+		sunday: 'Sunday',
+		saturday: 'Saturday'
+	};
+
+	const themeLabels: Record<string, string> = {
+		system: 'System',
+		light: 'Light',
+		dark: 'Dark'
 	};
 
 	const defaultEmoji: Record<string, string> = {
@@ -147,12 +155,12 @@
 		{hubUrl}
 		displayName={data.profile.displayName}
 		language={languageLabels[currentLocale] ?? currentLocale}
-		weekStarts={weekLabels[data.profile.weekStartDay] ?? 'Monday'}
-		theme="Light"
+		weekStarts={weekStartLabels[data.profile.weekStartDay] ?? 'Monday'}
+		theme={themeLabels[data.profile.theme] ?? data.profile.theme}
 	/>
 
 	<!-- ─── Finance — app-specific (editable) ─── -->
-	<SectionLabel title="Finance" subtitle="just this app" right={`v${__APP_VERSION__}`} />
+	<SectionLabel title="Finance" subtitle="just this app" />
 
 	<form
 		id="settings-form"
@@ -345,10 +353,18 @@
 		</a>
 	</div>
 
-	<footer class="footer">
-		NEXO FINANCE · v{__APP_VERSION__} ·
-		<a class="footer-link" href={env.PUBLIC_LANDING_URL ?? '/'}>privacy</a>
-	</footer>
+	<footer class="footer-spacer"></footer>
+
+	<AboutDiagnostics
+		appName="Nexo Finance"
+		appKey="finance"
+		version={__APP_VERSION__}
+		commit={__APP_COMMIT__}
+		buildTime={__APP_BUILD_TIME__}
+		email={data.diagnostics.email}
+		userId={data.diagnostics.userId}
+		correlationId={data.diagnostics.correlationId}
+	/>
 </div>
 
 <!-- ─── Sticky save bar ─── -->
@@ -632,19 +648,8 @@
 	}
 
 	/* ─── Footer ─── */
-	.footer {
-		padding: 16px 0 0;
-		text-align: center;
-		font-family: var(--font-mono);
-		font-size: 12px;
-		letter-spacing: 0.04em;
-		color: var(--color-text-faint);
-	}
-	.footer-link {
-		color: var(--color-text-subtle);
-		text-decoration: none;
-	}
-	.footer-link:hover {
-		text-decoration: underline;
+	.footer-spacer {
+		display: block;
+		height: 12px;
 	}
 </style>

@@ -23,8 +23,8 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	return {
 		user: locals.user,
 		profile,
+		correlationId: locals.correlationId,
 		settings: {
-			displayName: profile?.displayName ?? null,
 			currency: settings?.currency ?? 'EUR',
 			weekStartDay: profile?.weekStartDay ?? 'monday',
 			defaultAccountId: settings?.defaultAccountId ?? null,

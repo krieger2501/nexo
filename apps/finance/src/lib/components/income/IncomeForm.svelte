@@ -1,6 +1,5 @@
 <script lang="ts">
-	import BottomSheet from '$lib/components/layout/BottomSheet.svelte';
-	import Toggle from '$lib/components/ui/Toggle.svelte';
+	import { BottomSheet, ToggleRow } from '@nexo/ui';
 	import { RECURRENCES, MONTHS } from '$lib/constants';
 	import { enhance } from '$app/forms';
 	import type { Income } from '$lib/types';
@@ -209,14 +208,14 @@
 
 			<!-- Toggle -->
 			{#if isOnce}
-				<Toggle
+				<ToggleRow
 					bind:checked={form.received}
 					label="Already received"
 					description="Won't appear in forecasts."
 					id="inc-received"
 				/>
 			{:else}
-				<Toggle
+				<ToggleRow
 					bind:checked={form.received}
 					label="Already received"
 					description="Marks current cycle as received."
@@ -281,6 +280,7 @@
 	}
 	.field-row .field {
 		flex: 1;
+		min-width: 0;
 		margin-bottom: 0;
 	}
 	.actions {

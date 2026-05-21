@@ -40,7 +40,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 			type: a.type,
 			balance: Number(a.balance),
 			includeInTotal: a.includeInTotal
-		}))
+		})),
+		diagnostics: {
+			userId,
+			email: locals.user?.email ?? null,
+			correlationId: locals.correlationId
+		}
 	};
 };
 
