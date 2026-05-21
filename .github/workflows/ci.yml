@@ -77,11 +77,16 @@ jobs:
           - { app: bot, dir: apps/bot }
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
-
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - name: Find source PR for main push
+        id: source_pr
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Linked PR for the merge commit. Empty when main was pushed directly
+          # (no PR), in which case we fall back to a full build below.
+          PR_NUM=$(gh api "/repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" --jq '.[0].number' 2>/dev/null || true)
+          echo "pr=${PR_NUM}" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GHCR
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -91,8 +96,31 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Fast path: main push with a known source PR. Retag the existing
+      # :pr-<num> image as :main-<sha> and :main using a registry-side manifest
+      # op — no checkout, no buildx, no layer build.
+      - name: Retag pr-${{ steps.source_pr.outputs.pr }} as :main / :main-${{ github.sha }}
+        if: github.event_name == 'push' && steps.source_pr.outputs.pr != ''
+        run: |
+          IMG="ghcr.io/nexo-suite/nexo-${{ matrix.app }}"
+          docker buildx imagetools create \
+            --tag "${IMG}:main-${{ github.sha }}" \
+            --tag "${IMG}:main" \
+            "${IMG}:pr-${{ steps.source_pr.outputs.pr }}"
+
+      # Full-build path: every PR build, plus main pushes that didn't come from
+      # a PR (direct commits, emergency squashes).
+      - name: Checkout
+        if: github.event_name == 'pull_request' || (github.event_name == 'push' && steps.source_pr.outputs.pr == '')
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
+
+      - name: Set up Buildx
+        if: github.event_name == 'pull_request' || (github.event_name == 'push' && steps.source_pr.outputs.pr == '')
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
       - name: Compute tags
         id: tags
+        if: github.event_name == 'pull_request' || (github.event_name == 'push' && steps.source_pr.outputs.pr == '')
         run: |
           IMG="ghcr.io/nexo-suite/nexo-${{ matrix.app }}"
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -108,6 +136,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Build and push nexo-${{ matrix.app }}
+        if: github.event_name == 'pull_request' || (github.event_name == 'push' && steps.source_pr.outputs.pr == '')
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
