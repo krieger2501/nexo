@@ -1,9 +1,9 @@
 import { existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { APPS, findApp, imageRef, type App } from '../apps.ts';
-import { buildxBuild } from '../lib/docker.ts';
+import { bakeBuild, buildxBuild, type BakeTarget } from '../lib/docker.ts';
 import { CONTEXT_FILE, readContext } from '../lib/context.ts';
-import { fail, info, section, step, success } from '../lib/log.ts';
+import { fail, info, section, success } from '../lib/log.ts';
 import { appendSummary, summarySection, summaryTable } from '../lib/summary.ts';
 
 export type BuildImagesOpts = {
@@ -19,6 +19,11 @@ export type BuildImagesOpts = {
 // Build (and optionally push) one or all app images from previously prepared
 // contexts. The Dockerfile is expected at <outDir>/<app>/Dockerfile (placed
 // there by prepare-contexts).
+//
+// All apps are built in a single `docker buildx bake` invocation so BuildKit
+// can run them in parallel, dedupe shared base-image layers, and push through
+// one auth/connection. The single-app path (`--app <name>`) still uses
+// `docker buildx build` directly because there's nothing to parallelise.
 //
 // Without explicit flags, reads tags / push / gitCommit / buildTime from
 // `.nexo/ci-context.json`. CLI flags override the context for local runs.
@@ -49,7 +54,18 @@ export function buildImages(opts: BuildImagesOpts): void {
 	);
 
 	for (const app of targets) {
-		buildOne(app, outDir, resolved);
+		const context = join(outDir, app.name);
+		if (!existsSync(context)) {
+			fail(
+				`build-images: context missing for ${app.name} at ${context}. Run prepare-contexts first.`
+			);
+		}
+	}
+
+	if (targets.length === 1) {
+		buildOne(targets[0]!, outDir, resolved);
+	} else {
+		bakeAll(targets, outDir, resolved);
 	}
 
 	appendSummary(
@@ -88,13 +104,6 @@ function resolveOpts(
 
 function buildOne(app: App, outDir: string, opts: ResolvedBuildOpts): void {
 	const context = join(outDir, app.name);
-	if (!existsSync(context)) {
-		fail(
-			`build-images: context missing for ${app.name} at ${context}. Run prepare-contexts first.`
-		);
-	}
-
-	step(`${app.name}: docker build`);
 	buildxBuild({
 		context,
 		dockerfile: join(context, 'Dockerfile'),
@@ -106,4 +115,23 @@ function buildOne(app: App, outDir: string, opts: ResolvedBuildOpts): void {
 		push: opts.push
 	});
 	success(`${app.name}: image built`);
+}
+
+function bakeAll(targets: readonly App[], outDir: string, opts: ResolvedBuildOpts): void {
+	const bakeTargets: BakeTarget[] = targets.map((app) => ({
+		name: app.name,
+		context: join(outDir, app.name),
+		dockerfile: join(outDir, app.name, 'Dockerfile'),
+		tags: opts.tags.map((tag) => imageRef(app, tag)),
+		args: {
+			GIT_COMMIT: opts.gitCommit,
+			BUILD_TIME: opts.buildTime
+		}
+	}));
+	bakeBuild({
+		targets: bakeTargets,
+		push: opts.push,
+		bakeFile: join(outDir, 'docker-bake.json')
+	});
+	for (const app of targets) success(`${app.name}: image built`);
 }

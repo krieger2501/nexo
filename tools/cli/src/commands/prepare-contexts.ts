@@ -1,7 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { APPS, findApp, type App } from '../apps.ts';
-import { pnpmDeploy } from '../lib/pnpm.ts';
+import { pnpmDeployAsync } from '../lib/pnpm.ts';
 import { CONTEXT_FILE, readContext } from '../lib/context.ts';
 import { info, section, step, success } from '../lib/log.ts';
 import { appendSummary, summarySection, summaryTable } from '../lib/summary.ts';
@@ -16,9 +16,13 @@ export type PrepareOpts = {
 // the app's Dockerfile into the resulting context so a subsequent
 // `docker build <outDir>/<app>` can find it without -f.
 //
+// Deploys run in parallel — pnpm's content-addressed store is concurrency-safe
+// and each deploy only ever writes to its own out directory, so we just fan
+// them out and await the lot.
+//
 // No-op on the retag fast-path so the CI workflow can call this command
 // unconditionally.
-export function prepareContexts(opts: PrepareOpts = {}): void {
+export async function prepareContexts(opts: PrepareOpts = {}): Promise<void> {
 	const repoRoot = resolve(opts.repoRoot ?? process.cwd());
 	const ctx = existsSync(join(repoRoot, CONTEXT_FILE)) ? readContext({ cwd: repoRoot }) : null;
 	if (ctx?.strategy === 'retag') {
@@ -37,13 +41,11 @@ export function prepareContexts(opts: PrepareOpts = {}): void {
 	const targets = opts.app ? [findApp(opts.app)] : APPS;
 
 	section(
-		`Preparing ${targets.length} build context${targets.length === 1 ? '' : 's'} → ${outDir}`
+		`Preparing ${targets.length} build context${targets.length === 1 ? '' : 's'} → ${outDir} (parallel)`
 	);
 	mkdirSync(outDir, { recursive: true });
 
-	for (const app of targets) {
-		prepareOne(app, outDir, repoRoot);
-	}
+	await Promise.all(targets.map((app) => prepareOne(app, outDir, repoRoot)));
 
 	appendSummary(
 		summarySection(
@@ -56,12 +58,12 @@ export function prepareContexts(opts: PrepareOpts = {}): void {
 	);
 }
 
-function prepareOne(app: App, outDir: string, repoRoot: string): void {
+async function prepareOne(app: App, outDir: string, repoRoot: string): Promise<void> {
 	const target = join(outDir, app.name);
 	step(`${app.name}: pnpm deploy → ${target}`);
 
 	if (existsSync(target)) rmSync(target, { recursive: true, force: true });
-	pnpmDeploy({ pkg: app.pkg, out: target, cwd: repoRoot });
+	await pnpmDeployAsync({ pkg: app.pkg, out: target, cwd: repoRoot });
 
 	const dockerfileSrc = join(repoRoot, app.dir, 'Dockerfile');
 	const dockerfileDst = join(target, 'Dockerfile');

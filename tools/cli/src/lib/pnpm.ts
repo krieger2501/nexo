@@ -1,4 +1,4 @@
-import { run } from './proc.ts';
+import { runAsync } from './proc.ts';
 
 // `pnpm --filter <pkg> --prod deploy <out>` produces a self-contained directory
 // (package.json, node_modules, build outputs, plus a dedicated lockfile and
@@ -12,8 +12,12 @@ import { run } from './proc.ts';
 // `--config.confirmModulesPurge=false` because pnpm's pre-deploy
 // `runDepsStatusCheck` invokes `pnpm install --production` which prompts on
 // modules-dir purge unless we silence it (we also set CI=true for safety).
-export function pnpmDeploy(opts: { pkg: string; out: string; cwd?: string }): void {
-	run(
+//
+// Returns a Promise so callers can run several deploys concurrently. pnpm's
+// content-addressed store is concurrency-safe; each deploy only writes to its
+// own `out` directory.
+export function pnpmDeployAsync(opts: { pkg: string; out: string; cwd?: string }): Promise<void> {
+	return runAsync(
 		'pnpm',
 		[
 			'--filter',
@@ -28,5 +32,5 @@ export function pnpmDeploy(opts: { pkg: string; out: string; cwd?: string }): vo
 			cwd: opts.cwd,
 			env: { ...process.env, CI: 'true' }
 		}
-	);
+	).then(() => undefined);
 }

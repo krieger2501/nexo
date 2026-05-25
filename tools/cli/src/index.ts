@@ -39,8 +39,8 @@ program
 	.description('Run pnpm deploy for each app into ./out/<app>')
 	.option('-a, --app <name>', 'restrict to a single app')
 	.option('-o, --out-dir <path>', 'output directory', 'out')
-	.action((opts: { app?: string; outDir: string }) => {
-		prepareContexts({ app: opts.app, outDir: opts.outDir });
+	.action(async (opts: { app?: string; outDir: string }) => {
+		await prepareContexts({ app: opts.app, outDir: opts.outDir });
 	});
 
 program

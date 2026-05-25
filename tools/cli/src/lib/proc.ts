@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { info } from './log.ts';
 
 export type RunOptions = {
@@ -30,4 +30,34 @@ export function run(cmd: string, args: readonly string[], opts: RunOptions = {})
 		throw new Error(`${cmd} exited with status ${result.status}`);
 	}
 	return { stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
+}
+
+// Async sibling of `run`. Use when you want to await several subprocesses
+// concurrently (e.g. parallel `pnpm deploy` invocations).
+export function runAsync(
+	cmd: string,
+	args: readonly string[],
+	opts: RunOptions = {}
+): Promise<RunResult> {
+	if (!opts.quiet) info(`$ ${cmd} ${args.join(' ')}`);
+	return new Promise((resolve, reject) => {
+		const child = spawn(cmd, args, {
+			cwd: opts.cwd ?? process.cwd(),
+			env: opts.env ?? process.env,
+			stdio: opts.capture ? ['inherit', 'pipe', 'pipe'] : 'inherit'
+		});
+		let stdout = '';
+		let stderr = '';
+		child.stdout?.on('data', (chunk: Buffer | string) => {
+			stdout += typeof chunk === 'string' ? chunk : chunk.toString('utf8');
+		});
+		child.stderr?.on('data', (chunk: Buffer | string) => {
+			stderr += typeof chunk === 'string' ? chunk : chunk.toString('utf8');
+		});
+		child.once('error', reject);
+		child.once('close', (code) => {
+			if (code === 0) resolve({ stdout, stderr });
+			else reject(new Error(`${cmd} exited with status ${code}`));
+		});
+	});
 }
