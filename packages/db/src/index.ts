@@ -5,12 +5,14 @@ import * as financeSchema from '../schema/finance.js';
 import * as flaschenSchema from '../schema/flaschen.js';
 import * as pushSchema from '../schema/push.js';
 import * as adminSchema from '../schema/admin.js';
+import * as calorieSchema from '../schema/calorie.js';
 
 export * from '../schema/auth.js';
 export * from '../schema/finance.js';
 export * from '../schema/flaschen.js';
 export * from '../schema/push.js';
 export * from '../schema/admin.js';
+export * from '../schema/calorie.js';
 export { withUser, type Tx } from './with-user.js';
 export { loadHubProfile, loadUserLocale, type HubProfile } from './hub-profile.js';
 export { registerShutdown, onShutdown } from './shutdown.js';
@@ -22,7 +24,14 @@ export function initDb(url: string, opts: { max?: number } = {}) {
 	if (_db) return;
 	_client = postgres(url, { max: opts.max ?? 8 });
 	_db = drizzle(_client, {
-		schema: { ...authSchema, ...financeSchema, ...flaschenSchema, ...pushSchema, ...adminSchema }
+		schema: {
+			...authSchema,
+			...financeSchema,
+			...flaschenSchema,
+			...pushSchema,
+			...adminSchema,
+			...calorieSchema
+		}
 	});
 }
 

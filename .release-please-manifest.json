@@ -13,5 +13,6 @@
 	"apps/landing": "0.6.0",
 	"apps/bot": "0.4.0",
 	"apps/flaschen": "0.4.0",
+	"apps/calorie": "0.1.0",
 	"tools/cli": "0.2.0"
 }

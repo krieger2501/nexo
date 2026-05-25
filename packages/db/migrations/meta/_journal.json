@@ -134,6 +134,13 @@
 			"when": 1779344412530,
 			"tag": "0018_low_agent_zero",
 			"breakpoints": true
+		},
+		{
+			"idx": 19,
+			"version": "7",
+			"when": 1779551408888,
+			"tag": "0019_mysterious_paibok",
+			"breakpoints": true
 		}
 	]
 }

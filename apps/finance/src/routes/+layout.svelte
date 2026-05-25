@@ -12,6 +12,7 @@
 		UpdatePrompt
 	} from '@nexo/ui';
 	import BottomNav from '$lib/components/layout/BottomNav.svelte';
+	import QuickAddFAB from '$lib/components/layout/QuickAddFAB.svelte';
 
 	let { data, children } = $props();
 
@@ -64,6 +65,7 @@
 
 {#if !isLoginPage}
 	<BottomNav />
+	<QuickAddFAB />
 {/if}
 <UpdatePrompt bottomOffset="calc(var(--tab-h) + var(--safe-bot) + 12px)" />
 <KonamiCode />

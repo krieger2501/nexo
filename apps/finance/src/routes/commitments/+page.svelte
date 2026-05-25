@@ -14,9 +14,15 @@
 	let showExpenseForm = $state(false);
 	let editingExpense = $state<Expense | null>(null);
 	let confirmDeleteExpense = $state(false);
-	let expenseForm = $state({
+	let expenseForm = $state<{
+		name: string;
+		amount: number | null;
+		due_date: string;
+		account_id: string;
+		notes: string;
+	}>({
 		name: '',
-		amount: '',
+		amount: null,
 		due_date: '',
 		account_id: '',
 		notes: ''
@@ -27,7 +33,7 @@
 		confirmDeleteExpense = false;
 		expenseForm = {
 			name: '',
-			amount: '',
+			amount: null,
 			due_date: '',
 			account_id: data.settings?.defaultAccountId ?? '',
 			notes: ''
@@ -40,7 +46,7 @@
 		confirmDeleteExpense = false;
 		expenseForm = {
 			name: expense.name,
-			amount: String(expense.amount),
+			amount: expense.amount,
 			due_date: expense.dueDate ?? '',
 			account_id: expense.accountId ?? '',
 			notes: expense.notes ?? ''
@@ -52,10 +58,17 @@
 	let showDebtForm = $state(false);
 	let editingDebt = $state<Debt | null>(null);
 	let confirmDeleteDebt = $state(false);
-	let debtForm = $state({
+	let debtForm = $state<{
+		direction: string;
+		counterparty: string;
+		amount: number | null;
+		due_date: string;
+		account_id: string;
+		notes: string;
+	}>({
 		direction: 'owe',
 		counterparty: '',
-		amount: '',
+		amount: null,
 		due_date: '',
 		account_id: '',
 		notes: ''
@@ -67,7 +80,7 @@
 		debtForm = {
 			direction: 'owe',
 			counterparty: '',
-			amount: '',
+			amount: null,
 			due_date: '',
 			account_id: data.settings?.defaultAccountId ?? '',
 			notes: ''
@@ -81,7 +94,7 @@
 		debtForm = {
 			direction: debt.direction,
 			counterparty: debt.counterparty,
-			amount: String(debt.amount),
+			amount: debt.amount,
 			due_date: debt.dueDate ?? '',
 			account_id: (debt as Debt & { accountId?: string | null }).accountId ?? '',
 			notes: debt.notes ?? ''

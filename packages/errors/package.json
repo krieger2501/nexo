@@ -14,12 +14,10 @@
 		"package.json"
 	],
 	"scripts": {
-		"build": "tsc -p tsconfig.build.json",
-		"clean": "rm -rf dist",
-		"lint": "eslint .",
-		"lint:fix": "eslint . --fix",
-		"qc": "run-s lint type:check build",
-		"type:check": "tsc --noEmit"
+		"build": "tsdown",
+		"clean": "del dist",
+		"qc": "run-s type:check build",
+		"type:check": "tsgo --noEmit"
 	},
 	"dependencies": {
 		"@nexo/i18n": "workspace:*"

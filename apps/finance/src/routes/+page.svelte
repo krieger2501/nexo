@@ -6,6 +6,7 @@
 	import WeekStrip from '$lib/components/dashboard/WeekStrip.svelte';
 	import SpotlightCard from '$lib/components/dashboard/SpotlightCard.svelte';
 	import UpcomingCompact from '$lib/components/dashboard/UpcomingCompact.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
 	import { Search, X } from '@lucide/svelte';
 	import { getIntlLocale } from '$lib/utils';
@@ -25,6 +26,18 @@
 		})
 	);
 
+	// Tiny day-of-week vibe emoji — keeps greeting alive without being noisy
+	const greetEmoji = $derived.by(() => {
+		const h = new Date().getHours();
+		if (h < 5) return '🌙';
+		if (h < 11) return '☕';
+		if (h < 17) return '🌤️';
+		if (h < 21) return '🌆';
+		return '🌙';
+	});
+
+	const greetTitle = $derived(`Hey, ${displayName} ${greetEmoji}`);
+
 	const spotlight = $derived(data.todayEvents?.[0] ?? null);
 
 	const q = $derived(searchQuery.trim().toLowerCase());
@@ -41,7 +54,7 @@
 </script>
 
 <div class="page">
-	<PageHeader title="Hey, {displayName}" subtitle={todayLabel}>
+	<PageHeader title={greetTitle} subtitle={todayLabel}>
 		{#snippet actions()}
 			<button
 				type="button"
@@ -84,7 +97,7 @@
 		currency={data.settings?.currency ?? 'EUR'}
 	/>
 
-	<!-- Cashflow river -->
+	<!-- Month pulse -->
 	<div class="mt-3">
 		<CashflowRiver
 			monthlyIncome={data.monthlyIncome}
@@ -125,5 +138,13 @@
 			currency={data.settings?.currency ?? 'EUR'}
 			hideCents={data.settings?.hideCents}
 		/>
+	{:else if !q}
+		<SectionLabel variant="title" title="Coming up" />
+		<EmptyState
+			emoji="🪺"
+			title="Quiet skies for the next 30 days"
+			sub="No bills, paychecks, or debts on the horizon. Cozy."
+		/>
 	{/if}
 </div>
+

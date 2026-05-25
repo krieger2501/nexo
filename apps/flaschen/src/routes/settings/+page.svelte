@@ -242,7 +242,8 @@
 					name="startTime"
 					bind:value={quietStart}
 					step="300"
-					disabled={!quietHoursEnabled}
+					readonly={!quietHoursEnabled}
+					aria-disabled={!quietHoursEnabled}
 				/>
 			</label>
 			<span class="quiet-dash" aria-hidden="true">→</span>
@@ -253,7 +254,8 @@
 					name="endTime"
 					bind:value={quietEnd}
 					step="300"
-					disabled={!quietHoursEnabled}
+					readonly={!quietHoursEnabled}
+					aria-disabled={!quietHoursEnabled}
 				/>
 			</label>
 		</div>

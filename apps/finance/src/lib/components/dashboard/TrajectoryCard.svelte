@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { TrendingUp } from '@lucide/svelte';
 	import { getIntlLocale } from '$lib/utils';
+	import MoodPill from '$lib/components/ui/MoodPill.svelte';
 
 	let {
 		liquidBalance,
@@ -135,23 +136,24 @@
 	class="border-border-default bg-surface-1 relative overflow-hidden rounded-[var(--radius-2xl)] border"
 	style="padding: 18px;"
 >
-	<!-- Accent gradient wash -->
+	<!-- Atmospheric mesh -->
 	<div
-		class="pointer-events-none absolute top-0 left-0 h-32 w-32"
-		style="background: radial-gradient(circle at 0% 0%, var(--accent-glow) 0%, transparent 70%); opacity: 0.5;"
+		class="pointer-events-none absolute inset-0"
+		style="background:
+			radial-gradient(circle at 0% 0%, var(--accent-glow) 0%, transparent 55%),
+			radial-gradient(circle at 100% 0%, color-mix(in oklab, var(--color-accent) 6%, transparent) 0%, transparent 50%);
+			opacity: 0.7;"
 	></div>
 
 	<!-- Top row -->
-	<div class="relative flex items-center justify-between">
-		<div class="flex items-center gap-2">
-			<span
-				class="bg-accent inline-block h-2 w-2 rounded-full"
-				style="animation: pulse-dot 2s ease-in-out infinite;"
-			></span>
-			<span class="mono text-text-subtle text-[10px] tracking-[0.12em] uppercase">
-				Liquid · Today
-			</span>
-		</div>
+	<div class="relative flex items-center justify-between gap-2">
+		<MoodPill
+			{liquidBalance}
+			lowestValue={Math.min(...displayTrajectory)}
+			lowestDate={lowestDate}
+			endValue={endValue}
+			size="sm"
+		/>
 		<div class="flex gap-1">
 			{#each ['30D', '90D', '1Y'] as range (range)}
 				<button
@@ -168,8 +170,17 @@
 		</div>
 	</div>
 
-	<!-- Big balance -->
-	<div class="relative mt-3 flex items-baseline gap-1">
+	<!-- Liquid label + big balance -->
+	<div class="relative mt-3 flex items-center gap-2">
+		<span
+			class="bg-accent inline-block h-1.5 w-1.5 rounded-full"
+			style="animation: pulse-dot 2s ease-in-out infinite;"
+		></span>
+		<span class="mono text-text-subtle text-[10px] tracking-[0.12em] uppercase">
+			Liquid · Today
+		</span>
+	</div>
+	<div class="relative mt-1 flex items-baseline gap-1">
 		{#if isNegative}<span class="text-text-muted text-[22px] font-semibold">-</span>{/if}
 		<span class="text-text-muted text-[22px]">{currencySymbol}</span>
 		<span class="text-text-primary text-[44px] leading-none font-semibold tracking-tight"

@@ -15,7 +15,7 @@
 	} from '@nexo/ui';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
 
-	let { data, form: _form } = $props();
+	let { data } = $props();
 
 	const currencies = [
 		{ code: 'EUR', symbol: '€', label: 'Euro' },

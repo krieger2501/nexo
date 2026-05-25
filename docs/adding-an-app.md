@@ -481,7 +481,11 @@ production hostname via Caddy cookie routing.
 - [ ] `tools/cli/src/apps.ts` — add `{ name: 'gym', dir: 'apps/gym', pkg: '@nexo/gym', image: 'nexo-gym' }`
 - [ ] `apps/bot/src/state.ts` — add `'gym'` to `UNSTABLE_APPS` (and the `UnstableApp` union type) so the bot exposes a checkbox for it
 - [ ] `scripts/deploy.mjs` — add `nexo-gym` to `PROD_SERVICES` and `gym.krieger2501.de` to `HEALTH_HOSTS`
-- [ ] `release-please-config.json` — add the new package so it gets versioned
+- [ ] `release-please-config.json` + `.release-please-manifest.json` — track the new component and seed its initial version
+- [ ] `apps/landing/vite.config.ts` — add `gym: readVersion('../gym')` to the `appVersions` object so the landing app's `/apps` page shows the version on the gym card
+- [ ] `apps/landing/src/app.d.ts` — add `gym: string` to the `__APP_VERSIONS_FALLBACK__` type
+- [ ] `apps/landing/src/routes/+layout.server.ts` — add `gym: string` to the parsed JSON type
+- [ ] `tools/cli/src/commands/collect-versions.ts` and `.github/workflows/ci.yml` — add `APP_VERSION_GYM` so release-please's versions JSON includes it for the deploy step
 - [ ] `knip.config.ts` workspace entry added
 - [ ] Root `package.json` `dev:gym` / `build:gym` scripts added
 - [ ] Landing page messages + `apps` array updated

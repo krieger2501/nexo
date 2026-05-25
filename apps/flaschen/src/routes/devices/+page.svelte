@@ -139,16 +139,43 @@
 		| 'connect-required'
 		| 'reconnect'
 		| 'off'
+		| 'elsewhere'
 		| 'paused'
+		| 'quiet'
 		| 'on';
+
+	// Reactive clock for quiet-hours detection. Re-evaluates every minute.
+	let nowMinute = $state(0);
+	$effect(() => {
+		const update = () => {
+			const d = new Date();
+			nowMinute = d.getHours() * 60 + d.getMinutes();
+		};
+		update();
+		const id = setInterval(update, 60_000);
+		return () => clearInterval(id);
+	});
+
+	const inQuietHoursNow = $derived.by(() => {
+		if (!data.quietHours.enabled) return false;
+		const { startMinutes: start, endMinutes: end } = data.quietHours;
+		// Window may wrap midnight (e.g. 22:00–06:00) — handle both cases.
+		return start === end ? false : start < end ? nowMinute >= start && nowMinute < end : nowMinute >= start || nowMinute < end;
+	});
 
 	const heroState = $derived.by((): HeroState => {
 		if (permState === 'unsupported') return 'unsupported';
 		if (permState === 'denied') return 'blocked';
 		if (data.connection === 'never') return 'connect-required';
 		if (data.connection === 'reconnect') return 'reconnect';
-		if (permState !== 'granted' || !hasSubscription) return 'off';
+		if (permState !== 'granted' || !hasSubscription) {
+			const others = data.devices.filter(
+				(d) => currentEndpoint === null || d.endpoint !== currentEndpoint
+			).length;
+			return others > 0 ? 'elsewhere' : 'off';
+		}
 		if (!data.watching) return 'paused';
+		if (inQuietHoursNow) return 'quiet';
 		return 'on';
 	});
 
@@ -176,6 +203,22 @@
 					pill: m.devices_pill_paused(),
 					tone: 'warn'
 				};
+			case 'quiet': {
+				const fmt = (mins: number) => {
+					const h = Math.floor(mins / 60) % 24;
+					const m2 = mins % 60;
+					return `${String(h).padStart(2, '0')}:${String(m2).padStart(2, '0')}`;
+				};
+				return {
+					title: m.devices_state_quiet_title(),
+					sub: m.devices_state_quiet_desc({
+						start: fmt(data.quietHours.startMinutes),
+						end: fmt(data.quietHours.endMinutes)
+					}),
+					pill: m.devices_pill_quiet(),
+					tone: 'accent'
+				};
+			}
 			case 'off':
 				return {
 					title: m.devices_state_off_title(),
@@ -183,6 +226,20 @@
 					pill: m.devices_pill_off(),
 					tone: 'warn'
 				};
+			case 'elsewhere': {
+				const others = data.devices.filter(
+					(d) => currentEndpoint === null || d.endpoint !== currentEndpoint
+				).length;
+				return {
+					title: m.devices_state_elsewhere_title(),
+					sub:
+						others === 1
+							? m.devices_state_elsewhere_desc_one()
+							: m.devices_state_elsewhere_desc_many({ count: String(others) }),
+					pill: m.devices_pill_elsewhere(),
+					tone: 'accent'
+				};
+			}
 			case 'blocked':
 				return {
 					title: m.devices_state_blocked_title(),
@@ -248,14 +305,10 @@
 
 			<div class="orb-wrap" aria-hidden="true">
 				<span class="orb">
-					<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path
-							d="M9.5 2h5v3l1.2 2.4A4 4 0 0 1 16 9.6V20a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V9.6a4 4 0 0 1 .3-2.2L9.5 5V2Z"
-							stroke="currentColor"
-							stroke-width="1.5"
-							stroke-linejoin="round"
-						/>
-						<path d="M9 12h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+					<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+						<rect x="10.25" y="2.5" width="3.5" height="1.5" rx="0.3" />
+						<path d="M10.5 4h3v4l2 2v9.5a2 2 0 0 1-2 2h-3a2 2 0 0 1-2-2V10l2-2V4z" />
+						<rect x="9" y="14" width="6" height="3" rx="0.4" fill="rgba(0, 0, 0, 0.22)" />
 					</svg>
 					<span class="orb-slash"></span>
 				</span>
@@ -277,6 +330,15 @@
 							<Send size={14} strokeWidth={1.8} />
 							{m.devices_test_push()}
 						</button>
+					{:else if heroState === 'quiet'}
+						<a class="btn primary" href="/settings#quiet">
+							<Pencil size={14} strokeWidth={1.8} />
+							{m.devices_adjust_quiet()}
+						</a>
+						<button type="button" class="btn ghost" onclick={onTest} disabled={busy}>
+							<Send size={14} strokeWidth={1.8} />
+							{m.devices_test_push()}
+						</button>
 					{:else if heroState === 'paused'}
 						<form method="POST" action="?/resume" use:enhance>
 							<button type="submit" class="btn primary" disabled={busy}>
@@ -289,6 +351,11 @@
 						</a>
 					{:else if heroState === 'off'}
 						<!-- Empty state below provides the primary CTA; hero stays status-only. -->
+					{:else if heroState === 'elsewhere'}
+						<button type="button" class="btn primary" onclick={onEnable} disabled={busy}>
+							<BellPlus size={14} strokeWidth={1.8} />
+							{m.devices_add_this_device()}
+						</button>
 					{:else if heroState === 'blocked'}
 						<a
 							class="btn primary"
@@ -480,24 +547,30 @@
 	/* Device row action buttons (inside DeviceListRow's actions snippet) */
 	.rm {
 		appearance: none;
-		border: 0;
-		background: transparent;
-		color: var(--text-faint);
+		border: 1px solid rgb(255 255 255 / 0.85);
+		background: rgb(255 255 255 / 0.55);
+		color: var(--text-muted);
 		cursor: pointer;
-		width: 26px;
-		height: 26px;
-		border-radius: 6px;
+		width: 32px;
+		height: 32px;
+		border-radius: 10px;
 		display: grid;
 		place-items: center;
 		flex-shrink: 0;
+		box-shadow: var(--shadow-glass-sm);
+		transition: transform 320ms var(--ease-spring), color 200ms;
+	}
+	.rm:active {
+		transform: scale(0.92);
 	}
 	.rm:hover {
-		color: var(--err-ink);
-		background: var(--err-soft);
+		color: var(--accent-ink);
+		background: rgb(255 255 255 / 0.85);
 	}
 	.rm-danger:hover {
 		color: var(--err-ink);
 		background: var(--err-soft);
+		border-color: color-mix(in oklab, var(--err) 20%, #fff);
 	}
 
 	/* Hero skeleton (shown until onMount has read browser push state) */

@@ -14,10 +14,18 @@
 	let showForm = $state(false);
 	let editing = $state<Account | null>(null);
 	let confirmDelete = $state(false);
-	let form = $state({
+	let form = $state<{
+		name: string;
+		type: string;
+		balance: number | null;
+		currency: string;
+		color: string;
+		emoji: string;
+		include_in_total: boolean;
+	}>({
 		name: '',
 		type: 'checking',
-		balance: '',
+		balance: null,
 		currency: 'EUR',
 		color: '',
 		emoji: '',
@@ -70,7 +78,7 @@
 		form = {
 			name: '',
 			type: 'checking',
-			balance: '',
+			balance: null,
 			currency: data.settings.currency,
 			color: '',
 			emoji: '',
@@ -94,7 +102,7 @@
 		form = {
 			name: account.name,
 			type: account.type,
-			balance: String(account.balance),
+			balance: account.balance,
 			currency: data.settings.currency,
 			color: account.color ?? '',
 			emoji: account.emoji ?? '',

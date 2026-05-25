@@ -2,16 +2,24 @@
 	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
 	import { BottomSheet, PageHeader } from '@nexo/ui';
-	import InfoTab from './InfoTab.svelte';
-	import HealthTab from './HealthTab.svelte';
-	import LogsViewer from './LogsViewer.svelte';
+	import { ExternalLink, RotateCw } from '@lucide/svelte';
+	import UptimeSparkline from './UptimeSparkline.svelte';
+	import StatusPill from '$lib/components/StatusPill.svelte';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
 	import { fmtRelative } from '$lib/utils';
+	import {
+		ctnState,
+		ctnStateLabel,
+		ctnComposeProfile,
+		type CtnState,
+		type HealthzSnapshot
+	} from '$lib/utils/containers';
+	import { grafanaConfigured, grafanaContainerUrl, grafanaLogsUrl } from '$lib/utils/grafana';
+	import type { ContainerInfo } from '$lib/server/docker';
 
 	let { data, form } = $props();
 	const container = $derived(data.container);
 	const name = $derived(page.params.name ?? '');
-
 	const displayTitle = $derived(
 		name
 			.replace(/^nexo-/, '')
@@ -19,61 +27,66 @@
 			.replace(/_/g, ' ')
 	);
 
-	function formatDate(iso: string) {
-		if (!iso || iso.startsWith('0001')) return '—';
-		return new Date(iso).toLocaleString('en-GB', {
-			day: '2-digit',
-			month: 'short',
-			year: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
+	// Synthesize a ContainerInfo-shape so ctnState (which expects the list shape)
+	// works against the inspect result. The list and inspect endpoints disagree
+	// on field casing in a couple of spots; what we need for ctnState is just
+	// `Status`, `State`, `Labels`, `NetworkSettings`.
+	const containerLike: ContainerInfo & { Healthz?: HealthzSnapshot } = $derived({
+		Id: container.Id,
+		Names: [container.Name ?? ''],
+		Image: container.Config.Image,
+		ImageID: container.Image,
+		Command: '',
+		Created: 0,
+		Ports: [],
+		Labels: container.Config.Labels ?? {},
+		State: container.State.Status,
+		Status: humanStatus(container.State),
+		HostConfig: { NetworkMode: '' },
+		NetworkSettings: container.NetworkSettings,
+		Mounts: [],
+		Healthz: data.healthz
+			? {
+					ok: data.healthz.ok,
+					checkedAt: new Date(),
+					error: data.healthz.error ?? null,
+					latencyMs: data.healthz.latency_ms ?? null
+				}
+			: undefined
+	}) as unknown as ContainerInfo & { Healthz?: HealthzSnapshot };
+
+	function humanStatus(state: typeof container.State): string {
+		const base = state.Running ? `Up ${uptime(state.StartedAt)}` : state.Status;
+		const h = state.Health?.Status;
+		if (!h) return base;
+		if (h === 'unhealthy') return `${base} (unhealthy)`;
+		if (h === 'starting') return `${base} (health: starting)`;
+		if (h === 'healthy') return `${base} (healthy)`;
+		return base;
 	}
 
-	function uptime(startedAt: string) {
-		if (!startedAt || startedAt.startsWith('0001')) return '—';
-		const ms = Date.now() - new Date(startedAt).getTime();
-		const s = Math.floor(ms / 1000);
-		if (s < 60) return `${s}s`;
-		const m = Math.floor(s / 60);
-		if (m < 60) return `${m}m`;
-		const h = Math.floor(m / 60);
-		if (h < 24) return `${h}h ${m % 60}m`;
-		return `${Math.floor(h / 24)}d ${h % 24}h`;
-	}
+	const serviceState: CtnState = $derived(ctnState(containerLike));
+	const isPreview = $derived(ctnComposeProfile(containerLike) === 'preview');
+	const grafanaOn = $derived(grafanaConfigured());
 
-	const healthStatus = $derived(container.State.Health?.Status ?? null);
 	const networks = $derived(Object.keys(container.NetworkSettings.Networks));
 	const imageShort = $derived(container.Config.Image.split('/').pop() ?? container.Config.Image);
 	const restartPolicy = $derived(container.HostConfig.RestartPolicy.Name);
-	const tone = $derived(
-		container.State.Status.toLowerCase() === 'restarting'
-			? 'err'
-			: container.State.Running
-				? healthStatus === 'unhealthy'
-					? 'err'
-					: healthStatus === 'starting'
-						? 'warn'
-						: 'ok'
-				: 'mute'
-	);
-	const statusLabel = $derived(
-		container.State.Status === 'restarting'
-			? 'Restarting'
-			: container.State.Running
-				? healthStatus
-					? healthStatus.charAt(0).toUpperCase() + healthStatus.slice(1)
-					: 'Running'
-				: 'Stopped'
-	);
 
-	let activeTab = $state<'info' | 'health' | 'logs'>('info');
+	// `update()` from the recheck action invalidates the load fn, so data.healthz
+	// is the freshest source — no need for a local mirror.
+	const healthz = $derived(data.healthz);
+	let lastChecked = $state<number>(Date.now());
+
+	const checkEntries = $derived(healthz?.body?.checks ? Object.entries(healthz.body.checks) : []);
+	const passing = $derived(checkEntries.filter(([, v]) => v.ok).length);
+	const total = $derived(checkEntries.length);
 
 	type ActionVerb = 'start' | 'stop' | 'restart';
 	let confirmOpen = $state(false);
 	let confirmVerb = $state<ActionVerb>('restart');
 	let busyVerb = $state<ActionVerb | null>(null);
-	let optimisticStatus = $state<string | null>(null);
+	let recheckBusy = $state(false);
 
 	function ask(verb: ActionVerb) {
 		confirmVerb = verb;
@@ -97,201 +110,192 @@
 			cta: 'Restart'
 		}
 	};
-	const displayStatus = $derived(optimisticStatus ?? statusLabel);
 
-	let menuOpen = $state(false);
-	let inspectOpen = $state(false);
-	let copied = $state(false);
-	let menuWrap = $state<HTMLDivElement | null>(null);
-
-	async function copyId() {
-		try {
-			await navigator.clipboard.writeText(container.Id);
-			copied = true;
-			setTimeout(() => (copied = false), 1500);
-		} catch {
-			// ignore
-		}
+	function uptime(startedAt: string): string {
+		if (!startedAt || startedAt.startsWith('0001')) return '—';
+		const ms = Date.now() - new Date(startedAt).getTime();
+		const s = Math.floor(ms / 1000);
+		if (s < 60) return `${s}s`;
+		const m = Math.floor(s / 60);
+		if (m < 60) return `${m}m`;
+		const h = Math.floor(m / 60);
+		if (h < 24) return `${h}h ${m % 60}m`;
+		return `${Math.floor(h / 24)}d ${h % 24}h`;
 	}
 
-	function onMenuDocClick(e: MouseEvent) {
-		if (!menuOpen || !menuWrap) return;
-		if (!menuWrap.contains(e.target as Node)) menuOpen = false;
-	}
-
-	function onMenuKey(e: KeyboardEvent) {
-		if (e.key === 'Escape' && menuOpen) menuOpen = false;
+	function formatDate(iso: string): string {
+		if (!iso || iso.startsWith('0001')) return '—';
+		return new Date(iso).toLocaleString('en-GB', {
+			day: '2-digit',
+			month: 'short',
+			year: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
 	}
 </script>
 
-<svelte:window onclick={onMenuDocClick} onkeydown={onMenuKey} />
-
-<div class="screen">
+<div class="page">
 	<PageHeader title={displayTitle} backHref="/">
-		{#snippet avatar()}
-			<UserAvatarMenu />
-		{/snippet}
+		{#snippet avatar()}<UserAvatarMenu />{/snippet}
 	</PageHeader>
 
 	{#if form?.error === 'DOCKER_ERROR'}
 		<div class="banner err">
-			Failed to {form.verb} — check logs (id: {form.correlationId}).
+			Failed to {form.verb} — check Grafana logs (correlation id: {form.correlationId}).
 		</div>
 	{/if}
 
-	<!-- Status card -->
-	<div class="status-card">
-		<div class="status-card-head">
-			<span class="ctn-dot {tone}"></span>
-			<span class="pill {tone}">{displayStatus}</span>
-			<span class="uptime-label">up {uptime(container.State.StartedAt)}</span>
+	<!-- ─── Header card: state + preview chip + uptime ─── -->
+	<div class="hero">
+		<div class="hero-row">
+			<StatusPill state={serviceState}>{ctnStateLabel(serviceState)}</StatusPill>
+			{#if isPreview}<span class="preview-chip">preview</span>{/if}
+			<span class="uptime">up {uptime(container.State.StartedAt)}</span>
 		</div>
-		<div class="status-card-name">{imageShort}</div>
-		<div class="status-card-actions">
+		<div class="hero-image">{imageShort}</div>
+	</div>
+
+	<!-- ─── Health summary ─── -->
+	<section class="card">
+		<header class="card-head">
+			<h2>Health</h2>
+			<form
+				method="POST"
+				action="?/recheck"
+				use:enhance={() => {
+					recheckBusy = true;
+					return async ({ update }) => {
+						await update({ reset: false });
+						lastChecked = Date.now();
+						recheckBusy = false;
+					};
+				}}
+			>
+				<button type="submit" class="icon-btn" disabled={recheckBusy} aria-label="Recheck health">
+					<RotateCw size={14} strokeWidth={1.8} class={recheckBusy ? 'spin' : ''} />
+				</button>
+			</form>
+		</header>
+		{#if healthz?.body}
+			<div class="health-line">
+				<span class="health-count">{passing} / {total} checks passing</span>
+				<span class="health-meta">· {fmtRelative(lastChecked)} · {healthz.latency_ms}ms</span>
+			</div>
+			{#if healthz.body.version}
+				<div class="health-build">
+					v{healthz.body.version}{#if healthz.body.commit}
+						· {healthz.body.commit}{/if}{#if healthz.body.buildTime}
+						· built {healthz.body.buildTime.slice(0, 16).replace('T', ' ')}{/if}
+				</div>
+			{/if}
+			{#if checkEntries.length > 0}
+				<ul class="checks">
+					{#each checkEntries as [key, v] (key)}
+						<li class:fail={!v.ok}>
+							<span class="check-dot" class:ok={v.ok}></span>
+							<span class="check-name">{key}</span>
+							{#if v.latency_ms != null}<span class="check-latency">{v.latency_ms}ms</span>{/if}
+							{#if !v.ok && v.error}<span class="check-error">{v.error}</span>{/if}
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		{:else if healthz?.error}
+			<div class="health-line">
+				<span class="health-count fail">unreachable</span>
+				<span class="health-meta">— {healthz.error}</span>
+			</div>
+		{:else}
+			<div class="health-line muted">No /healthz response yet</div>
+		{/if}
+	</section>
+
+	<!-- ─── 24h uptime sparkline ─── -->
+	{#if data.history && data.history.length > 0}
+		<section class="card">
+			<header class="card-head"><h2>Last 24h</h2></header>
+			<UptimeSparkline history={data.history} />
+		</section>
+	{/if}
+
+	<!-- ─── Container metadata ─── -->
+	<section class="card">
+		<header class="card-head"><h2>Container</h2></header>
+		<dl class="meta">
+			<dt>Image</dt>
+			<dd class="mono">{container.Config.Image}</dd>
+			<dt>ID</dt>
+			<dd class="mono">{container.Id.slice(0, 12)}</dd>
+			<dt>Started</dt>
+			<dd>{formatDate(container.State.StartedAt)}</dd>
+			<dt>Restart count</dt>
+			<dd>{container.RestartCount ?? 0}</dd>
+			<dt>Restart policy</dt>
+			<dd class="mono">{restartPolicy || 'no'}</dd>
+			<dt>Networks</dt>
+			<dd class="mono">{networks.join(', ') || '—'}</dd>
+		</dl>
+	</section>
+
+	<!-- ─── Actions ─── -->
+	<section class="card">
+		<header class="card-head"><h2>Actions</h2></header>
+		<div class="actions">
 			{#if container.State.Running}
 				<button
 					type="button"
-					class="btn btn-secondary btn-small"
+					class="btn btn-secondary"
 					disabled={busyVerb !== null}
 					onclick={() => ask('restart')}
 				>
-					{#if busyVerb === 'restart'}
-						<span class="spinner"></span>
-					{:else}
-						<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
-							><path d="M3 8a5 5 0 018-3.5M13 8a5 5 0 01-8 3.5" /><path
-								d="M11 2v3h-3M5 14v-3h3"
-								stroke-linecap="round"
-							/></svg
-						>
-					{/if}
-					Restart
+					{busyVerb === 'restart' ? '…' : 'Restart'}
 				</button>
 				<button
 					type="button"
-					class="btn btn-ghost btn-small"
+					class="btn btn-ghost"
 					disabled={busyVerb !== null}
 					onclick={() => ask('stop')}
 				>
-					{#if busyVerb === 'stop'}
-						<span class="spinner"></span>
-					{:else}
-						<svg viewBox="0 0 16 16" fill="currentColor"
-							><rect x="4" y="3" width="3" height="10" rx="1" /><rect
-								x="9"
-								y="3"
-								width="3"
-								height="10"
-								rx="1"
-							/></svg
-						>
-					{/if}
-					Stop
+					{busyVerb === 'stop' ? '…' : 'Stop'}
 				</button>
 			{:else}
 				<button
 					type="button"
-					class="btn btn-primary btn-small"
+					class="btn btn-primary"
 					disabled={busyVerb !== null}
 					onclick={() => ask('start')}
 				>
-					{#if busyVerb === 'start'}
-						<span class="spinner"></span>
-					{:else}
-						<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 3l9 5-9 5z" /></svg>
-					{/if}
-					Start
+					{busyVerb === 'start' ? '…' : 'Start'}
 				</button>
 			{/if}
-			<button type="button" class="btn btn-ghost btn-small" onclick={() => (activeTab = 'logs')}>
-				Logs →
-			</button>
-			<div class="menu-wrap" bind:this={menuWrap}>
-				<button
-					type="button"
-					class="btn btn-ghost btn-small btn-icon"
-					onclick={() => (menuOpen = !menuOpen)}
-					aria-label="More"
-					aria-expanded={menuOpen}
-					aria-haspopup="menu"
-				>
-					<svg viewBox="0 0 16 16" fill="currentColor"
-						><circle cx="3" cy="8" r="1.4" /><circle cx="8" cy="8" r="1.4" /><circle
-							cx="13"
-							cy="8"
-							r="1.4"
-						/></svg
-					>
-				</button>
-				{#if menuOpen}
-					<div class="menu-pop" role="menu">
-						<button
-							class="pop-row"
-							type="button"
-							role="menuitem"
-							onclick={() => {
-								menuOpen = false;
-								inspectOpen = true;
-							}}
-						>
-							<span class="pop-label">Inspect JSON</span>
-							<span class="pop-arrow">→</span>
-						</button>
-						<button
-							class="pop-row"
-							type="button"
-							role="menuitem"
-							onclick={() => {
-								void copyId();
-								menuOpen = false;
-							}}
-						>
-							<span class="pop-label">{copied ? 'Copied!' : 'Copy container ID'}</span>
-							<span class="pop-meta mono">{container.Id.slice(0, 12)}</span>
-						</button>
-					</div>
-				{/if}
-			</div>
 		</div>
-	</div>
+	</section>
 
-	<!-- Segmented tabs -->
-	<div class="segmented">
-		<button
-			type="button"
-			class="seg"
-			class:active={activeTab === 'info'}
-			onclick={() => (activeTab = 'info')}>Info</button
-		>
-		<button
-			type="button"
-			class="seg"
-			class:active={activeTab === 'health'}
-			onclick={() => (activeTab = 'health')}
-		>
-			Health
-			{#if healthStatus === 'unhealthy' || healthStatus === 'starting'}
-				<span class="seg-dot {healthStatus === 'unhealthy' ? 'err' : 'warn'}"></span>
-			{/if}
-		</button>
-		<button
-			type="button"
-			class="seg"
-			class:active={activeTab === 'logs'}
-			onclick={() => (activeTab = 'logs')}>Logs</button
-		>
-	</div>
-
-	{#if activeTab === 'info'}
-		<InfoTab {container} stats={data.stats} {formatDate} {restartPolicy} {networks} />
-	{/if}
-
-	{#if activeTab === 'health'}
-		<HealthTab {container} healthz={data.healthz} history={data.history} {fmtRelative} />
-	{/if}
-
-	{#if activeTab === 'logs'}
-		<LogsViewer serviceName={name} />
+	<!-- ─── Grafana deep-links ─── -->
+	{#if grafanaOn}
+		{@const cleanName = (container.Name ?? '').replace(/^\//, '')}
+		<section class="card">
+			<header class="card-head"><h2>Open in Grafana</h2></header>
+			<div class="actions">
+				<a
+					class="btn btn-ghost"
+					href={grafanaLogsUrl({ service: cleanName })}
+					target="_blank"
+					rel="noreferrer"
+				>
+					Logs <ExternalLink size={13} strokeWidth={1.8} />
+				</a>
+				<a
+					class="btn btn-ghost"
+					href={grafanaContainerUrl(cleanName)}
+					target="_blank"
+					rel="noreferrer"
+				>
+					Metrics <ExternalLink size={13} strokeWidth={1.8} />
+				</a>
+			</div>
+		</section>
 	{/if}
 </div>
 
@@ -303,12 +307,10 @@
 		use:enhance={() => {
 			const verb = confirmVerb;
 			busyVerb = verb;
-			optimisticStatus = verb === 'stop' ? 'Stopping…' : 'Restarting…';
 			confirmOpen = false;
 			return async ({ update }) => {
 				await update();
 				busyVerb = null;
-				optimisticStatus = null;
 			};
 		}}
 	>
@@ -334,190 +336,253 @@
 	</form>
 </BottomSheet>
 
-<BottomSheet bind:open={inspectOpen} title="Inspect" subtitle={container.Name?.replace(/^\//, '')}>
-	<pre class="inspect-pre">{JSON.stringify(container, null, 2)}</pre>
-</BottomSheet>
-
 <style>
-	.screen {
-		padding: 16px;
+	.page {
+		padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0));
+		max-width: 720px;
+		margin: 0 auto;
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: 14px;
 	}
 
 	.banner.err {
 		padding: 10px 14px;
 		border-radius: var(--radius-md);
 		font-size: 13px;
-		background: color-mix(in oklab, var(--err-ink) 8%, transparent);
-		border: 1px solid color-mix(in oklab, var(--err-ink) 30%, transparent);
-		color: var(--err-ink);
+		background: color-mix(in oklab, oklch(0.59 0.2 27) 8%, transparent);
+		border: 1px solid color-mix(in oklab, oklch(0.59 0.2 27) 30%, transparent);
+		color: oklch(0.59 0.2 27);
 	}
 
-	/* ── Status card ── */
-	.status-card {
+	/* ── Hero ── */
+	.hero {
 		background: var(--color-surface-1);
 		border: 1px solid var(--color-border-default);
-		border-radius: var(--radius-lg);
-		padding: 14px;
+		border-radius: var(--radius-xl);
+		padding: 16px;
+	}
+	.hero-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+	.uptime {
+		margin-left: auto;
+		font-family: var(--font-mono);
+		font-size: 11px;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--color-text-faint);
+	}
+	.hero-image {
+		margin-top: 12px;
+		font-family: var(--font-mono);
+		font-size: 13px;
+		color: var(--color-text-muted);
+		word-break: break-all;
+	}
+	.preview-chip {
+		font-family: var(--font-mono);
+		font-size: 9.5px;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		padding: 2px 7px;
+		border-radius: 4px;
+		color: oklch(0.74 0.16 78);
+		background: color-mix(in oklab, oklch(0.74 0.16 78) 12%, var(--color-bg-1));
+		border: 1px solid color-mix(in oklab, oklch(0.74 0.16 78) 32%, transparent);
+		font-weight: 600;
 	}
 
-	.status-card-head {
+	/* ── Cards ── */
+	.card {
+		background: var(--color-surface-1);
+		border: 1px solid var(--color-border-default);
+		border-radius: var(--radius-xl);
+		padding: 14px 16px;
+	}
+	.card-head {
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		margin-bottom: 8px;
-	}
-
-	.uptime-label {
-		margin-left: auto;
-		font-family: var(--font-mono);
-		font-size: 10px;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-		color: var(--color-text-subtle);
-	}
-
-	.status-card-name {
-		font-size: 17px;
-		font-weight: 600;
-		letter-spacing: -0.015em;
-		color: var(--color-text-primary);
-		font-family: var(--font-mono);
 		margin-bottom: 10px;
 	}
+	.card-head h2 {
+		flex: 1;
+		margin: 0;
+		font-family: var(--font-mono);
+		font-size: 10.5px;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--color-text-subtle);
+		font-weight: 600;
+	}
 
-	.status-card-actions {
+	/* ── Health ── */
+	.health-line {
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+	.health-count {
+		font-size: 16px;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+		color: var(--color-text-primary);
+	}
+	.health-count.fail {
+		color: oklch(0.59 0.2 27);
+	}
+	.health-meta {
+		font-family: var(--font-mono);
+		font-size: 11.5px;
+		color: var(--color-text-faint);
+	}
+	.health-line.muted {
+		color: var(--color-text-faint);
+	}
+	.health-build {
+		margin-top: 6px;
+		font-family: var(--font-mono);
+		font-size: 11px;
+		color: var(--color-text-faint);
+	}
+	.checks {
+		margin: 12px 0 0;
+		padding: 0;
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.checks li {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 13px;
+		color: var(--color-text-primary);
+	}
+	.check-dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: oklch(0.59 0.2 27);
+		flex-shrink: 0;
+	}
+	.check-dot.ok {
+		background: oklch(0.62 0.18 145);
+	}
+	.check-name {
+		font-family: var(--font-mono);
+		font-size: 12.5px;
+	}
+	.check-latency {
+		font-family: var(--font-mono);
+		font-size: 11px;
+		color: var(--color-text-faint);
+	}
+	.check-error {
+		font-size: 11.5px;
+		color: oklch(0.59 0.2 27);
+	}
+
+	/* ── Metadata ── */
+	.meta {
+		display: grid;
+		grid-template-columns: max-content 1fr;
+		gap: 8px 14px;
+		margin: 0;
+		font-size: 13px;
+	}
+	.meta dt {
+		font-family: var(--font-mono);
+		font-size: 10.5px;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--color-text-faint);
+		align-self: center;
+	}
+	.meta dd {
+		margin: 0;
+		color: var(--color-text-primary);
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+	.mono {
+		font-family: var(--font-mono);
+		font-size: 12px;
+	}
+
+	/* ── Buttons ── */
+	.actions {
 		display: flex;
 		gap: 8px;
 		flex-wrap: wrap;
 	}
-
-	/* ── Buttons ── */
 	.btn {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		gap: 6px;
-		min-height: 36px;
-		padding: 0 12px;
-		font-size: 13px;
+		min-height: 44px;
+		padding: 0 16px;
+		font-size: 14px;
 		font-weight: 500;
 		border-radius: var(--radius-md);
 		border: 1px solid transparent;
 		cursor: pointer;
 		-webkit-tap-highlight-color: transparent;
-		transition:
-			background var(--duration-fast) var(--ease-out),
-			transform var(--duration-fast) var(--ease-out);
 		background: transparent;
 		color: var(--color-text-primary);
+		text-decoration: none;
 	}
-
 	.btn:disabled {
 		opacity: 0.55;
 		cursor: not-allowed;
 	}
-
-	.btn svg {
-		width: 14px;
-		height: 14px;
-	}
-
 	.btn-primary {
 		background: var(--color-accent);
 		color: #fff;
 		font-weight: 600;
 	}
-
 	.btn-secondary {
 		border-color: var(--color-border-strong);
 		background: var(--color-surface-1);
 	}
-
 	.btn-ghost {
 		background: var(--color-bg-2);
 	}
-
 	.btn-danger {
-		background: var(--err-ink);
-		border-color: var(--err-ink);
+		background: oklch(0.59 0.2 27);
+		border-color: oklch(0.59 0.2 27);
 		color: #fff;
 		font-weight: 600;
 	}
-
-	.btn-small {
-		min-height: 32px;
-		padding: 0 10px;
-		font-size: 12px;
+	.icon-btn {
+		display: inline-grid;
+		place-items: center;
+		width: 32px;
+		height: 32px;
+		border-radius: 8px;
+		background: var(--color-bg-1);
+		border: 1px solid var(--color-border-subtle);
+		color: var(--color-text-muted);
+		cursor: pointer;
 	}
-
-	.spinner {
-		width: 12px;
-		height: 12px;
-		border-radius: 50%;
-		border: 2px solid currentColor;
-		border-right-color: transparent;
+	.icon-btn:disabled {
+		opacity: 0.55;
+		cursor: not-allowed;
+	}
+	:global(.icon-btn .spin) {
 		animation: spin 0.6s linear infinite;
 	}
-
 	@keyframes spin {
 		to {
 			transform: rotate(360deg);
 		}
-	}
-
-	/* ── Segmented ── */
-	.segmented {
-		display: grid;
-		grid-auto-flow: column;
-		grid-auto-columns: 1fr;
-		background: var(--color-bg-2);
-		padding: 3px;
-		border-radius: 10px;
-		position: sticky;
-		top: var(--safe-top);
-		z-index: 4;
-	}
-
-	.seg {
-		padding: 8px 10px;
-		border-radius: 8px;
-		background: transparent;
-		border: 0;
-		font-size: 13px;
-		font-weight: 500;
-		color: var(--color-text-muted);
-		cursor: pointer;
-		-webkit-tap-highlight-color: transparent;
-		transition: all var(--duration-fast) var(--ease-out);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 5px;
-	}
-
-	.seg.active {
-		background: var(--color-surface-1);
-		color: var(--color-text-primary);
-		box-shadow:
-			0 1px 2px rgb(0 0 0 / 0.06),
-			0 1px 0 rgb(0 0 0 / 0.04);
-	}
-
-	.seg-dot {
-		width: 5px;
-		height: 5px;
-		border-radius: 50%;
-		flex-shrink: 0;
-	}
-
-	.seg-dot.err {
-		background: var(--err);
-	}
-	.seg-dot.warn {
-		background: var(--warn);
 	}
 
 	.confirm-body {
@@ -526,97 +591,9 @@
 		line-height: 1.5;
 		margin: 0 0 16px;
 	}
-
 	.confirm-actions {
 		display: flex;
 		justify-content: flex-end;
 		gap: 8px;
-	}
-
-	.btn-icon {
-		padding: 0;
-		width: 32px;
-	}
-	.btn-icon svg {
-		width: 16px;
-		height: 16px;
-	}
-
-	.menu-wrap {
-		position: relative;
-		display: inline-flex;
-	}
-
-	.menu-pop {
-		position: absolute;
-		top: calc(100% + 8px);
-		right: 0;
-		z-index: 60;
-		min-width: 220px;
-		padding: 6px;
-		background: var(--color-surface-1);
-		border: 1px solid var(--color-border-default);
-		border-radius: var(--radius-md, 12px);
-		box-shadow:
-			0 12px 32px -12px rgba(0, 0, 0, 0.18),
-			0 2px 6px rgba(0, 0, 0, 0.06);
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		animation: pop-in 140ms var(--ease-out, ease-out);
-	}
-
-	@keyframes pop-in {
-		from {
-			opacity: 0;
-			transform: translateY(-4px) scale(0.98);
-		}
-		to {
-			opacity: 1;
-			transform: none;
-		}
-	}
-
-	.pop-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 12px;
-		padding: 10px 12px;
-		font: inherit;
-		font-size: 13.5px;
-		color: var(--color-text-primary);
-		background: transparent;
-		border: none;
-		text-align: left;
-		border-radius: 8px;
-		cursor: pointer;
-	}
-	.pop-row:hover {
-		background: var(--color-bg-1);
-	}
-	.pop-label {
-		font-weight: 500;
-	}
-	.pop-arrow {
-		color: var(--color-text-faint);
-	}
-	.pop-meta {
-		font-family: var(--font-mono);
-		font-size: 11px;
-		color: var(--color-text-faint);
-	}
-
-	.inspect-pre {
-		font-family: var(--font-mono);
-		font-size: 11px;
-		line-height: 1.45;
-		max-height: 60vh;
-		overflow: auto;
-		padding: 12px;
-		background: var(--color-bg-1);
-		border: 1px solid var(--color-border-default);
-		border-radius: var(--radius-md);
-		white-space: pre;
 	}
 </style>

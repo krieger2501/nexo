@@ -85,8 +85,6 @@ export function dockerAction(path: string): Promise<void> {
 	});
 }
 
-export { SOCKET_PATH };
-
 interface HealthzResponse {
 	ok: boolean;
 	version?: string;

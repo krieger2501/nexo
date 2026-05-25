@@ -52,7 +52,7 @@ export async function reconcile(input: ReconcileInput): Promise<void> {
 	}
 
 	const previousIntent = { ...state.intent };
-	const desiredIntent = { ...previousIntent, ...(intentOverride ?? {}) };
+	const desiredIntent = { ...previousIntent, ...intentOverride };
 	const force = new Set<UnstableApp>(forceApps ?? []);
 
 	// Compute pin holders so we can refuse intent on apps already taken by

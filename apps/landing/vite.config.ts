@@ -20,6 +20,7 @@ const appVersions = {
 	auth: readVersion('../auth'),
 	admin: readVersion('../admin'),
 	flaschen: readVersion('../flaschen'),
+	calorie: readVersion('../calorie'),
 	landing: readVersion('.')
 };
 

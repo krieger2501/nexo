@@ -5,6 +5,8 @@
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
 	import { Plus } from '@lucide/svelte';
 	import { normalizeToMonthly, formatCurrency, getIntlLocale } from '$lib/utils';
+	import { page } from '$app/state';
+	import { replaceState } from '$app/navigation';
 
 	import type { Expense } from '$lib/types';
 
@@ -211,6 +213,15 @@
 		editing = expense;
 		showForm = true;
 	}
+
+	$effect(() => {
+		if (page.url.searchParams.get('add') === 'true') {
+			openNew();
+			const url = new URL(page.url);
+			url.searchParams.delete('add');
+			replaceState(url.pathname + url.search, page.state);
+		}
+	});
 </script>
 
 <div class="page flex flex-col gap-5">
@@ -562,4 +573,5 @@
 	{editing}
 	accounts={data.accounts}
 	defaultAccountId={data.settings?.defaultAccountId}
+	currency={data.settings?.currency ?? 'EUR'}
 />

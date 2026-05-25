@@ -39,6 +39,7 @@ x-admin-env: &admin-env
   VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
   VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
   VAPID_SUBJECT: ${VAPID_SUBJECT}
+  PUBLIC_GRAFANA_URL: https://grafana.krieger2501.de
   PROTOCOL_HEADER: x-forwarded-proto
   HOST_HEADER: x-forwarded-host
   APP_VERSION: ${APP_VERSION_ADMIN:-}
@@ -54,6 +55,18 @@ x-finance-env: &finance-env
   PROTOCOL_HEADER: x-forwarded-proto
   HOST_HEADER: x-forwarded-host
   APP_VERSION: ${APP_VERSION_FINANCE:-}
+  APP_COMMIT: ${APP_COMMIT:-}
+  APP_BUILD_TIME: ${APP_BUILD_TIME:-}
+
+x-calorie-env: &calorie-env
+  DATABASE_URL: ${DATABASE_URL}
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+  PUBLIC_AUTH_URL: https://auth.krieger2501.de
+  PUBLIC_CALORIE_URL: https://calorie.krieger2501.de
+  PUBLIC_LANDING_URL: https://krieger2501.de
+  PROTOCOL_HEADER: x-forwarded-proto
+  HOST_HEADER: x-forwarded-host
+  APP_VERSION: ${APP_VERSION_CALORIE:-}
   APP_COMMIT: ${APP_COMMIT:-}
   APP_BUILD_TIME: ${APP_BUILD_TIME:-}
 
@@ -366,6 +379,53 @@ services:
     healthcheck: *app-healthcheck
     logging: *app-logging
     environment: *finance-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+        required: false
+
+  calorie:
+    profiles: [production]
+    image: ghcr.io/nexo-suite/nexo-calorie:latest
+    pull_policy: always
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
+    networks: [production]
+    mem_limit: 512m
+    mem_reservation: 192m
+    cpu_shares: 1024
+    oom_score_adj: -300
+    labels:
+      nexo.healthz: 'true'
+    healthcheck: *app-healthcheck
+    logging: *app-logging
+    environment: *calorie-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  calorie_unstable:
+    profiles: [unstable]
+    image: ghcr.io/nexo-suite/nexo-calorie:${CALORIE_UNSTABLE_TAG:-latest}
+    pull_policy: always
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
+    networks: [production]
+    mem_limit: 512m
+    mem_reservation: 192m
+    cpu_shares: 1024
+    oom_score_adj: -300
+    labels:
+      nexo.unstable: 'true'
+    healthcheck: *app-healthcheck
+    logging: *app-logging
+    environment: *calorie-env
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -709,7 +769,6 @@ services:
       GH_WEBHOOK_SECRET: ${GH_WEBHOOK_SECRET}
       GH_REPO_OWNER: ${GH_REPO_OWNER}
       GH_REPO_NAME: ${GH_REPO_NAME}
-      GITHUB_TOKEN: ${GITHUB_TOKEN}
       APP_VERSION: ${APP_VERSION_BOT:-}
       APP_COMMIT: ${APP_COMMIT:-}
       APP_BUILD_TIME: ${APP_BUILD_TIME:-}

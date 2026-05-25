@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { BottomSheet, ToggleRow } from '@nexo/ui';
+	import HeroAmount from '$lib/components/ui/HeroAmount.svelte';
 	import { RECURRENCES, MONTHS } from '$lib/constants';
 	import { enhance } from '$app/forms';
+	import { normalizeToMonthly, formatCurrency } from '$lib/utils';
 	import type { Income } from '$lib/types';
 
 	interface Props {
@@ -9,9 +11,26 @@
 		editing: Income | null;
 		accounts: { id: string; name: string; emoji: string | null }[];
 		defaultAccountId?: string | null;
+		currency?: string;
 	}
 
-	let { open = $bindable(false), editing, accounts, defaultAccountId = null }: Props = $props();
+	let {
+		open = $bindable(false),
+		editing,
+		accounts,
+		defaultAccountId = null,
+		currency = 'EUR'
+	}: Props = $props();
+
+	const RECURRENCE_LABELS: Record<string, { label: string; emoji: string }> = {
+		once: { label: 'One-time', emoji: '⚡' },
+		weekly: { label: 'Weekly', emoji: '📅' },
+		biweekly: { label: 'Biweekly', emoji: '📆' },
+		monthly: { label: 'Monthly', emoji: '🔁' },
+		quarterly: { label: 'Quarterly', emoji: '🗓️' },
+		'half-yearly': { label: 'Half-year', emoji: '🌗' },
+		yearly: { label: 'Yearly', emoji: '🎂' }
+	};
 
 	let confirmDelete = $state(false);
 	let form = $state({
@@ -27,6 +46,15 @@
 
 	const needsMonth = $derived(['quarterly', 'half-yearly', 'yearly'].includes(form.recurrence));
 	const isOnce = $derived(form.recurrence === 'once');
+
+	const numericAmount = $derived(parseFloat(form.amount) || 0);
+	const monthlyHelper = $derived.by(() => {
+		if (numericAmount <= 0) return '';
+		if (isOnce) return 'one-time, no monthly equivalent';
+		const eq = normalizeToMonthly(numericAmount, form.recurrence);
+		if (form.recurrence === 'monthly') return `≈ ${formatCurrency(eq, currency, true)} / month`;
+		return `≈ ${formatCurrency(eq, currency, true)} / month equivalent`;
+	});
 
 	$effect(() => {
 		if (open) {
@@ -60,7 +88,7 @@
 
 <BottomSheet
 	bind:open
-	title={editing ? 'Edit income' : 'New income'}
+	title={editing ? 'Edit income' : 'New income 💰'}
 	subtitle="Track what comes in, on cadence."
 >
 	{#if confirmDelete}
@@ -71,7 +99,7 @@
 			</div>
 			<form
 				method="POST"
-				action="?/remove"
+				action="/income?/remove"
 				use:enhance={() => {
 					return async ({ update }) => {
 						open = false;
@@ -91,7 +119,7 @@
 	{:else}
 		<form
 			method="POST"
-			action="?/save"
+			action="/income?/save"
 			use:enhance={() => {
 				return async ({ update }) => {
 					open = false;
@@ -108,19 +136,15 @@
 			<input type="hidden" name="starting_month" value={needsMonth ? form.starting_month : ''} />
 			<input type="hidden" name="account_id" value={form.account_id} />
 
-			<!-- Amount -->
-			<div class="field">
-				<label for="inc-amount">Amount</label>
-				<input
-					id="inc-amount"
-					name="amount"
-					bind:value={form.amount}
-					type="number"
-					step="0.01"
-					class="input amount-input"
-					placeholder="0.00"
-				/>
-			</div>
+			<!-- Hero amount -->
+			<HeroAmount
+				bind:value={form.amount}
+				{currency}
+				tone="income"
+				name="amount"
+				helper={monthlyHelper}
+				autofocus={!editing}
+			/>
 
 			<!-- Name -->
 			<div class="field">
@@ -134,49 +158,43 @@
 				/>
 			</div>
 
-			<!-- Recurrence + Day/Date -->
-			{#if isOnce}
-				<div class="field-row">
-					<div class="field">
-						<label for="inc-recurrence">Recurrence</label>
-						<select
-							id="inc-recurrence"
-							name="recurrence"
-							bind:value={form.recurrence}
-							class="input"
+			<!-- Recurrence pill row -->
+			<div class="field">
+				<span class="field-label">Cadence</span>
+				<div class="recur-row">
+					{#each RECURRENCES as r (r)}
+						{@const meta = RECURRENCE_LABELS[r] ?? { label: r, emoji: '·' }}
+						<button
+							type="button"
+							class="recur-pill"
+							class:active={form.recurrence === r}
+							onclick={() => (form.recurrence = r)}
 						>
-							{#each RECURRENCES as r (r)}<option value={r}>{r}</option>{/each}
-						</select>
-					</div>
-					<div class="field">
-						<label for="inc-exp-date">Expected date</label>
-						<input id="inc-exp-date" bind:value={form.expected_date} type="date" class="input" />
-					</div>
+							<span aria-hidden="true">{meta.emoji}</span>
+							<span>{meta.label}</span>
+						</button>
+					{/each}
+				</div>
+				<input type="hidden" name="recurrence" value={form.recurrence} />
+			</div>
+
+			<!-- Day / date -->
+			{#if isOnce}
+				<div class="field">
+					<label for="inc-exp-date">Expected date</label>
+					<input id="inc-exp-date" bind:value={form.expected_date} type="date" class="input" />
 				</div>
 			{:else}
-				<div class="field-row">
-					<div class="field">
-						<label for="inc-recurrence">Recurrence</label>
-						<select
-							id="inc-recurrence"
-							name="recurrence"
-							bind:value={form.recurrence}
-							class="input"
-						>
-							{#each RECURRENCES as r (r)}<option value={r}>{r}</option>{/each}
-						</select>
-					</div>
-					<div class="field">
-						<label for="inc-dom">Day of month</label>
-						<select id="inc-dom" bind:value={form.day_of_month} class="input">
-							<option value="">—</option>
-							{#each Array.from({ length: 28 }, (_, i) => i + 1) as d (d)}
-								<option value={String(d)}>{d}</option>
-							{/each}
-							<option value="last_working">Last working</option>
-							<option value="second_last_working">2nd-last</option>
-						</select>
-					</div>
+				<div class="field">
+					<label for="inc-dom">Day of month</label>
+					<select id="inc-dom" bind:value={form.day_of_month} class="input">
+						<option value="">— pick a day —</option>
+						{#each Array.from({ length: 28 }, (_, i) => i + 1) as d (d)}
+							<option value={String(d)}>{d}.</option>
+						{/each}
+						<option value="last_working">Last working day</option>
+						<option value="second_last_working">2nd-last working day</option>
+					</select>
 				</div>
 			{/if}
 
@@ -226,7 +244,10 @@
 			<!-- Actions -->
 			<div class="actions">
 				<button type="button" class="btn-secondary" onclick={() => (open = false)}>Cancel</button>
-				<button type="submit" class="btn-primary">Save income</button>
+				<button type="submit" class="btn-primary">
+					<span>Save income</span>
+					<span aria-hidden="true">→</span>
+				</button>
 			</div>
 
 			{#if editing}
@@ -242,7 +263,8 @@
 	.field {
 		margin-bottom: 12px;
 	}
-	.field label {
+	.field label,
+	.field .field-label {
 		display: block;
 		font-family: var(--font-mono);
 		font-size: 10px;
@@ -266,49 +288,72 @@
 	.input:focus {
 		border-color: var(--color-text-primary);
 	}
-	.amount-input {
-		font-size: 22px;
-		font-weight: 600;
-		letter-spacing: -0.02em;
-		font-variant-numeric: tabular-nums;
-		height: 56px;
-	}
-	.field-row {
+	.recur-row {
 		display: flex;
-		gap: 10px;
-		margin-bottom: 12px;
+		gap: 6px;
+		overflow-x: auto;
+		scrollbar-width: none;
+		padding-bottom: 2px;
 	}
-	.field-row .field {
-		flex: 1;
-		min-width: 0;
-		margin-bottom: 0;
+	.recur-row::-webkit-scrollbar {
+		display: none;
+	}
+	.recur-pill {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		padding: 8px 12px;
+		border-radius: 999px;
+		background: var(--color-bg-1);
+		border: 1px solid var(--color-border-subtle);
+		font: inherit;
+		font-size: 12.5px;
+		color: var(--color-text-muted);
+		cursor: pointer;
+		transition:
+			background var(--duration-fast) var(--ease-out),
+			border-color var(--duration-fast) var(--ease-out),
+			color var(--duration-fast) var(--ease-out);
+	}
+	.recur-pill.active {
+		background: var(--income-soft);
+		border-color: var(--income-line);
+		color: var(--income-ink);
+		font-weight: 500;
 	}
 	.actions {
 		display: flex;
 		gap: 10px;
-		margin-top: 8px;
+		margin-top: 12px;
 	}
 	.btn-primary {
 		flex: 1;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		height: 48px;
+		gap: 8px;
+		height: 50px;
 		font: inherit;
-		font-size: 15px;
+		font-size: 15.5px;
 		font-weight: 600;
+		letter-spacing: -0.005em;
 		border-radius: var(--radius-md);
 		border: 1px solid transparent;
-		background: var(--color-accent);
-		color: #fff;
+		background: var(--color-text-primary);
+		color: var(--color-bg-0);
 		cursor: pointer;
+		transition: transform var(--duration-fast) var(--ease-out);
+	}
+	.btn-primary:active {
+		transform: scale(0.98);
 	}
 	.btn-secondary {
 		flex: 1;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		height: 48px;
+		height: 50px;
 		font: inherit;
 		font-size: 15px;
 		font-weight: 600;

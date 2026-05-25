@@ -182,6 +182,16 @@
 				href: env.PUBLIC_FLASCHEN_URL ?? '#',
 				meta: `v${data.appVersions.flaschen}`
 			},
+			data.allowedApps.includes('calorie') && {
+				id: 'calorie',
+				name: 'Calorie',
+				monogram: 'C',
+				icon: '/icon-calorie-dark.svg',
+				accent: '#b85a3a',
+				desc: m.appdesc_calorie(),
+				href: env.PUBLIC_CALORIE_URL ?? '#',
+				meta: `v${data.appVersions.calorie}`
+			},
 			data.allowedApps.includes('admin') && {
 				id: 'admin',
 				name: 'Admin',
@@ -288,7 +298,7 @@
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -- interpolated values are integer .length counts, not user input -->
 				{@html m.apps_status_summary({
 					live: `<b>${liveApps.length}</b>`,
-					workshop: `<b>${workshopApps.length}</b>`
+					coming: `<b>${workshopApps.length + ideaApps.length}</b>`
 				})}
 			</div>
 		</div>
@@ -318,6 +328,7 @@
 		{ideaApps}
 		financeGlance={data.financeGlance}
 		flaschenGlance={data.flaschenGlance}
+		calorieGlance={data.calorieGlance}
 		adminGlance={data.adminGlance}
 	/>
 

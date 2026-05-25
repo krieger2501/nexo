@@ -15,6 +15,9 @@
 }
 
 :root {
+	/* FAB clearance — QuickAddFAB occupies ~70px above the bottom nav */
+	--shell-bot-extra: 80px;
+
 	/* Income derivatives */
 	--income-ink: color-mix(in oklab, var(--color-income) 80%, #000);
 	--income-soft: color-mix(in oklab, var(--color-income) 12%, var(--color-surface-1));

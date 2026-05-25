@@ -298,6 +298,100 @@ docker compose ps                   # check all services are Up
 
 ---
 
+## Migrating an existing prod to PgBouncer (one-time)
+
+Background: production used to connect apps directly to `postgres:5432`. After [introducing PgBouncer + `pg_stat_statements`](#) the topology is:
+
+- Apps → `pgbouncer:5432` (transaction-pooled, ~20 real backends serving up to 200 client conns).
+- Migrate runner → `postgres:5432` directly. DDL doesn't survive transaction-pooled rebinding, so it has to bypass the pooler.
+- Postgres loads `pg_stat_statements` via `shared_preload_libraries`, but the actual extension object is per-database and has to be created with SQL.
+
+**Note on the port.** edoburu's pgBouncer image rebinds the listener to 5432 (canonical default is 6432) so apps don't need a different DSN port to drop the pooler in. If you've worked with vanilla pgBouncer you may have it muscle-memorized as 6432 — here it's 5432.
+
+### Step 1 — update `.env` on the VPS, _before_ the deploy lands
+
+```bash
+ssh nexo@<vps>
+cd ~/nexo
+nano .env
+```
+
+Two changes:
+
+```diff
+- DATABASE_URL=postgres://nexo:<password>@postgres:5432/nexo
++ DATABASE_URL=postgres://nexo:<password>@pgbouncer:5432/nexo
++ MIGRATE_DATABASE_URL=postgres://nexo:<password>@postgres:5432/nexo
+```
+
+Why both vars: compose wires migrate via `${MIGRATE_DATABASE_URL:-${DATABASE_URL}}`. If `MIGRATE_DATABASE_URL` is unset, migrate silently goes through pgBouncer and DDL breaks.
+
+### Step 2 — let CI ship it
+
+Merge → release-please → `deploy-production`. The deploy script runs `compose up -d`, which:
+
+- Recreates `postgres` because its `command:` args changed (`shared_preload_libraries=pg_stat_statements` is new).
+- Brings up the new `pgbouncer` service.
+- Re-creates app containers; they now resolve `DATABASE_URL` to `pgbouncer:5432`.
+
+Healthcheck in `deploy.mjs` should pass — the app images don't know or care that they're hitting a pooler.
+
+### Step 3 — create the extension and bounce the exporter (post-deploy)
+
+`shared_preload_libraries=pg_stat_statements` only loads the library; the extension object is per-database and has to be created explicitly. Until it exists, `postgres-exporter` will spam errors against its `pg_stat_statements` query in `prometheus/postgres-queries.yaml`.
+
+```bash
+# Confirm postgres came up with the new flag
+docker compose exec postgres psql -U nexo -d nexo \
+  -c "SHOW shared_preload_libraries;"
+# expected: pg_stat_statements
+
+# Create the extension (idempotent)
+docker compose exec postgres psql -U nexo -d nexo \
+  -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"
+
+# Verify
+docker compose exec postgres psql -U nexo -d nexo \
+  -c "SELECT extname, extversion FROM pg_extension WHERE extname = 'pg_stat_statements';"
+
+# Restart postgres-exporter so it stops logging "relation does not exist"
+# and starts scraping cleanly. This is the post-deploy "re-up" step.
+docker compose --profile production --profile server restart postgres-exporter
+```
+
+### Sanity checks
+
+```bash
+# pgBouncer is pooling
+docker compose exec pgbouncer psql -h 127.0.0.1 -p 5432 -U nexo -d pgbouncer -c "SHOW POOLS;"
+
+# pg_stat_statements is collecting
+docker compose exec postgres psql -U nexo -d nexo \
+  -c "SELECT count(*) FROM pg_stat_statements;"
+
+# All apps healthy via pgBouncer
+for h in auth admin finance flaschen krieger2501.de; do
+  curl -fsS "https://${h}/healthz" >/dev/null && echo "✓ $h" || echo "✗ $h"
+done
+```
+
+### Rollback
+
+The deploy script auto-rolls images on healthcheck failure, but the `.env` change is yours:
+
+```bash
+# Revert the DSN
+sed -i 's/@pgbouncer:5432/@postgres:5432/' .env
+# (you can leave MIGRATE_DATABASE_URL — it just becomes redundant)
+
+# Re-up apps to pick up the reverted DSN
+docker compose --profile production up -d --force-recreate auth admin finance flaschen landing bot
+```
+
+Postgres + pgBouncer can stay running during a rollback — apps just bypass the pooler via the reverted `DATABASE_URL`.
+
+---
+
 ## Seed your email
 
 ```bash

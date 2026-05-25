@@ -4,10 +4,12 @@
 @import 'tailwindcss';
 
 @theme {
-	--color-accent: var(--color-accent-finance);
+	/* Hub identity — indigo, distinct from any individual app accent. */
+	--color-accent-nexo: oklch(0.55 0.22 277);
+	--color-accent: var(--color-accent-nexo);
 }
 
-/* ─── Per-app accent override ─── */
+/* ─── Per-app accent override (scoped to each app card) ─── */
 [data-app='finance'] {
 	--color-accent: var(--color-accent-finance);
 }

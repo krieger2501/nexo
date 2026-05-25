@@ -1,0 +1,10 @@
+{
+	"recommendations": [
+		"oxc.oxc-vscode",
+		"svelte.svelte-vscode",
+		"bradlc.vscode-tailwindcss",
+		"dbaeumer.vscode-eslint",
+		"redhat.vscode-yaml",
+		"editorconfig.editorconfig"
+	]
+}

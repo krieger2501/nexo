@@ -23,10 +23,34 @@
 		}).format(n);
 	}
 
-	const TYPE_STYLES: Record<string, { ink: string; soft: string; label: string }> = {
-		expense: { ink: 'var(--expense-ink)', soft: 'var(--expense-soft)', label: 'Expense' },
-		income: { ink: 'var(--income-ink)', soft: 'var(--income-soft)', label: 'Income' },
-		debt: { ink: 'var(--debt-ink)', soft: 'var(--debt-soft)', label: 'Debt' }
+	const TYPE_STYLES: Record<
+		string,
+		{ ink: string; soft: string; line: string; emoji: string; label: string; sign: string }
+	> = {
+		expense: {
+			ink: 'var(--expense-ink)',
+			soft: 'var(--expense-soft)',
+			line: 'var(--expense-line)',
+			emoji: '💸',
+			label: 'Expense',
+			sign: '-'
+		},
+		income: {
+			ink: 'var(--income-ink)',
+			soft: 'var(--income-soft)',
+			line: 'var(--income-line)',
+			emoji: '💰',
+			label: 'Income',
+			sign: '+'
+		},
+		debt: {
+			ink: 'var(--debt-ink)',
+			soft: 'var(--debt-soft)',
+			line: 'var(--debt-line)',
+			emoji: '🤝',
+			label: 'Debt',
+			sign: ''
+		}
 	};
 
 	const style = $derived(
@@ -36,19 +60,23 @@
 
 {#if event}
 	<div
-		class="border-border-default bg-surface-1 relative overflow-hidden rounded-[var(--radius-lg)] border"
-		style="padding: 14px 16px;"
+		class="bg-surface-1 relative overflow-hidden rounded-[var(--radius-xl)] border"
+		style="padding: 16px 18px; border-color: {style.line};"
 	>
-		<!-- Left gradient tint -->
+		<!-- Atmospheric wash -->
 		<div
-			class="pointer-events-none absolute inset-y-0 left-0 w-24"
-			style="background: linear-gradient(90deg, {style.soft} 0%, transparent 100%);"
+			class="pointer-events-none absolute inset-0"
+			style="background:
+				radial-gradient(circle at 0% 50%, {style.soft} 0%, transparent 55%),
+				radial-gradient(circle at 100% 100%, color-mix(in oklab, {style.ink} 8%, transparent) 0%, transparent 60%);
+				opacity: 0.95;"
 		></div>
 
 		<!-- Tag -->
-		<div class="relative">
+		<div class="relative flex items-center gap-2">
+			<span class="text-[18px] leading-none" aria-hidden="true">{style.emoji}</span>
 			<span
-				class="mono text-[9.5px] font-medium tracking-[0.1em] uppercase"
+				class="mono text-[10px] font-semibold tracking-[0.14em] uppercase"
 				style="color: {style.ink};"
 			>
 				Hits today · {style.label}
@@ -56,20 +84,20 @@
 		</div>
 
 		<!-- Name + amount row -->
-		<div class="relative mt-1.5 flex items-center justify-between gap-3">
-			<p class="text-text-primary min-w-0 truncate text-[16px] font-semibold">
+		<div class="relative mt-2 flex items-end justify-between gap-3">
+			<p class="text-text-primary min-w-0 truncate text-[18px] font-semibold tracking-tight">
 				{event.label}
 			</p>
-			<p class="shrink-0 text-[16px] font-semibold tabular-nums" style="color: {style.ink};">
-				{event.type === 'income' ? '+' : event.type === 'expense' ? '-' : ''}{fmt(event.amount)}
+			<p
+				class="shrink-0 text-[20px] font-semibold tracking-tight tabular-nums"
+				style="color: {style.ink};"
+			>
+				{style.sign}{fmt(event.amount)}
 			</p>
 		</div>
 
-		<!-- Context subtitle -->
 		{#if context}
-			<p class="text-text-muted relative mt-1 text-[12.5px]">
-				{context}
-			</p>
+			<p class="text-text-muted relative mt-1 text-[12.5px]">{context}</p>
 		{/if}
 	</div>
 {/if}

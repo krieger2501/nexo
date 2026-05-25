@@ -16,20 +16,21 @@
 	</div>
 </nav>
 
-<header class="relative overflow-hidden py-20 md:py-28">
+<header class="relative overflow-hidden pt-20 pb-10 md:pt-28 md:pb-16">
 	<div class="hero-bg pointer-events-none absolute inset-0 z-0"></div>
 	<div class="relative z-10 mx-auto max-w-[1100px] px-6 text-center">
-		<div class="eyebrow-pill">
+		<div class="eyebrow-pill hero-rise" style="--delay: 0ms">
 			<span class="eyebrow-dot"></span>
 			{m.hero_eyebrow()}
 		</div>
-		<h1 class="hero-title">{m.hero_title()}</h1>
+		<h1 class="hero-title hero-rise" style="--delay: 120ms">{m.hero_title()}</h1>
 		<p
-			class="text-text-muted mx-auto mt-5 max-w-[520px] text-[clamp(16px,1.5vw,18px)] leading-relaxed"
+			class="text-text-muted hero-rise mx-auto mt-5 max-w-[520px] text-[clamp(16px,1.5vw,18px)] leading-relaxed"
+			style="--delay: 240ms"
 		>
 			{m.hero_tagline()}
 		</p>
-		<div class="hero-meta">
+		<div class="hero-meta hero-rise" style="--delay: 360ms">
 			<span><b>{m.hero_meta_live()}</b></span>
 			<span><b>{m.hero_meta_cooking()}</b></span>
 			<span>{m.hero_meta_dev()}</span>
@@ -131,6 +132,31 @@
 		50% {
 			opacity: 0.4;
 			transform: scale(0.75);
+		}
+	}
+
+	.hero-rise {
+		opacity: 0;
+		transform: translateY(12px);
+		animation: heroRise 700ms var(--ease-out) forwards;
+		animation-delay: var(--delay, 0ms);
+	}
+
+	@keyframes heroRise {
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.hero-rise {
+			animation: none;
+			opacity: 1;
+			transform: none;
+		}
+		.eyebrow-dot {
+			animation: none;
 		}
 	}
 </style>

@@ -1,0 +1,26 @@
+import type { User } from 'better-auth';
+
+declare global {
+	const __APP_VERSION_FALLBACK__: string;
+	const __APP_COMMIT_FALLBACK__: string;
+	const __APP_BUILD_TIME_FALLBACK__: string;
+
+	namespace App {
+		interface Error {
+			message: string;
+			code?: string;
+			correlationId?: string;
+		}
+		interface Locals {
+			user: User | null;
+			correlationId: string;
+		}
+		interface PageData {
+			user?: User | null;
+		}
+		// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+		interface Platform {}
+	}
+}
+
+export {};

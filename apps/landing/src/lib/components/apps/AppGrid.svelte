@@ -50,6 +50,19 @@
 				lastPollOk: boolean | null;
 		  };
 
+	type CalorieGlance =
+		| { onboarded: false }
+		| {
+				onboarded: true;
+				kcalToday: number;
+				kcalTarget: number;
+				remaining: number;
+				overBy: number;
+				entriesToday: number;
+				daysLoggedThisWeek: number;
+				latestWeightKg: number | null;
+		  };
+
 	type AdminGlance = {
 		users: number;
 		services: number;
@@ -64,6 +77,7 @@
 		ideaApps,
 		financeGlance,
 		flaschenGlance,
+		calorieGlance,
 		adminGlance
 	}: {
 		liveApps: LiveApp[];
@@ -71,6 +85,7 @@
 		ideaApps: IdeaApp[];
 		financeGlance: FinanceGlance | null;
 		flaschenGlance: FlaschenGlance | null;
+		calorieGlance: CalorieGlance | null;
 		adminGlance: AdminGlance | null;
 	} = $props();
 
@@ -98,8 +113,10 @@
 						><span class="pill-dot"></span>{m.appgrid_flaschen_live()}</span
 					>
 				</div>
-				<div class="ac-name">{app.name}</div>
-				<div class="ac-desc">{app.desc}</div>
+				<div class="ac-name-row">
+					<span class="ac-name">{app.name}</span>
+					<span class="ac-version">{app.meta}</span>
+				</div>
 
 				{#if app.id === 'finance' && financeGlance}
 					{@const g = financeGlance}
@@ -161,6 +178,42 @@
 					</div>
 				{/if}
 
+				{#if app.id === 'calorie' && calorieGlance}
+					{@const c = calorieGlance}
+					<div class="ac-glance">
+						{#if !c.onboarded}
+							<div class="stat">
+								<div class="stat-k">{m.appgrid_calorie_status()}</div>
+								<div class="stat-v stat-status muted">
+									<span class="status-dot" aria-hidden="true"></span>
+									{m.appgrid_calorie_not_set_up()}
+								</div>
+							</div>
+						{:else}
+							{@const tone = c.overBy > 0 ? 'down' : 'up'}
+							<div class="stat">
+								<div class="stat-k">{m.appgrid_calorie_today()}</div>
+								<div class="stat-v mono">
+									{c.kcalToday.toLocaleString()}<span class="of">/{c.kcalTarget.toLocaleString()}</span>
+								</div>
+							</div>
+							<div class="stat">
+								<div class="stat-k">
+									{c.overBy > 0 ? m.appgrid_calorie_over() : m.appgrid_calorie_remaining()}
+								</div>
+								<div class="stat-v mono {tone}">
+									<span class="stat-arrow" aria-hidden="true">{c.overBy > 0 ? '↑' : '↓'}</span>
+									{(c.overBy > 0 ? c.overBy : c.remaining).toLocaleString()}
+								</div>
+							</div>
+							<div class="stat">
+								<div class="stat-k">{m.appgrid_calorie_week()}</div>
+								<div class="stat-v mono">{c.daysLoggedThisWeek}/7</div>
+							</div>
+						{/if}
+					</div>
+				{/if}
+
 				{#if app.id === 'admin' && adminGlance}
 					{@const a = adminGlance}
 					{@const tone = a.healthPct === null ? 'muted' : a.failing > 0 ? 'down' : 'up'}
@@ -186,20 +239,6 @@
 						</div>
 					</div>
 				{/if}
-
-				<div class="ac-foot">
-					<span class="ac-meta">{app.meta}</span>
-					<span class="btn-open">
-						{m.appgrid_open()}
-						<svg
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-linecap="round"
-							stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg
-						>
-					</span>
-				</div>
 			</a>
 		{/each}
 	</div>
@@ -212,62 +251,48 @@
 	</div>
 {/if}
 
-<!-- Workshop -->
-<div class="sec">
-	<span class="sec-title"><b>{m.appgrid_workshop()}</b> · {workshopApps.length}</span>
-	<span class="sec-right">{m.appgrid_soonish()}</span>
-</div>
-
-<div class="app-stack">
-	{#each workshopApps as app (app.id)}
-		<div class="app-card locked" style="--app-accent: {app.accent}">
-			<div class="ac-head">
-				{#if app.icon}
-					<img class="app-tile app-tile-img" src={app.icon} alt="" width="46" height="46" />
+<!-- Coming up — workshop + ideas merged into one strip -->
+{#if workshopApps.length + ideaApps.length > 0}
+	{@const comingItems = [
+		...workshopApps.map((a) => ({
+			id: a.id,
+			name: a.name,
+			monogram: a.monogram,
+			icon: a.icon,
+			accent: a.accent,
+			sub: a.meta,
+			tone: 'soon' as const
+		})),
+		...ideaApps.map((a) => ({
+			id: a.id,
+			name: a.name,
+			monogram: a.monogram,
+			icon: a.icon,
+			accent: a.accent,
+			sub: a.sub,
+			tone: 'idea' as const
+		}))
+	]}
+	<div class="sec">
+		<span class="sec-title"><b>{m.appgrid_coming_up()}</b> · {comingItems.length}</span>
+		<span class="sec-right">{m.appgrid_soonish()}</span>
+	</div>
+	<div class="coming-strip">
+		{#each comingItems as item (item.id)}
+			<div class="coming-chip" class:coming-chip--idea={item.tone === 'idea'}>
+				{#if item.icon}
+					<img class="coming-icon coming-icon-img" src={item.icon} alt="" width="24" height="24" />
 				{:else}
-					<div class="app-tile">{app.monogram}</div>
+					<span class="coming-icon" style="color: {item.accent}">{item.monogram}</span>
 				{/if}
-				<span class="pill pill-soon">{m.appgrid_coming_soon()}</span>
-			</div>
-			<div class="ac-name">{app.name}</div>
-			<div class="ac-desc">{app.desc}</div>
-			<div class="ac-foot">
-				<span class="ac-meta">{app.meta}</span>
-				<span class="btn-locked">
-					<svg
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="1.8"
-						><rect x="5" y="11" width="14" height="10" rx="2" /><path
-							d="M8 11V7a4 4 0 0 1 8 0v4"
-						/></svg
-					>
-					{m.appgrid_locked()}
+				<span class="coming-text">
+					<span class="coming-name">{item.name}</span>
+					<span class="coming-sub">{item.sub}</span>
 				</span>
 			</div>
-		</div>
-	{/each}
-</div>
-
-<!-- Idea strip -->
-<div class="sec">
-	<span class="sec-title"><b>{m.appgrid_maybe_later()}</b></span>
-	<span class="sec-right">{m.appgrid_ideas()}</span>
-</div>
-<div class="idea-strip">
-	{#each ideaApps as app (app.id)}
-		<div class="idea-chip">
-			<span class="idea-icon" style="color: {app.accent}">{app.monogram}</span>
-			<span class="idea-text">
-				{app.name}
-				<span class="idea-sub">{app.sub}</span>
-			</span>
-		</div>
-	{/each}
-</div>
+		{/each}
+	</div>
+{/if}
 
 <style>
 	.sec {
@@ -309,7 +334,7 @@
 		--app-line: color-mix(in oklab, var(--app-accent) 28%, var(--color-border-default));
 		--app-ink: color-mix(in oklab, var(--app-accent) 80%, #000);
 		position: relative;
-		padding: 22px;
+		padding: 18px 20px;
 		background: var(--color-surface-1);
 		border: 1px solid var(--color-border-default);
 		border-radius: var(--radius-xl);
@@ -333,7 +358,7 @@
 		);
 		pointer-events: none;
 	}
-	.app-card:active:not(.locked) {
+	.app-card:active {
 		transform: scale(0.99);
 		border-color: var(--app-line);
 	}
@@ -341,15 +366,12 @@
 		position: relative;
 		z-index: 1;
 	}
-	.app-card.locked {
-		opacity: 0.78;
-	}
 
 	.ac-head {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		margin-bottom: 14px;
+		margin-bottom: 12px;
 	}
 	.app-tile {
 		width: 46px;
@@ -365,19 +387,11 @@
 		font-size: 21px;
 		letter-spacing: -0.02em;
 	}
-	.app-card.locked .app-tile {
-		color: var(--color-text-faint);
-		border-color: var(--color-border-default);
-		background: var(--color-bg-1);
-	}
 	.app-tile-img {
 		background: transparent;
 		border: 0;
 		padding: 0;
 		object-fit: contain;
-	}
-	.app-card.locked .app-tile-img {
-		opacity: 0.7;
 	}
 
 	.pill {
@@ -407,11 +421,6 @@
 		box-shadow: 0 0 6px currentColor;
 		animation: pulse 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 	}
-	.pill-soon {
-		color: var(--color-text-faint);
-		background: var(--color-bg-1);
-		border-color: var(--color-border-subtle);
-	}
 	@keyframes pulse {
 		0%,
 		100% {
@@ -424,19 +433,27 @@
 		}
 	}
 
+	.ac-name-row {
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
+	}
 	.ac-name {
 		font-size: 22px;
 		font-weight: 600;
 		letter-spacing: -0.02em;
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
-	.app-card.locked .ac-name {
-		color: var(--color-text-muted);
-	}
-	.ac-desc {
-		color: var(--color-text-muted);
-		margin: 4px 0 0;
-		font-size: 13.5px;
-		line-height: 1.5;
+	.ac-version {
+		font-family: var(--font-mono);
+		font-size: 9.5px;
+		letter-spacing: 0.08em;
+		color: var(--color-text-faint);
+		flex-shrink: 0;
 	}
 
 	.ac-glance {
@@ -444,8 +461,8 @@
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 14px;
 		align-items: start;
-		margin-top: 16px;
-		padding-top: 14px;
+		margin-top: 14px;
+		padding-top: 12px;
 		position: relative;
 	}
 	.ac-glance::before {
@@ -548,57 +565,7 @@
 		}
 	}
 
-	.ac-foot {
-		margin-top: 16px;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-	.ac-meta {
-		font-family: var(--font-mono);
-		font-size: 10.5px;
-		color: var(--color-text-faint);
-		letter-spacing: 0.04em;
-	}
-	.btn-open {
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		height: 38px;
-		padding: 0 14px 0 16px;
-		border-radius: 999px;
-		background: var(--app-accent);
-		color: #fff;
-		font-size: 13.5px;
-		font-weight: 600;
-		letter-spacing: -0.005em;
-		text-decoration: none;
-	}
-	.btn-open svg {
-		width: 13px;
-		height: 13px;
-		stroke-width: 2.4;
-	}
-	.btn-locked {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		height: 38px;
-		padding: 0 14px;
-		border-radius: 999px;
-		background: var(--color-bg-1);
-		color: var(--color-text-subtle);
-		font-size: 13.5px;
-		font-weight: 500;
-		border: 1px solid var(--color-border-subtle);
-		cursor: not-allowed;
-	}
-	.btn-locked svg {
-		width: 12px;
-		height: 12px;
-	}
-
-	.idea-strip {
+	.coming-strip {
 		display: flex;
 		gap: 8px;
 		overflow-x: auto;
@@ -607,22 +574,25 @@
 		scroll-snap-type: x mandatory;
 		scrollbar-width: none;
 	}
-	.idea-strip::-webkit-scrollbar {
+	.coming-strip::-webkit-scrollbar {
 		display: none;
 	}
-	.idea-chip {
+	.coming-chip {
 		flex-shrink: 0;
 		scroll-snap-align: start;
-		padding: 10px 12px 12px;
+		padding: 10px 12px;
 		background: var(--color-surface-1);
-		border: 1px dashed var(--color-border-default);
+		border: 1px solid var(--color-border-default);
 		border-radius: var(--radius-md);
 		display: flex;
 		align-items: center;
 		gap: 10px;
 		min-width: 160px;
 	}
-	.idea-icon {
+	.coming-chip--idea {
+		border-style: dashed;
+	}
+	.coming-icon {
 		width: 28px;
 		height: 28px;
 		border-radius: 7px;
@@ -634,17 +604,27 @@
 		font-size: 13px;
 		flex-shrink: 0;
 	}
-	.idea-text {
+	.coming-icon-img {
+		background: transparent;
+		border: 0;
+		padding: 0;
+		object-fit: contain;
+	}
+	.coming-text {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
+	.coming-name {
 		font-size: 13.5px;
 		font-weight: 500;
 		letter-spacing: -0.005em;
-		color: var(--color-text-muted);
+		color: var(--color-text-primary);
 	}
-	.idea-sub {
-		display: block;
+	.coming-sub {
 		font-size: 10.5px;
 		color: var(--color-text-faint);
-		margin-top: 2px;
 		font-family: var(--font-mono);
 		letter-spacing: 0.06em;
 		text-transform: uppercase;

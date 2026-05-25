@@ -1,8 +1,12 @@
 <script lang="ts">
 	import { BottomSheet, PageHeader, ToggleRow } from '@nexo/ui';
+	import HeroAmount from '$lib/components/ui/HeroAmount.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
 	import { Plus, Check, ChevronRight } from '@lucide/svelte';
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
+	import { replaceState } from '$app/navigation';
 
 	import type { Debt } from '$lib/types';
 	import { getIntlLocale } from '$lib/utils';
@@ -87,6 +91,15 @@
 		};
 		showForm = true;
 	}
+
+	$effect(() => {
+		if (page.url.searchParams.get('add') === 'true') {
+			openNew();
+			const url = new URL(page.url);
+			url.searchParams.delete('add');
+			replaceState(url.pathname + url.search, page.state);
+		}
+	});
 </script>
 
 <div class="page">
@@ -96,7 +109,7 @@
 				type="button"
 				onclick={openNew}
 				aria-label="Add debt"
-				class="bg-text-primary text-bg-0 flex h-[38px] w-[38px] items-center justify-center rounded-full"
+				class="bg-debt flex h-[38px] w-[38px] items-center justify-center rounded-full text-white shadow-sm transition-transform active:scale-95"
 			>
 				<Plus size={18} stroke-width={2.5} />
 			</button>
@@ -286,11 +299,13 @@
 
 	<!-- Empty state -->
 	{#if data.debts.length === 0}
-		<div
-			class="border-border-default rounded-[var(--radius-lg)] border border-dashed p-8 text-center"
-		>
-			<p class="text-text-subtle text-[14px]">No debts tracked. Tap + to create one.</p>
-		</div>
+		<EmptyState
+			emoji="🤝"
+			title="No debts tracked yet"
+			sub="IOUs and side-money between friends. Tap + to add one."
+			tone="debt"
+			cta={{ label: 'Add a debt', onclick: openNew }}
+		/>
 	{/if}
 
 	<!-- Settled section -->
@@ -334,7 +349,7 @@
 {#if showForm}
 	<BottomSheet
 		bind:open={showForm}
-		title={editing ? 'Edit debt' : 'New debt'}
+		title={editing ? 'Edit debt' : 'New debt 🤝'}
 		subtitle="Track what you owe or what's owed to you."
 	>
 		{#if confirmDelete}
@@ -347,7 +362,7 @@
 				</div>
 				<form
 					method="POST"
-					action="?/remove"
+					action="/debt?/remove"
 					use:enhance={() => {
 						return async ({ update }) => {
 							showForm = false;
@@ -371,7 +386,7 @@
 		{:else}
 			<form
 				method="POST"
-				action="?/save"
+				action="/debt?/save"
 				use:enhance={() => {
 					return async ({ update }) => {
 						showForm = false;
@@ -393,30 +408,25 @@
 						class:active={form.direction === 'owe'}
 						onclick={() => (form.direction = 'owe')}
 					>
-						I owe
+						<span aria-hidden="true">📤</span> I owe
 					</button>
 					<button
 						type="button"
 						class:active={form.direction === 'owed'}
 						onclick={() => (form.direction = 'owed')}
 					>
-						Owed to me
+						<span aria-hidden="true">📥</span> Owed to me
 					</button>
 				</div>
 
-				<!-- Amount -->
-				<div class="field">
-					<label for="dbt-amount">Amount</label>
-					<input
-						id="dbt-amount"
-						name="amount"
-						bind:value={form.amount}
-						type="number"
-						step="0.01"
-						class="input amount-input"
-						placeholder="0.00"
-					/>
-				</div>
+				<!-- Hero amount -->
+				<HeroAmount
+					bind:value={form.amount}
+					currency={data.settings?.currency ?? 'EUR'}
+					tone="debt"
+					name="amount"
+					autofocus={!editing}
+				/>
 
 				<!-- Counterparty -->
 				<div class="field">
@@ -480,7 +490,10 @@
 					<button type="button" class="btn-secondary" onclick={() => (showForm = false)}
 						>Cancel</button
 					>
-					<button type="submit" class="btn-primary">Save debt</button>
+					<button type="submit" class="btn-primary">
+						<span>Save debt</span>
+						<span aria-hidden="true">→</span>
+					</button>
 				</div>
 
 				{#if editing}
@@ -546,13 +559,6 @@
 	}
 	.input:focus {
 		border-color: var(--color-text-primary);
-	}
-	.amount-input {
-		font-size: 22px;
-		font-weight: 600;
-		letter-spacing: -0.02em;
-		font-variant-numeric: tabular-nums;
-		height: 56px;
 	}
 	.field-row {
 		display: flex;

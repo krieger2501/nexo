@@ -1,0 +1,55 @@
+{
+	"name": "@nexo/calorie",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"files": [
+		"build",
+		"package.json"
+	],
+	"scripts": {
+		"build": "vite build",
+		"dev": "vite dev --port 3007",
+		"lint": "eslint \"**/*.svelte\"",
+		"lint:fix": "eslint \"**/*.svelte\" --fix",
+		"preview": "vite preview",
+		"qc": "run-s lint type:check build test:unit",
+		"test:unit": "vitest run",
+		"test:unit:watch": "vitest",
+		"translate": "pnpm dlx @inlang/paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide",
+		"translate:watch": "pnpm dlx @inlang/paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --watch",
+		"type:check": "svelte-kit sync && svelte-check-native --tsconfig ./tsconfig.json",
+		"type:check:watch": "svelte-kit sync && svelte-check-native --tsconfig ./tsconfig.json --watch"
+	},
+	"dependencies": {
+		"@fontsource-variable/fraunces": "^5.2.9",
+		"@fontsource-variable/inter": "^5.2.8",
+		"@fontsource-variable/jetbrains-mono": "^5.2.8",
+		"@lucide/svelte": "catalog:",
+		"@nexo/db": "workspace:*",
+		"@nexo/i18n": "workspace:*",
+		"@nexo/logger": "workspace:*",
+		"@nexo/security": "workspace:*",
+		"@nexo/ui": "workspace:*",
+		"@openfoodfacts/openfoodfacts-nodejs": "2.0.0-alpha.30",
+		"better-auth": "catalog:",
+		"drizzle-orm": "catalog:",
+		"zxing-wasm": "^2.2.4"
+	},
+	"devDependencies": {
+		"@inlang/paraglide-js": "catalog:",
+		"@sveltejs/adapter-node": "catalog:",
+		"@sveltejs/kit": "catalog:",
+		"@sveltejs/vite-plugin-svelte": "catalog:",
+		"@tailwindcss/vite": "catalog:",
+		"@types/node": "catalog:",
+		"@vite-pwa/sveltekit": "catalog:",
+		"happy-dom": "^20.9.0",
+		"sharp": "^0.34.5",
+		"svelte": "catalog:",
+		"svelte-check-native": "catalog:",
+		"tailwindcss": "catalog:",
+		"vite": "catalog:",
+		"vitest": "^4.1.7"
+	}
+}

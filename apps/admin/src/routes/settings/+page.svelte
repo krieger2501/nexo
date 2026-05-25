@@ -33,8 +33,7 @@
 	let { data } = $props();
 
 	$effect(() => {
-		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-		settings.logDark;
+		void settings.logDark;
 		void settings.logWrap;
 		void settings.logDensity;
 		void settings.timeMode;

@@ -1490,12 +1490,24 @@
 	}
 	.slot-row input[type='time'] {
 		flex: 1;
-		padding: 10px 12px;
+		min-height: 48px;
+		padding: 12px 14px;
 		font-size: 16px;
+		font-weight: 500;
 		font-variant-numeric: tabular-nums;
-		border: 1px solid var(--border-default);
+		font-family: var(--font-mono);
+		letter-spacing: 0.02em;
+		color: var(--text-primary);
+		border: 1px solid rgb(255 255 255 / 0.85);
 		border-radius: var(--radius-md);
-		background: var(--surface-1);
+		background: rgb(255 255 255 / 0.65);
+		backdrop-filter: blur(14px) saturate(150%);
+		-webkit-backdrop-filter: blur(14px) saturate(150%);
+		box-shadow: var(--shadow-glass-sm);
+	}
+	.slot-row input[type='time']:focus {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
 	}
 	.slot-sep {
 		color: var(--text-subtle);
@@ -1553,27 +1565,37 @@
 	.seg {
 		display: flex;
 		gap: 4px;
-		padding: 4px;
-		background: var(--bg-2);
-		border-radius: var(--radius-md);
+		padding: 5px;
+		background: rgb(255 255 255 / 0.5);
+		backdrop-filter: blur(14px) saturate(150%);
+		-webkit-backdrop-filter: blur(14px) saturate(150%);
+		border: 1px solid rgb(255 255 255 / 0.85);
+		border-radius: 999px;
 		margin-bottom: 14px;
+		box-shadow: var(--shadow-glass-sm);
 	}
 	.seg-btn {
 		flex: 1;
-		height: 38px;
+		height: 40px;
 		font: inherit;
 		font-size: 13px;
 		font-weight: 600;
 		border: none;
 		background: transparent;
 		color: var(--text-subtle);
-		border-radius: 8px;
+		border-radius: 999px;
 		cursor: pointer;
+		transition: transform 320ms var(--ease-spring);
+	}
+	.seg-btn:active {
+		transform: scale(0.95);
 	}
 	.seg-btn.active {
-		background: var(--surface-1);
-		color: var(--accent);
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+		background: linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+		color: #fff;
+		box-shadow:
+			0 4px 10px -4px rgb(124 18 64 / 0.45),
+			inset 0 1px 0 rgb(255 255 255 / 0.25);
 	}
 
 	.field {

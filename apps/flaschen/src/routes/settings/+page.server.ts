@@ -90,14 +90,25 @@ export const actions: Actions = {
 		const enabled = fd.get('enabled') === 'on' || fd.get('enabled') === 'true';
 		const startMinutes = parseTime(fd.get('startTime'));
 		const endMinutes = parseTime(fd.get('endTime'));
-		if (startMinutes === null || endMinutes === null) {
-			return fail(400, { error: 'INVALID_TIME' });
+		// When the user is just disabling the feature, the time inputs may
+		// be readonly and still submit — but defend against missing/blank
+		// values too: keep whatever window they had configured before.
+		let nextStart = startMinutes;
+		let nextEnd = endMinutes;
+		if (nextStart === null || nextEnd === null) {
+			if (!enabled) {
+				const existing = await loadPrefs(userId);
+				nextStart = existing.quietStartMinutes;
+				nextEnd = existing.quietEndMinutes;
+			} else {
+				return fail(400, { error: 'INVALID_TIME' });
+			}
 		}
 		try {
 			await savePrefs(userId, {
 				quietHoursEnabled: enabled,
-				quietStartMinutes: startMinutes,
-				quietEndMinutes: endMinutes
+				quietStartMinutes: nextStart,
+				quietEndMinutes: nextEnd
 			});
 		} catch (e) {
 			logger.error('save quiet hours failed', { userId, error: String(e) });

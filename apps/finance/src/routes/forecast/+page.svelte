@@ -2,6 +2,11 @@
 	import { resolveMonthlyDate, toDateStr } from '$lib/dateUtils';
 	import { formatCurrency, getIntlLocale } from '$lib/utils';
 	import FlowPip from '$lib/components/ui/FlowPip.svelte';
+	import MoodPill from '$lib/components/ui/MoodPill.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import ScenarioChips, {
+		type Scenario
+	} from '$lib/components/forecast/ScenarioChips.svelte';
 	import { PageHeader } from '@nexo/ui';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
 	import { TrendingUp, TrendingDown, AlertTriangle } from '@lucide/svelte';
@@ -18,6 +23,8 @@
 
 	const today = new SvelteDate();
 	const DAYS = $derived(Number(data.settings?.forecastDays) || 90);
+
+	let scenarios = $state<Scenario[]>([]);
 
 	interface ForecastPoint {
 		date: Date;
@@ -69,6 +76,11 @@
 		}
 	}
 
+	// Helper: should an expense be skipped under "pause-subs" scenario?
+	function isSubscription(category: string | null | undefined): boolean {
+		return category === 'subscription' || category === 'entertainment';
+	}
+
 	const forecast = $derived.by(() => {
 		const points: ForecastPoint[] = [];
 		let running = currentBalance;
@@ -77,12 +89,17 @@
 		todayMidnight.setHours(0, 0, 0, 0);
 		const todayMs = todayMidnight.getTime();
 
+		const skipSubs = scenarios.includes('pause-subs');
+		const incomeMul = scenarios.includes('income-up') ? 1.05 : 1;
+		const skipDebt = scenarios.includes('drop-debt');
+
 		for (let i = 0; i <= DAYS; i++) {
 			const d = new Date(todayMs + i * 86400000);
 			const dayStr = toDateStr(d);
 			const events: ForecastPoint['events'] = [];
 
 			for (const e of data.expenses) {
+				if (skipSubs && isSubscription(e.category)) continue;
 				if (e.active && firesOnDay(e.recurrence, e.dayOfMonth, e.dueDate, d, dayStr, todayMs)) {
 					events.push({ label: e.name, amount: Number(e.amount), type: 'expense' });
 					running -= Number(e.amount);
@@ -90,11 +107,12 @@
 			}
 			for (const inc of data.incomeItems) {
 				if (firesOnDay(inc.recurrence, inc.dayOfMonth, inc.expectedDate, d, dayStr, todayMs)) {
-					events.push({ label: inc.name, amount: Number(inc.amount), type: 'income' });
-					running += Number(inc.amount);
+					const amt = Number(inc.amount) * incomeMul;
+					events.push({ label: inc.name, amount: amt, type: 'income' });
+					running += amt;
 				}
 			}
-			if (data.settings?.includeDebtInForecast !== false) {
+			if (data.settings?.includeDebtInForecast !== false && !skipDebt) {
 				for (const debt of data.debts) {
 					if (!debt.paid && debt.dueDate === dayStr) {
 						const sign = debt.direction === 'owe' ? -1 : 1;
@@ -161,119 +179,159 @@
 		return weeks;
 	});
 
-	// SVG sparkline
-	const sparklinePath = $derived.by(() => {
+	// Bigger hero sparkline + zero baseline
+	const HERO_W = 320;
+	const HERO_H = 140;
+	const HERO_PAD = 8;
+
+	const heroPath = $derived.by(() => {
 		if (forecast.length < 2) return '';
-		const w = 320;
-		const h = 60;
-		const pad = 4;
 		const range = maxBalance - minBalance || 1;
 		const points = forecast.map((p, i) => {
-			const x = pad + (i / (forecast.length - 1)) * (w - pad * 2);
-			const y = pad + (1 - (p.balance - minBalance) / range) * (h - pad * 2);
+			const x = HERO_PAD + (i / (forecast.length - 1)) * (HERO_W - HERO_PAD * 2);
+			const y = HERO_PAD + (1 - (p.balance - minBalance) / range) * (HERO_H - HERO_PAD * 2);
 			return `${x},${y}`;
 		});
 		return `M${points.join(' L')}`;
 	});
 
-	const sparklineAreaPath = $derived.by(() => {
+	const heroAreaPath = $derived.by(() => {
 		if (forecast.length < 2) return '';
-		const w = 320;
-		const h = 60;
-		const pad = 4;
 		const range = maxBalance - minBalance || 1;
 		const points = forecast.map((p, i) => {
-			const x = pad + (i / (forecast.length - 1)) * (w - pad * 2);
-			const y = pad + (1 - (p.balance - minBalance) / range) * (h - pad * 2);
+			const x = HERO_PAD + (i / (forecast.length - 1)) * (HERO_W - HERO_PAD * 2);
+			const y = HERO_PAD + (1 - (p.balance - minBalance) / range) * (HERO_H - HERO_PAD * 2);
 			return `${x},${y}`;
 		});
-		return `M${points[0]} L${points.join(' L')} L${320 - pad},${h - pad} L${pad},${h - pad} Z`;
+		return `M${points[0]} L${points.join(' L')} L${HERO_W - HERO_PAD},${HERO_H - HERO_PAD} L${HERO_PAD},${HERO_H - HERO_PAD} Z`;
+	});
+
+	const zeroLineY = $derived.by(() => {
+		const range = maxBalance - minBalance || 1;
+		if (minBalance >= 0 || maxBalance <= 0) return null;
+		return HERO_PAD + (1 - (0 - minBalance) / range) * (HERO_H - HERO_PAD * 2);
+	});
+
+	const lowMarker = $derived.by(() => {
+		if (forecast.length < 2 || !lowestPoint) return null;
+		const range = maxBalance - minBalance || 1;
+		const idx = forecast.indexOf(lowestPoint);
+		const x = HERO_PAD + (idx / (forecast.length - 1)) * (HERO_W - HERO_PAD * 2);
+		const y =
+			HERO_PAD + (1 - (lowestPoint.balance - minBalance) / range) * (HERO_H - HERO_PAD * 2);
+		return { x, y };
+	});
+
+	const endMarker = $derived.by(() => {
+		if (forecast.length < 2) return null;
+		const range = maxBalance - minBalance || 1;
+		const last = forecast[forecast.length - 1];
+		const x = HERO_W - HERO_PAD;
+		const y = HERO_PAD + (1 - (last.balance - minBalance) / range) * (HERO_H - HERO_PAD * 2);
+		return { x, y };
 	});
 </script>
 
 <div class="page">
-	<PageHeader title="Forecast" subtitle="90-day cashflow trajectory.">
+	<PageHeader title="Forecast" subtitle="{DAYS}-day cashflow trajectory.">
 		{#snippet avatar()}<UserAvatarMenu />{/snippet}
 	</PageHeader>
 
-	<!-- Top pair -->
-	<div class="mb-3.5 grid grid-cols-2 gap-2.5">
-		<div
-			class="rounded-[var(--radius-lg)] p-3.5"
-			style="background: var(--accent-soft); border: 1px solid var(--accent-line);"
-		>
-			<div class="t-label" style="color: var(--accent-ink);">Today</div>
-			<div
-				class="mt-1.5 font-mono text-[22px] font-semibold tracking-tight"
-				style="color: var(--accent-ink); font-variant-numeric: tabular-nums;"
+	<!-- Mood + delta hero strip -->
+	<div class="mb-3 flex items-center gap-2">
+		<MoodPill
+			liquidBalance={currentBalance}
+			lowestValue={minBalance}
+			lowestDate={lowestPoint ? toDateStr(lowestPoint.date) : undefined}
+			endValue={endBalance}
+		/>
+		{#if delta !== 0}
+			<span
+				class="mono ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium tabular-nums"
+				style="background: {delta >= 0 ? 'var(--income-soft)' : 'var(--expense-soft)'};
+				       color: {delta >= 0 ? 'var(--income-ink)' : 'var(--expense-ink)'};"
 			>
-				{fmt(currentBalance)}
-			</div>
-		</div>
-		<div class="border-border-default bg-surface-1 rounded-[var(--radius-lg)] border p-3.5">
-			<div class="t-label text-text-subtle">In 90 days</div>
-			<div
-				class="mt-1.5 font-mono text-[22px] font-semibold tracking-tight"
-				style="font-variant-numeric: tabular-nums;"
-			>
-				{fmt(endBalance)}
-			</div>
-			{#if delta !== 0}
-				<div
-					class="mt-1 flex items-center gap-1 text-[11px]"
-					style="color: {delta >= 0 ? 'var(--income-ink)' : 'var(--expense-ink)'};"
-				>
-					{#if delta >= 0}
-						<TrendingUp size={11} />
-					{:else}
-						<TrendingDown size={11} />
-					{/if}
-					<span class="font-mono" style="font-variant-numeric: tabular-nums;"
-						>{delta >= 0 ? '+' : ''}{fmt(delta)}</span
-					>
-				</div>
-			{/if}
-		</div>
+				{#if delta >= 0}
+					<TrendingUp size={11} strokeWidth={2.5} />
+				{:else}
+					<TrendingDown size={11} strokeWidth={2.5} />
+				{/if}
+				{delta >= 0 ? '+' : ''}{fmt(delta)}
+			</span>
+		{/if}
 	</div>
 
-	<!-- Warning banner -->
-	{#if minBalance < 0}
-		<div
-			class="mb-3.5 flex items-center gap-2.5 rounded-[var(--radius-lg)] px-3.5 py-3"
-			style="background: var(--expense-soft); border: 1px solid color-mix(in oklab, var(--color-expense) 25%, var(--color-border-default));"
-		>
-			<AlertTriangle size={15} style="color: var(--expense-ink);" />
-			<p class="text-[12px] font-medium" style="color: var(--expense-ink);">
-				Balance goes negative{firstNegativeDate ? ` on ${fmtDate(firstNegativeDate)}` : ''}. Lowest: {fmt(
-					minBalance
-				)}
-			</p>
-		</div>
-	{/if}
-
-	<!-- Sparkline chart card -->
+	<!-- Big hero chart card -->
 	{#if forecast.length > 1}
 		<div
-			class="border-border-default bg-surface-1 mb-3.5 overflow-hidden rounded-[var(--radius-xl)] border p-4"
+			class="border-border-default bg-surface-1 relative mb-3.5 overflow-hidden rounded-[var(--radius-2xl)] border"
+			style="padding: 16px 16px 14px;"
 		>
-			<div class="mb-3 flex items-center justify-between">
+			<div
+				class="pointer-events-none absolute inset-0"
+				style="background: radial-gradient(circle at 0% 0%, var(--accent-glow) 0%, transparent 55%); opacity: 0.7;"
+			></div>
+
+			<div class="relative flex items-center justify-between">
 				<div class="t-label text-text-subtle">Trajectory</div>
-				<div class="text-text-faint text-[11px]">
+				<div class="text-text-faint mono text-[10px] tabular-nums">
 					{fmtShort(forecast[0].date)} → {fmtShort(forecast[forecast.length - 1].date)}
 				</div>
 			</div>
-			<svg viewBox="0 0 320 60" class="w-full" preserveAspectRatio="none" style="height: 60px;">
-				<path d={sparklineAreaPath} fill="var(--accent-soft)" />
+
+			<!-- Big balances row -->
+			<div class="relative mt-2 flex items-baseline gap-3">
+				<span class="text-text-primary text-[34px] leading-none font-semibold tracking-tight tabular-nums">
+					{fmt(endBalance)}
+				</span>
+				<span class="text-text-faint text-[11.5px]">in {DAYS}d</span>
+			</div>
+
+			<!-- Sparkline -->
+			<svg
+				viewBox="0 0 {HERO_W} {HERO_H}"
+				class="mt-3 w-full"
+				preserveAspectRatio="none"
+				style="height: 140px;"
+			>
+				<defs>
+					<linearGradient id="forecast-fill" x1="0" y1="0" x2="0" y2="1">
+						<stop offset="0%" stop-color="var(--color-accent)" stop-opacity="0.22" />
+						<stop offset="100%" stop-color="var(--color-accent)" stop-opacity="0.01" />
+					</linearGradient>
+				</defs>
+				<path d={heroAreaPath} fill="url(#forecast-fill)" />
+				{#if zeroLineY !== null}
+					<line
+						x1={HERO_PAD}
+						x2={HERO_W - HERO_PAD}
+						y1={zeroLineY}
+						y2={zeroLineY}
+						stroke="var(--color-expense)"
+						stroke-width="1"
+						stroke-dasharray="3 3"
+						opacity="0.5"
+					/>
+				{/if}
 				<path
-					d={sparklinePath}
+					d={heroPath}
 					fill="none"
 					stroke="var(--color-accent)"
-					stroke-width="1.5"
+					stroke-width="2"
 					stroke-linecap="round"
 					stroke-linejoin="round"
 				/>
+				{#if lowMarker}
+					<circle cx={lowMarker.x} cy={lowMarker.y} r="6" fill="var(--color-expense)" opacity="0.18" />
+					<circle cx={lowMarker.x} cy={lowMarker.y} r="3.5" fill="var(--color-expense)" />
+				{/if}
+				{#if endMarker}
+					<circle cx={endMarker.x} cy={endMarker.y} r="6" fill="var(--color-accent)" opacity="0.18" />
+					<circle cx={endMarker.x} cy={endMarker.y} r="3.5" fill="var(--color-accent)" />
+				{/if}
 			</svg>
-			<div class="mt-3 grid grid-cols-3 gap-2">
+
+			<div class="relative mt-3 grid grid-cols-3 gap-2">
 				<div>
 					<div class="t-label text-text-faint">Today</div>
 					<div
@@ -286,29 +344,49 @@
 				<div>
 					<div class="t-label text-text-faint">Lowest</div>
 					<div
-						class="mt-0.5 font-mono text-[13px] font-semibold"
+						class="mt-0.5 font-mono text-[13px] font-semibold tabular-nums"
 						style="color: {minBalance < 0
 							? 'var(--expense-ink)'
-							: 'var(--color-text-primary)'}; font-variant-numeric: tabular-nums;"
+							: 'var(--color-text-primary)'};"
 					>
 						{fmt(minBalance)}
 					</div>
 					{#if lowestPoint}
-						<div class="text-text-faint text-[10px]">{fmtDate(lowestPoint.date)}</div>
+						<div class="text-text-faint mono text-[10px]">{fmtDate(lowestPoint.date)}</div>
 					{/if}
 				</div>
 				<div>
-					<div class="t-label text-text-faint">End</div>
+					<div class="t-label text-text-faint">In {DAYS}d</div>
 					<div
-						class="mt-0.5 font-mono text-[13px] font-semibold"
+						class="mt-0.5 font-mono text-[13px] font-semibold tabular-nums"
 						style="color: {endBalance >= currentBalance
 							? 'var(--income-ink)'
-							: 'var(--expense-ink)'}; font-variant-numeric: tabular-nums;"
+							: 'var(--expense-ink)'};"
 					>
 						{fmt(endBalance)}
 					</div>
 				</div>
 			</div>
+		</div>
+	{/if}
+
+	<!-- Scenario chips -->
+	<div class="mb-3.5">
+		<ScenarioChips bind:active={scenarios} />
+	</div>
+
+	<!-- Warning banner -->
+	{#if minBalance < 0}
+		<div
+			class="mb-3.5 flex items-center gap-2.5 rounded-[var(--radius-lg)] px-3.5 py-3"
+			style="background: var(--expense-soft); border: 1px solid color-mix(in oklab, var(--color-expense) 25%, var(--color-border-default));"
+		>
+			<AlertTriangle size={15} style="color: var(--expense-ink);" />
+			<p class="text-[12px] font-medium" style="color: var(--expense-ink);">
+				⛈️ Balance dips below 0{firstNegativeDate ? ` on ${fmtDate(firstNegativeDate)}` : ''}. Lowest: {fmt(
+					minBalance
+				)}
+			</p>
 		</div>
 	{/if}
 
@@ -323,18 +401,20 @@
 				{#each weekSummaries as week, i (i)}
 					<div
 						class="shrink-0 rounded-[var(--radius-lg)] border p-3"
-						style="width: 140px; scroll-snap-align: start; {week.isCurrent
+						style="width: 144px; scroll-snap-align: start; {week.isCurrent
 							? 'border-color: var(--color-accent); background: var(--accent-soft);'
 							: week.endBalance < 0
 								? 'border-color: color-mix(in oklab, var(--color-expense) 25%, var(--color-border-default)); background: var(--expense-soft);'
 								: 'border-color: var(--color-border-default); background: var(--color-surface-1);'}"
 					>
 						<div class="text-text-subtle text-[10px] font-medium">
-							{fmtDate(week.start)} – {fmtDate(week.end)}
+							{#if week.isCurrent}<span class="mr-1">📍</span>{/if}{fmtDate(week.start)} – {fmtDate(
+								week.end
+							)}
 						</div>
 						<div
-							class="mt-1.5 font-mono text-[14px] font-semibold"
-							style="font-variant-numeric: tabular-nums; color: {week.endBalance < 0
+							class="mt-1.5 font-mono text-[14px] font-semibold tabular-nums"
+							style="color: {week.endBalance < 0
 								? 'var(--expense-ink)'
 								: 'var(--color-text-primary)'};"
 						>
@@ -370,8 +450,8 @@
 							>{fmtDate(point.date)}</span
 						>
 						<span
-							class="font-mono text-[12px] font-semibold"
-							style="font-variant-numeric: tabular-nums; color: {point.balance >= 0
+							class="font-mono text-[12px] font-semibold tabular-nums"
+							style="color: {point.balance >= 0
 								? 'var(--color-text-primary)'
 								: 'var(--expense-ink)'};"
 						>
@@ -385,8 +465,8 @@
 								<span class="text-text-muted text-[13px]">{ev.label}</span>
 							</div>
 							<span
-								class="font-mono text-[12px]"
-								style="font-variant-numeric: tabular-nums; color: {ev.type === 'income'
+								class="font-mono text-[12px] tabular-nums"
+								style="color: {ev.type === 'income'
 									? 'var(--income-ink)'
 									: ev.type === 'expense'
 										? 'var(--expense-ink)'
@@ -400,13 +480,10 @@
 			{/each}
 		</div>
 	{:else}
-		<div
-			class="border-border-default bg-surface-1 rounded-[var(--radius-xl)] border border-dashed p-7 text-center"
-		>
-			<p class="text-text-subtle text-[13.5px]">No upcoming cashflow events in the next 90 days.</p>
-			<p class="text-text-faint mt-1 text-[11px]">
-				Add expenses, income, or debts with due dates to see your forecast.
-			</p>
-		</div>
+		<EmptyState
+			emoji="🌤️"
+			title="Calm seas in the next {DAYS} days"
+			sub="Add expenses, income, or debts with due dates and they'll appear here."
+		/>
 	{/if}
 </div>

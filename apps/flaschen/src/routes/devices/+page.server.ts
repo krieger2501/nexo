@@ -26,6 +26,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 		devices,
 		vapidPublicKey: publicEnv.PUBLIC_VAPID_PUBLIC_KEY ?? '',
 		watching: prefs.enabled,
+		quietHours: {
+			enabled: prefs.quietHoursEnabled,
+			startMinutes: prefs.quietStartMinutes,
+			endMinutes: prefs.quietEndMinutes
+		},
 		connection: !account
 			? ('never' as const)
 			: account.needsReconnect

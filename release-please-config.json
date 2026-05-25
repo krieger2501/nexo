@@ -28,6 +28,7 @@
 		"apps/landing": { "component": "landing" },
 		"apps/bot": { "component": "bot" },
 		"apps/flaschen": { "component": "flaschen" },
+		"apps/calorie": { "component": "calorie" },
 		"tools/cli": { "component": "cli" }
 	}
 }

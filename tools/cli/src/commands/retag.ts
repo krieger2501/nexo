@@ -3,6 +3,7 @@ import { APPS, findApp, imageRef, type App } from '../apps.ts';
 import { imagetoolsCreate } from '../lib/docker.ts';
 import { CONTEXT_FILE, readContext } from '../lib/context.ts';
 import { fail, info, section, step, success } from '../lib/log.ts';
+import { appendSummary, summarySection, summaryTable } from '../lib/summary.ts';
 
 export type RetagOpts = {
 	app?: string;
@@ -22,6 +23,9 @@ export function retag(opts: RetagOpts): void {
 	if (!explicit && ctx?.strategy === 'full') {
 		section('Retag images');
 		info('skipped — strategy=full (fresh build was published)');
+		appendSummary(
+			summarySection('🏷 Retag', '⏭ Skipped — strategy=full (fresh images were just pushed)')
+		);
 		return;
 	}
 
@@ -34,6 +38,16 @@ export function retag(opts: RetagOpts): void {
 	for (const app of targets) {
 		retagOne(app, from, to);
 	}
+
+	appendSummary(
+		summarySection(
+			'🏷 Retag',
+			summaryTable(
+				['App', 'From', 'To'],
+				targets.map((a) => [`\`${a.name}\``, `\`:${from}\``, to.map((t) => `\`:${t}\``).join(', ')])
+			)
+		)
+	);
 }
 
 function resolveTags(

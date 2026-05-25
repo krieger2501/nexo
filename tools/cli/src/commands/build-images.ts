@@ -4,6 +4,7 @@ import { APPS, findApp, imageRef, type App } from '../apps.ts';
 import { buildxBuild } from '../lib/docker.ts';
 import { CONTEXT_FILE, readContext } from '../lib/context.ts';
 import { fail, info, section, step, success } from '../lib/log.ts';
+import { appendSummary, summarySection, summaryTable } from '../lib/summary.ts';
 
 export type BuildImagesOpts = {
 	app?: string;
@@ -28,6 +29,12 @@ export function buildImages(opts: BuildImagesOpts): void {
 	if (ctx?.strategy === 'retag' && (!opts.tags || opts.tags.length === 0)) {
 		section('Build & push container images');
 		info(`skipped — strategy=retag (will reuse :${ctx.fromTag})`);
+		appendSummary(
+			summarySection(
+				'🐳 Container images',
+				`⏭ Skipped — retag fast-path (reusing \`:${ctx.fromTag}\`)`
+			)
+		);
 		return;
 	}
 
@@ -44,6 +51,16 @@ export function buildImages(opts: BuildImagesOpts): void {
 	for (const app of targets) {
 		buildOne(app, outDir, resolved);
 	}
+
+	appendSummary(
+		summarySection(
+			`🐳 Container images${resolved.push ? ' (pushed)' : ' (built, not pushed)'}`,
+			summaryTable(
+				['App', 'Tags'],
+				targets.map((a) => [`\`${a.name}\``, resolved.tags.map((t) => `\`:${t}\``).join(', ')])
+			)
+		)
+	);
 }
 
 type ResolvedBuildOpts = {
