@@ -8,13 +8,11 @@
 		"package.json"
 	],
 	"scripts": {
-		"build": "tsc",
+		"build": "tsdown",
 		"dev": "node --watch src/index.ts",
-		"lint": "eslint .",
-		"lint:fix": "eslint . --fix",
-		"qc": "run-s lint type:check build",
-		"start": "node dist/index.js",
-		"type:check": "tsc --noEmit"
+		"qc": "run-s type:check build",
+		"start": "node dist/index.mjs",
+		"type:check": "tsgo --noEmit"
 	},
 	"dependencies": {
 		"@nexo/logger": "workspace:*",

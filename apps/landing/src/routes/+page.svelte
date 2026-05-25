@@ -25,6 +25,16 @@
 			meta: m.app_finance_meta()
 		},
 		{
+			id: 'calorie',
+			name: 'Calorie',
+			monogram: 'C',
+			icon: '/icon-calorie-dark.svg',
+			accent: '#b85a3a',
+			status: 'live' as const,
+			desc: m.app_calorie_desc(),
+			meta: m.app_calorie_meta()
+		},
+		{
 			id: 'gym',
 			name: 'Gym',
 			monogram: 'G',
@@ -54,20 +64,7 @@
 		}
 	]);
 
-	const steps = $derived([
-		{ title: m.install_step1_title(), body: m.install_step1_body() },
-		{ title: m.install_step2_title(), body: m.install_step2_body() },
-		{ title: m.install_step3_title(), body: m.install_step3_body() },
-		{ title: m.install_step4_title(), body: m.install_step4_body() }
-	]);
-
-	let activeStep = $state(0);
-
 	onMount(() => {
-		const stepTick = setInterval(() => {
-			activeStep = (activeStep + 1) % steps.length;
-		}, 3500);
-
 		const io = new IntersectionObserver(
 			(entries) => {
 				for (const e of entries) {
@@ -82,7 +79,6 @@
 		document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
 
 		return () => {
-			clearInterval(stepTick);
 			io.disconnect();
 		};
 	});
@@ -99,6 +95,6 @@
 
 <HeroSection version={data.appVersions.landing} />
 <AppsSection {apps} {firstName} {authUrl} />
-<InstallSection {steps} bind:activeStep />
+<InstallSection />
 <AboutSection />
 <FooterCta {firstName} {authUrl} />

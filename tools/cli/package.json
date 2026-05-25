@@ -7,9 +7,7 @@
 		"nexo": "./src/index.ts"
 	},
 	"scripts": {
-		"lint": "eslint .",
-		"lint:fix": "eslint . --fix",
-		"type:check": "tsc --noEmit"
+		"type:check": "tsgo --noEmit"
 	},
 	"dependencies": {
 		"commander": "^12.1.0"

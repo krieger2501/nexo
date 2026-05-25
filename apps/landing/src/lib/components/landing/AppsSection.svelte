@@ -15,15 +15,11 @@
 	let { apps, firstName, authUrl }: { apps: App[]; firstName: string | null; authUrl: string } =
 		$props();
 
-	function handleCardMouseMove(e: MouseEvent) {
-		const el = e.currentTarget as HTMLElement;
-		const r = el.getBoundingClientRect();
-		el.style.setProperty('--mx', `${e.clientX - r.left}px`);
-		el.style.setProperty('--my', `${e.clientY - r.top}px`);
-	}
+	const liveApps = $derived(apps.filter((a) => a.status === 'live'));
+	const comingApps = $derived(apps.filter((a) => a.status !== 'live'));
 </script>
 
-<section id="apps" class="scroll-mt-20 py-14">
+<section id="apps" class="scroll-mt-20 pt-4 pb-14">
 	<div class="mx-auto max-w-[1100px] px-6">
 		<div class="reveal section-head mb-7">
 			<div class="t-label">{m.section_apps()}</div>
@@ -33,42 +29,43 @@
 			<p class="text-text-muted mt-2 max-w-[520px] text-[15px] leading-relaxed">{m.apps_sub()}</p>
 		</div>
 
-		<div class="reveal grid grid-cols-1 gap-4 sm:grid-cols-2" style="transition-delay: 60ms">
-			{#each apps as app (app.id)}
-				<div
-					data-app={app.id}
-					class="card"
-					class:locked={app.status !== 'live'}
-					onmousemove={handleCardMouseMove}
-					role="presentation"
-					style="--card-accent: {app.accent}"
-				>
-					<div class="flex items-center justify-between">
+		<!-- Live apps — compact cards, mirror /apps style -->
+		<div class="reveal app-stack" style="transition-delay: 60ms">
+			{#each liveApps as app (app.id)}
+				<div class="app-card" data-app={app.id} style="--app-accent: {app.accent}">
+					<div class="ac-head">
 						{#if app.icon}
-							<img class="icon-tile icon-tile-img" src={app.icon} alt="" width="46" height="46" />
+							<img class="app-tile app-tile-img" src={app.icon} alt="" width="46" height="46" />
 						{:else}
-							<div class="icon-tile" style="color: {app.accent}">{app.monogram}</div>
+							<div class="app-tile">{app.monogram}</div>
 						{/if}
-						{#if app.status === 'live'}
-							<span class="status-pill status-pill--live">
-								<span class="dot"></span>{m.status_live()}
-							</span>
-						{:else if app.status === 'soon'}
-							<span class="status-pill">{m.status_soon()}</span>
-						{:else}
-							<span class="status-pill status-pill--idea">{m.status_idea()}</span>
-						{/if}
-					</div>
-					<h3 class="mt-5 text-xl font-semibold tracking-[-0.015em]">{app.name}</h3>
-					<p class="text-text-muted mt-1.5 flex-1 text-[14px] leading-relaxed">{app.desc}</p>
-					<div class="mt-5 flex items-center justify-between">
-						<span class="text-text-faint font-mono text-[10px] tracking-widest uppercase"
-							>{app.meta}</span
+						<span class="pill pill-live"
+							><span class="pill-dot"></span>{m.status_live()}</span
 						>
 					</div>
+					<div class="ac-name-row">
+						<span class="ac-name">{app.name}</span>
+						<span class="ac-version">{app.meta}</span>
+					</div>
+					<p class="ac-desc">{app.desc}</p>
 				</div>
 			{/each}
 		</div>
+
+		<!-- Coming up — single horizontal strip -->
+		{#if comingApps.length > 0}
+			<div class="reveal coming-row" style="transition-delay: 90ms">
+				<span class="coming-label">{m.appgrid_coming_up()} ·</span>
+				<div class="coming-strip">
+					{#each comingApps as app (app.id)}
+						<span class="coming-chip" class:coming-chip--idea={app.status === 'planned'}>
+							<span class="coming-icon" style="color: {app.accent}">{app.monogram}</span>
+							<span class="coming-name">{app.name}</span>
+						</span>
+					{/each}
+				</div>
+			</div>
+		{/if}
 
 		<div class="reveal mt-8 flex flex-col items-center gap-2.5" style="transition-delay: 120ms">
 			<a href={firstName ? '/apps' : `${authUrl}/login`} class="cta-btn">
@@ -99,117 +96,170 @@
 		color: var(--color-text-faint);
 	}
 
-	.card {
+	.app-stack {
+		display: grid;
+		gap: 10px;
+	}
+	.app-card {
+		--app-soft: color-mix(in oklab, var(--app-accent) 10%, var(--color-surface-1));
+		--app-line: color-mix(in oklab, var(--app-accent) 28%, var(--color-border-default));
+		--app-ink: color-mix(in oklab, var(--app-accent) 80%, #000);
 		position: relative;
-		display: flex;
-		flex-direction: column;
-		padding: 28px;
+		padding: 18px 20px;
 		background: var(--color-surface-1);
 		border: 1px solid var(--color-border-default);
 		border-radius: var(--radius-xl);
+		display: flex;
+		flex-direction: column;
 		overflow: hidden;
-		text-decoration: none;
-		color: inherit;
-		min-height: 240px;
-		transition:
-			transform var(--duration-base) var(--ease-out),
-			border-color var(--duration-base) var(--ease-out),
-			box-shadow var(--duration-base) var(--ease-out);
 	}
-	.card::before {
+	.app-card::before {
 		content: '';
 		position: absolute;
 		inset: 0;
-		border-radius: inherit;
-		pointer-events: none;
 		background: radial-gradient(
-			600px circle at var(--mx, 50%) var(--my, 0%),
-			color-mix(in oklab, var(--card-accent, var(--color-accent)) 12%, transparent),
-			transparent 45%
+			60% 70% at 100% 0%,
+			color-mix(in oklab, var(--app-accent) 10%, transparent),
+			transparent 70%
 		);
-		opacity: 0;
-		transition: opacity var(--duration-slow) var(--ease-out);
+		pointer-events: none;
 	}
-	.card:hover::before {
-		opacity: 1;
+	.app-card > * {
+		position: relative;
+		z-index: 1;
 	}
-	.card:hover {
-		transform: translateY(-4px);
-		border-color: color-mix(
-			in oklab,
-			var(--card-accent, var(--color-accent)) 50%,
-			var(--color-border-default)
-		);
-		box-shadow:
-			0 12px 40px -8px color-mix(in oklab, var(--card-accent, var(--color-accent)) 18%, transparent),
-			0 0 0 1px color-mix(in oklab, var(--card-accent, var(--color-accent)) 15%, transparent);
+	.ac-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 12px;
 	}
-	.card.locked {
-		opacity: 0.55;
-		cursor: default;
-	}
-	.card.locked:hover {
-		transform: none;
-		opacity: 0.65;
-		box-shadow: none;
-		border-color: var(--color-border-default);
-	}
-
-	.icon-tile {
-		width: 44px;
-		height: 44px;
+	.app-tile {
+		width: 46px;
+		height: 46px;
 		border-radius: var(--radius-md);
 		display: grid;
 		place-items: center;
-		overflow: hidden;
-		background: var(--color-surface-1);
-		border: 1px solid var(--color-border-default);
+		background: color-mix(in oklab, var(--app-accent) 12%, var(--color-surface-1));
+		border: 1px solid color-mix(in oklab, var(--app-accent) 30%, var(--color-border-default));
+		color: var(--app-ink);
 		font-family: var(--font-mono);
-		font-size: 20px;
 		font-weight: 500;
+		font-size: 21px;
+		letter-spacing: -0.02em;
 	}
-	.card.locked .icon-tile {
-		opacity: 0.5;
-	}
-	.icon-tile-img {
+	.app-tile-img {
 		background: transparent;
 		border: 0;
 		padding: 0;
 		object-fit: contain;
 	}
-
-	.status-pill {
+	.pill {
 		display: inline-flex;
 		align-items: center;
-		gap: 5px;
-		padding: 3px 8px;
-		border-radius: 999px;
-		border: 1px solid var(--color-border-default);
-		background: var(--color-bg-1);
+		gap: 6px;
 		font-family: var(--font-mono);
 		font-size: 10px;
-		letter-spacing: 0.06em;
+		letter-spacing: 0.1em;
 		text-transform: uppercase;
+		padding: 4px 9px;
+		border-radius: 999px;
+		border: 1px solid var(--color-border-default);
 		color: var(--color-text-muted);
+		background: var(--color-bg-2);
 	}
-	.status-pill--live {
-		color: color-mix(in oklab, var(--color-accent) 80%, #000);
-		border-color: color-mix(in oklab, var(--color-accent) 25%, transparent);
-		background: color-mix(in oklab, var(--color-accent) 8%, transparent);
+	.pill-live {
+		color: var(--app-ink);
+		border-color: color-mix(in oklab, var(--app-accent) 30%, transparent);
+		background: color-mix(in oklab, var(--app-accent) 10%, transparent);
 	}
-	.status-pill--live .dot {
-		width: 5px;
-		height: 5px;
+	.pill-dot {
+		width: 6px;
+		height: 6px;
 		border-radius: 50%;
 		background: currentColor;
 		box-shadow: 0 0 6px currentColor;
 		animation: pulse 2.4s var(--ease-in-out) infinite;
 	}
-	.status-pill--idea {
+	.ac-name-row {
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
+	}
+	.ac-name {
+		font-size: 22px;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.ac-version {
+		font-family: var(--font-mono);
+		font-size: 9.5px;
+		letter-spacing: 0.08em;
+		color: var(--color-text-faint);
+		flex-shrink: 0;
+	}
+	.ac-desc {
+		color: var(--color-text-muted);
+		margin: 4px 0 0;
+		font-size: 13.5px;
+		line-height: 1.5;
+	}
+
+	.coming-row {
+		margin-top: 18px;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+	.coming-label {
+		font-family: var(--font-mono);
+		font-size: 10px;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--color-text-subtle);
+		white-space: nowrap;
+	}
+	.coming-strip {
+		display: flex;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+	.coming-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 6px 10px 6px 6px;
+		background: var(--color-surface-1);
+		border: 1px solid var(--color-border-default);
+		border-radius: 999px;
+		font-size: 13px;
+		font-weight: 500;
+		letter-spacing: -0.005em;
+		color: var(--color-text-muted);
+	}
+	.coming-chip--idea {
 		border-style: dashed;
 		color: var(--color-text-faint);
-		background: transparent;
 	}
+	.coming-icon {
+		width: 22px;
+		height: 22px;
+		border-radius: 6px;
+		background: var(--color-bg-1);
+		border: 1px solid var(--color-border-subtle);
+		display: grid;
+		place-items: center;
+		font-family: var(--font-mono);
+		font-size: 11px;
+		flex-shrink: 0;
+	}
+
 	@keyframes pulse {
 		0%,
 		100% {

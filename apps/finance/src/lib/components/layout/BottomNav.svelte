@@ -143,13 +143,13 @@
 				class="relative flex flex-1 flex-col items-center justify-center gap-1"
 			>
 				<span
-					class="grid size-11 place-items-center rounded-full transition-colors"
+					class="grid size-9 place-items-center rounded-full transition-colors"
 					style="transition-duration: var(--dur-base); transition-timing-function: var(--ease-out);
 					       background: {active
 						? (activeFlowColor ?? 'var(--color-accent)')
 						: 'var(--color-text-primary)'}; color: var(--color-bg-0);"
 				>
-					<item.icon size={20} strokeWidth={1.8} />
+					<item.icon size={17} strokeWidth={1.8} />
 				</span>
 				<span
 					class="text-[10px] leading-none font-medium"

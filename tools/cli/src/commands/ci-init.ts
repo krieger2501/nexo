@@ -2,6 +2,7 @@ import { appendFileSync } from 'node:fs';
 import { run } from '../lib/proc.ts';
 import { writeContext, type CiContext, type Strategy } from '../lib/context.ts';
 import { fail, info, section, success } from '../lib/log.ts';
+import { appendSummary, summarySection, summaryTable } from '../lib/summary.ts';
 
 // Build the immutable CI context for this run and persist it to
 // `.nexo/ci-context.json`. Subsequent commands (retag, prepare-contexts,
@@ -54,6 +55,7 @@ export function ciInit(): void {
 
 	writeContext(ctx);
 	emitOutputs(ctx);
+	emitSummary(ctx);
 	success(
 		`strategy=${strategy} tags=${tags.join(',')} push=${push}` + (fromTag ? ` from=${fromTag}` : '')
 	);
@@ -96,6 +98,25 @@ function emitOutputs(ctx: CiContext): void {
 	if (!target) return;
 	const lines = [`strategy=${ctx.strategy}`, `push=${ctx.push}`];
 	appendFileSync(target, lines.join('\n') + '\n');
+}
+
+function emitSummary(ctx: CiContext): void {
+	const eventLabel =
+		ctx.event === 'pull_request'
+			? `pull_request #${ctx.prNumber ?? '?'}${ctx.isReleasePleasePr ? ' (release-please)' : ''}`
+			: ctx.event === 'push'
+				? `push${ctx.sourcePrNumber ? ` (source PR #${ctx.sourcePrNumber})` : ''}`
+				: ctx.event;
+	const strategyLabel = ctx.strategy === 'retag' ? '🏷 retag' : '🔨 full build';
+	const rows: string[][] = [
+		['Event', eventLabel],
+		['SHA', `\`${ctx.sha.slice(0, 7)}\``],
+		['Strategy', strategyLabel],
+		['Tags', ctx.tags.map((t) => `\`:${t}\``).join(', ')]
+	];
+	if (ctx.fromTag) rows.push(['From', `\`:${ctx.fromTag}\``]);
+	rows.push(['Push to GHCR', ctx.push ? 'yes' : 'no (fork)']);
+	appendSummary(summarySection('🧭 CI strategy', summaryTable(['Field', 'Value'], rows)));
 }
 
 function discoverSourcePr(sha: string, repoSlug: string | null): string | null {

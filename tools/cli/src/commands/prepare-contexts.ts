@@ -4,6 +4,7 @@ import { APPS, findApp, type App } from '../apps.ts';
 import { pnpmDeploy } from '../lib/pnpm.ts';
 import { CONTEXT_FILE, readContext } from '../lib/context.ts';
 import { info, section, step, success } from '../lib/log.ts';
+import { appendSummary, summarySection, summaryTable } from '../lib/summary.ts';
 
 export type PrepareOpts = {
 	app?: string;
@@ -23,6 +24,12 @@ export function prepareContexts(opts: PrepareOpts = {}): void {
 	if (ctx?.strategy === 'retag') {
 		section('Prepare deploy contexts');
 		info(`skipped — strategy=retag (will reuse :${ctx.fromTag})`);
+		appendSummary(
+			summarySection(
+				'📦 Deploy contexts',
+				`⏭ Skipped — retag fast-path (reusing \`:${ctx.fromTag}\`)`
+			)
+		);
 		return;
 	}
 
@@ -37,6 +44,16 @@ export function prepareContexts(opts: PrepareOpts = {}): void {
 	for (const app of targets) {
 		prepareOne(app, outDir, repoRoot);
 	}
+
+	appendSummary(
+		summarySection(
+			'📦 Deploy contexts',
+			summaryTable(
+				['App', 'Context'],
+				targets.map((a) => [`\`${a.name}\``, `\`out/${a.name}/\``])
+			)
+		)
+	);
 }
 
 function prepareOne(app: App, outDir: string, repoRoot: string): void {

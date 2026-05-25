@@ -1,6 +1,0 @@
-CHANGELOG.md
-pnpm-lock.yaml
-**/.svelte-kit/
-**/build/
-**/dist/
-.claude/

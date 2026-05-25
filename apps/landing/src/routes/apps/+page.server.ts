@@ -13,11 +13,14 @@ import {
 	flaschenAccount,
 	flaschenSeenOffer,
 	users,
-	healthCheckRun
+	healthCheckRun,
+	profiles as calorieProfiles,
+	entries as calorieEntries,
+	weightLogs as calorieWeightLogs
 } from '@nexo/db';
 import { firesOnDate } from '@nexo/ui/utils/recurrence';
 import { parseUserAgent, deviceIcon } from '@nexo/ui/utils/ua-parser';
-import { and, count, eq, gte, sql } from 'drizzle-orm';
+import { and, count, eq, gte, lt, sql } from 'drizzle-orm';
 import { env as publicEnv } from '$env/dynamic/public';
 import { getAuth } from '$lib/server/auth';
 import type { PageServerLoad, Actions } from './$types';
@@ -146,6 +149,72 @@ async function getFlaschenGlance(userId: string) {
 	};
 }
 
+async function getCalorieGlance(userId: string) {
+	const start = new Date();
+	start.setHours(0, 0, 0, 0);
+	const end = new Date(start);
+	end.setDate(end.getDate() + 1);
+	const weekStart = new Date(start);
+	weekStart.setDate(weekStart.getDate() - 6);
+
+	const [profileRow] = await withUser(userId, (tx) =>
+		tx.select().from(calorieProfiles).where(eq(calorieProfiles.userId, userId)).limit(1)
+	);
+
+	if (!profileRow?.onboardingCompletedAt) {
+		return { onboarded: false as const };
+	}
+
+	const data = await withUser(userId, async (tx) => {
+		const [todayAgg] = await tx
+			.select({
+				kcal: sql<string>`coalesce(sum(${calorieEntries.kcal}), 0)`,
+				count: sql<number>`count(*)::int`
+			})
+			.from(calorieEntries)
+			.where(
+				and(
+					eq(calorieEntries.userId, userId),
+					gte(calorieEntries.loggedAt, start),
+					lt(calorieEntries.loggedAt, end)
+				)
+			);
+
+		const weekRows = await tx
+			.select({
+				day: sql<string>`to_char(${calorieEntries.loggedAt}::date, 'YYYY-MM-DD')`
+			})
+			.from(calorieEntries)
+			.where(and(eq(calorieEntries.userId, userId), gte(calorieEntries.loggedAt, weekStart)))
+			.groupBy(sql`${calorieEntries.loggedAt}::date`);
+
+		const [latestWeight] = await tx
+			.select()
+			.from(calorieWeightLogs)
+			.where(eq(calorieWeightLogs.userId, userId))
+			.orderBy(sql`${calorieWeightLogs.date} desc`)
+			.limit(1);
+
+		return { todayAgg, weekRows, latestWeight };
+	});
+
+	const targetKcal = profileRow.targetKcal ?? 2000;
+	const kcalToday = Number(data.todayAgg?.kcal ?? 0);
+	const remaining = Math.max(0, targetKcal - Math.round(kcalToday));
+	const overBy = Math.max(0, Math.round(kcalToday) - targetKcal);
+
+	return {
+		onboarded: true as const,
+		kcalToday: Math.round(kcalToday),
+		kcalTarget: targetKcal,
+		remaining,
+		overBy,
+		entriesToday: data.todayAgg?.count ?? 0,
+		daysLoggedThisWeek: data.weekRows.length,
+		latestWeightKg: data.latestWeight ? Number(data.latestWeight.kg) : null
+	};
+}
+
 async function getAdminGlance() {
 	const since = new Date(Date.now() - 24 * 60 * 60_000);
 
@@ -203,6 +272,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const financeGlance = allowedApps.includes('finance') ? await getFinanceGlance(userId) : null;
 	const flaschenGlance = allowedApps.includes('flaschen') ? await getFlaschenGlance(userId) : null;
+	const calorieGlance = allowedApps.includes('calorie') ? await getCalorieGlance(userId) : null;
 	const adminGlance = allowedApps.includes('admin') ? await getAdminGlance() : null;
 
 	const currentSessionId = locals.session?.id ?? null;
@@ -232,6 +302,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		theme: profile.theme,
 		financeGlance,
 		flaschenGlance,
+		calorieGlance,
 		adminGlance,
 		sessions: sessionList,
 		diagnostics: {

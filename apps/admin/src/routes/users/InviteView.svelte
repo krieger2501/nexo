@@ -5,7 +5,7 @@
 	interface Props {
 		inviteEmail: string;
 		inviteSent: boolean;
-		form: { error?: string } | null;
+		form: { error?: string } | null | undefined;
 		onclose: () => void;
 	}
 

@@ -8,10 +8,13 @@ One PostgreSQL 17 instance, one database (`nexo`), multiple Postgres schemas for
 
 ## Schema files
 
-| File                            | Postgres schema | Tables                                                                                                                                                            |
-| ------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/db/schema/auth.ts`    | `auth`          | `user`, `session`, `account`, `verification`, `oauth_application`, `oauth_access_token`, `oauth_consent`, `allowed_emails`, `user_app_access`, `user_preferences` |
-| `packages/db/schema/finance.ts` | `finance`       | `accounts`, `expenses`, `income`, `debts`, `user_settings`                                                                                                        |
+| File                             | Postgres schema | Tables                                                                                                                                                            |
+| -------------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/db/schema/auth.ts`     | `auth`          | `user`, `session`, `account`, `verification`, `oauth_application`, `oauth_access_token`, `oauth_consent`, `allowed_emails`, `user_app_access`, `user_preferences` |
+| `packages/db/schema/finance.ts`  | `finance`       | `accounts`, `expenses`, `income`, `debts`, `user_settings`, `transactions`                                                                                        |
+| `packages/db/schema/flaschen.ts` | `flaschen`      | `account`, `prefs`, `date_override`, `seen_offer`, `poll_log`, `seen_location`                                                                                    |
+| `packages/db/schema/push.ts`     | `push`          | `push_subscription`                                                                                                                                               |
+| `packages/db/schema/admin.ts`    | `admin`         | `health_check_run` (one row per healthz probe; consumed by the admin app's Services panel and by the landing apps page's admin glance)                            |
 
 Add new app schemas here as `packages/db/schema/<appname>.ts` and export them from `packages/db/src/index.ts`.
 
@@ -54,12 +57,14 @@ Never edit migration files by hand after they've been applied. If you made a mis
 
 ### In production
 
-The `migrate` service in Docker Compose runs `src/migrate.ts` as a one-shot container before any app starts:
+The `migrate` service in Docker Compose runs as a one-shot container before any app starts, using the published `nexo-db` image:
 
 ```yaml
 migrate:
-  build: ...
-  command: node migrate.ts
+  profiles: [production]
+  image: ghcr.io/nexo-suite/nexo-db:latest
+  environment:
+    DATABASE_URL: ${MIGRATE_DATABASE_URL:-${DATABASE_URL}}
   depends_on:
     postgres:
       condition: service_healthy
@@ -71,6 +76,8 @@ auth:
 ```
 
 Migrations run automatically on every `docker compose up`. If they fail, the app containers don't start.
+
+> Note the `MIGRATE_DATABASE_URL` fallback: apps connect through PgBouncer (`pgbouncer:5432`, transaction-pooled), but DDL doesn't survive transaction-pooled rebinding, so the migration runner has to bypass the pooler and hit Postgres directly. Set `MIGRATE_DATABASE_URL` on the VPS to `postgres://nexo:<password>@postgres:5432/nexo`. See [Deployment — Migrating to PgBouncer](deployment.md#migrating-an-existing-prod-to-pgbouncer-one-time).
 
 ---
 

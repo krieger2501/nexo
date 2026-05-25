@@ -182,11 +182,11 @@ flowchart LR
   auth --> pgb
   flaschen --> pgb
   worker[flaschen-worker] --> pgb
-  pgb[PgBouncer<br/>:6432<br/>transaction mode] -->|≤20 conns| pg[(Postgres 17<br/>:5432<br/>max_connections=80)]
+  pgb[PgBouncer<br/>:5432<br/>transaction mode] -->|≤20 conns| pg[(Postgres 17<br/>:5432<br/>max_connections=80)]
   migrate[migrate<br/>Drizzle DDL] -->|direct, DDL needs<br/>session-scoped conn| pg
 ```
 
-The migration runner deliberately bypasses PgBouncer (DDL doesn't survive transaction-pooled rebinding). It uses `MIGRATE_DATABASE_URL` pointing at `postgres:5432`; everything else uses `DATABASE_URL` pointing at `pgbouncer:6432`. Per-app pool caps in `packages/db/src/index.ts`: web apps `max: 8`, the flaschen worker `max: 5` — keeps total backend RAM bounded.
+The migration runner deliberately bypasses PgBouncer (DDL doesn't survive transaction-pooled rebinding). It uses `MIGRATE_DATABASE_URL` pointing at `postgres:5432`; everything else uses `DATABASE_URL` pointing at `pgbouncer:5432`. The `edoburu/pgbouncer` image rebinds pgBouncer's listener to 5432 (canonical default is 6432) so apps don't need to change their DSN port to drop the pooler in. Per-app pool caps in `packages/db/src/index.ts`: web apps `max: 8`, the flaschen worker `max: 5` — keeps total backend RAM bounded.
 
 Postgres-js uses prepared statements by default; PgBouncer 1.21+ supports them in transaction mode and we set `MAX_PREPARED_STATEMENTS=100` to enable it.
 
@@ -279,7 +279,7 @@ sequenceDiagram
   participant C as Caddy
   participant F as finance:3000<br/>(adapter-node)
   participant A as auth:3000
-  participant B as PgBouncer:6432
+  participant B as PgBouncer:5432
   participant P as Postgres:5432
   participant L as Loki
 

@@ -1,77 +1,63 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import AuthShell from '$lib/components/AuthShell.svelte';
+
+	const isMissing = $derived(page.status === 404);
 </script>
 
 <svelte:head>
 	<title>Error — Nexo</title>
 </svelte:head>
 
-<main class="error-root">
-	<div class="error-card">
-		<div class="error-code">{page.status}</div>
-		<h1 class="error-heading">
-			{#if page.status === 404}
-				Page not found
-			{:else}
-				Something went wrong
-			{/if}
-		</h1>
-		<p class="error-sub">
-			{#if page.status === 404}
-				Whatever you're looking for, it's not here.
-			{:else}
-				That wasn't supposed to happen. Try again or go back.
-			{/if}
-		</p>
-		<a href="/login" class="error-link">Back to sign in</a>
-	</div>
-</main>
+<AuthShell
+	mood="error"
+	eyebrow="error · {page.status}"
+	heading={isMissing ? 'Page not found' : 'Something went wrong'}
+	sub={isMissing
+		? "Whatever you're looking for, it's not here."
+		: "That wasn't supposed to happen. Try again or go back."}
+>
+	<a href="/login" class="back-link">
+		<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" class="back-icon">
+			<path d="M10 3L5 8l5 5" stroke-linecap="round" stroke-linejoin="round" />
+		</svg>
+		<span>Back to sign in</span>
+	</a>
+</AuthShell>
 
 <style>
-	.error-root {
-		min-height: 100dvh;
-		display: flex;
+	.back-link {
+		display: inline-flex;
 		align-items: center;
-		justify-content: center;
-		padding: 24px 16px;
+		gap: 8px;
+		padding: 10px 14px;
+		align-self: flex-start;
+		border-radius: var(--radius-md);
+		border: 1px solid var(--color-border-default);
 		background: var(--color-bg-0);
-	}
-
-	.error-card {
-		text-align: center;
-		max-width: 320px;
-	}
-
-	.error-code {
-		font-family: var(--font-mono);
-		font-size: 48px;
-		font-weight: 700;
-		color: var(--color-text-faint);
-		letter-spacing: -0.04em;
-	}
-
-	.error-heading {
-		font-size: 18px;
-		font-weight: 600;
-		margin: 8px 0 6px;
-		color: var(--color-text-primary);
-	}
-
-	.error-sub {
-		font-size: 13px;
-		color: var(--color-text-muted);
-		line-height: 1.5;
-		margin: 0 0 20px;
-	}
-
-	.error-link {
 		font-size: 13px;
 		font-weight: 500;
-		color: var(--color-accent);
+		color: var(--color-text-primary);
 		text-decoration: none;
+		transition:
+			background var(--duration-fast) var(--ease-out),
+			border-color var(--duration-fast) var(--ease-out),
+			transform var(--duration-fast) var(--ease-out);
 	}
 
-	.error-link:hover {
-		text-decoration: underline;
+	.back-link:hover {
+		background: var(--color-bg-1);
+		border-color: var(--color-border-strong);
+		transform: translateY(-1px);
+	}
+
+	.back-icon {
+		width: 14px;
+		height: 14px;
+		transition: transform var(--duration-fast) var(--ease-out);
+	}
+
+	.back-link:hover .back-icon {
+		transform: translateX(-2px);
 	}
 </style>

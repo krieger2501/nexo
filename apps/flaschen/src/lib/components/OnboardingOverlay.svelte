@@ -188,26 +188,31 @@
 		padding: calc(var(--safe-top, 0px) + 18px) 22px calc(var(--safe-bot, 0px) + 24px);
 		background:
 			radial-gradient(
-				circle at 20% 0%,
-				color-mix(in oklab, var(--color-accent) 22%, transparent),
-				transparent 55%
+				120% 60% at 0% 0%,
+				color-mix(in oklab, var(--color-wash-rose) 80%, transparent) 0%,
+				transparent 60%
 			),
 			radial-gradient(
-				circle at 100% 100%,
-				color-mix(in oklab, var(--color-accent) 14%, transparent),
-				transparent 55%
+				100% 70% at 100% 18%,
+				color-mix(in oklab, var(--color-wash-peach) 70%, transparent) 0%,
+				transparent 65%
 			),
-			color-mix(in oklab, var(--color-bg-0) 96%, var(--color-accent));
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
+			radial-gradient(
+				120% 80% at 50% 110%,
+				color-mix(in oklab, var(--color-wash-lilac) 60%, transparent) 0%,
+				transparent 70%
+			),
+			color-mix(in oklab, var(--color-bg-0) 92%, var(--color-accent));
+		backdrop-filter: blur(20px) saturate(160%);
+		-webkit-backdrop-filter: blur(20px) saturate(160%);
 		max-width: var(--app-max-w);
 		margin-inline: auto;
-		animation: onb-fade 220ms ease-out;
+		animation: onb-fade 360ms var(--ease-spring);
 	}
 	@keyframes onb-fade {
 		from {
 			opacity: 0;
-			transform: translateY(6px);
+			transform: translateY(10px) scale(0.98);
 		}
 		to {
 			opacity: 1;
@@ -221,16 +226,20 @@
 		right: 18px;
 		display: grid;
 		place-items: center;
-		width: 36px;
-		height: 36px;
+		width: 40px;
+		height: 40px;
 		border-radius: 999px;
-		background: color-mix(in oklab, var(--color-bg-0) 60%, transparent);
-		border: 1px solid var(--color-border-subtle);
+		background: rgb(255 255 255 / 0.7);
+		backdrop-filter: blur(14px) saturate(150%);
+		-webkit-backdrop-filter: blur(14px) saturate(150%);
+		border: 1px solid rgb(255 255 255 / 0.85);
 		color: var(--color-text-muted);
 		cursor: pointer;
+		box-shadow: var(--shadow-glass-sm);
+		transition: transform 320ms var(--ease-spring);
 	}
 	.onb-close:active {
-		opacity: 0.85;
+		transform: scale(0.92);
 	}
 
 	.onb-progress {
@@ -243,15 +252,15 @@
 		width: 22px;
 		height: 4px;
 		border-radius: 999px;
-		background: color-mix(in oklab, var(--color-text-faint) 40%, transparent);
-		transition: all 220ms ease;
+		background: rgb(124 18 64 / 0.18);
+		transition: all 480ms var(--ease-spring);
 	}
 	.onb-pip.done {
-		background: color-mix(in oklab, var(--color-accent) 60%, transparent);
+		background: color-mix(in oklab, var(--color-accent) 50%, transparent);
 	}
 	.onb-pip.active {
-		background: var(--color-accent);
-		width: 36px;
+		background: linear-gradient(90deg, var(--color-accent), var(--color-accent-deep));
+		width: 44px;
 	}
 
 	.onb-body {
@@ -261,39 +270,57 @@
 		justify-content: center;
 		align-items: stretch;
 		padding: 16px 4px;
-		gap: 14px;
+		gap: 16px;
 	}
 	.onb-illust {
-		width: 84px;
-		height: 84px;
-		border-radius: 24px;
+		width: 96px;
+		height: 96px;
+		border-radius: 28px;
 		display: grid;
 		place-items: center;
-		margin-bottom: 8px;
-		background: color-mix(in oklab, var(--color-accent) 14%, var(--color-surface-1));
-		color: var(--color-accent);
+		margin: 0 0 6px;
+		background:
+			radial-gradient(circle at 30% 25%, rgb(255 255 255 / 0.45) 0%, transparent 38%),
+			linear-gradient(160deg, var(--color-accent) 0%, var(--color-accent-deep) 100%);
+		color: #fff;
 		box-shadow:
-			0 1px 0 color-mix(in oklab, var(--color-accent) 24%, transparent) inset,
-			0 12px 28px -16px color-mix(in oklab, var(--color-accent) 60%, transparent);
+			0 14px 30px -14px rgb(124 18 64 / 0.55),
+			inset 0 2px 0 rgb(255 255 255 / 0.3);
+		animation: illust-bob 5s var(--ease-glide) infinite;
+	}
+	@keyframes illust-bob {
+		0%,
+		100% {
+			transform: translateY(0) rotate(-3deg);
+		}
+		50% {
+			transform: translateY(-4px) rotate(3deg);
+		}
 	}
 	.onb-title {
-		font-size: 24px;
-		font-weight: 600;
-		letter-spacing: -0.025em;
-		line-height: 1.15;
+		font-family: var(--font-display);
+		font-style: italic;
+		font-size: 36px;
+		font-weight: 400;
+		letter-spacing: -0.02em;
+		line-height: 1.1;
 		margin: 0;
+		color: var(--color-text-primary);
+		text-wrap: balance;
 	}
 	.onb-desc {
-		font-size: 14.5px;
-		line-height: 1.5;
+		font-size: 15px;
+		line-height: 1.55;
 		color: var(--color-text-muted);
 		margin: 0;
+		text-wrap: pretty;
+		max-width: 38ch;
 	}
 	.onb-actions-stack {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		margin-top: 4px;
+		gap: 10px;
+		margin-top: 8px;
 	}
 
 	.onb-nav {
@@ -308,21 +335,25 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		gap: 6px;
-		min-height: 46px;
-		padding: 0 20px;
+		gap: 8px;
+		min-height: 50px;
+		padding: 0 22px;
 		font: inherit;
-		font-size: 14.5px;
+		font-size: 15px;
 		font-weight: 600;
 		border-radius: 999px;
-		background: var(--color-accent);
+		background: linear-gradient(180deg, var(--color-accent) 0%, var(--color-accent-deep) 100%);
 		color: #fff;
 		border: none;
 		cursor: pointer;
 		text-decoration: none;
+		box-shadow:
+			0 10px 22px -8px rgb(124 18 64 / 0.5),
+			inset 0 1px 0 rgb(255 255 255 / 0.25);
+		transition: transform 320ms var(--ease-spring);
 	}
 	.onb-cta:active {
-		opacity: 0.9;
+		transform: scale(0.96);
 	}
 	.onb-cta-done {
 		width: 100%;
@@ -333,20 +364,26 @@
 		align-items: center;
 		gap: 4px;
 		font: inherit;
-		font-size: 13px;
+		font-size: 13.5px;
 		font-weight: 500;
 		color: var(--color-text-muted);
-		background: transparent;
-		border: none;
+		background: rgb(255 255 255 / 0.55);
+		border: 1px solid rgb(255 255 255 / 0.85);
+		border-radius: 999px;
 		cursor: pointer;
-		padding: 8px 4px;
+		padding: 10px 16px;
+		box-shadow: var(--shadow-glass-sm);
+		transition: transform 320ms var(--ease-spring);
+	}
+	.onb-back:active {
+		transform: scale(0.96);
 	}
 
 	.onb-link {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		min-height: 38px;
+		min-height: 40px;
 		font: inherit;
 		font-size: 13px;
 		font-weight: 500;

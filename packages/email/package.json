@@ -14,22 +14,20 @@
 		"package.json"
 	],
 	"scripts": {
-		"build": "tsc -p tsconfig.build.json",
-		"clean": "rm -rf dist",
+		"build": "tsdown",
+		"clean": "del dist",
 		"dev": "email dev --dir src/templates --port 3005",
-		"lint": "eslint .",
-		"lint:fix": "eslint . --fix",
-		"qc": "run-s lint type:check build",
-		"type:check": "tsc --noEmit"
+		"qc": "run-s type:check build",
+		"type:check": "tsgo --noEmit"
 	},
 	"dependencies": {
 		"react": "^19.2.6",
 		"react-dom": "^19.2.6",
-		"react-email": "^6.1.5",
+		"react-email": "^6.3.2",
 		"resend": "^6.12.3"
 	},
 	"devDependencies": {
-		"@react-email/ui": "^6.1.5",
+		"@react-email/ui": "^6.3.2",
 		"@types/node": "catalog:",
 		"@types/react": "^19.2.15",
 		"@types/react-dom": "^19.2.3"

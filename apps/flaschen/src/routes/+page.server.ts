@@ -137,6 +137,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		warning,
 		lastPolledAt: account?.lastPollAt ?? null,
 		pollEnabled: prefs.enabled,
+		quietHours: {
+			enabled: prefs.quietHoursEnabled,
+			startMinutes: prefs.quietStartMinutes,
+			endMinutes: prefs.quietEndMinutes
+		},
 		deviceCount,
 		todayLabel: formatTodayLabel()
 	};

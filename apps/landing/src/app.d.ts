@@ -7,6 +7,7 @@ declare global {
 		auth: string;
 		admin: string;
 		flaschen: string;
+		calorie: string;
 		landing: string;
 	};
 

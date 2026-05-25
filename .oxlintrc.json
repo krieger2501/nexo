@@ -1,0 +1,67 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": ["typescript", "unicorn", "oxc", "import"],
+	"categories": {
+		"correctness": "error"
+	},
+	"env": {
+		"browser": true,
+		"node": true,
+		"builtin": true
+	},
+	"rules": {
+		"eqeqeq": ["error", "always", { "null": "ignore" }],
+		"no-debugger": "error",
+		"no-implicit-coercion": "error",
+		"no-console": ["warn", { "allow": ["info", "warn", "error"] }],
+		"no-undef": "off",
+		"typescript/no-explicit-any": "warn",
+		"typescript/no-unused-vars": [
+			"error",
+			{ "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+		],
+		"typescript/consistent-type-imports": ["error", { "prefer": "type-imports" }],
+		"typescript/no-import-type-side-effects": "error"
+	},
+	"ignorePatterns": [
+		"**/.svelte-kit/**",
+		"**/build/**",
+		"**/dist/**",
+		"**/node_modules/**",
+		"**/src/lib/paraglide/**",
+		"apps/admin/src/lib/components/ui/**",
+		"**/.turbo/**"
+	],
+	"overrides": [
+		{
+			"files": ["apps/finance/src/lib/index.ts", "**/src/lib/index.ts"],
+			"rules": {
+				"unicorn/no-empty-file": "off"
+			}
+		},
+		{
+			"files": [
+				"scripts/**",
+				"**/scripts/**",
+				"tools/cli/**",
+				"packages/logger/**",
+				"**/*.config.{js,ts,mjs,mts,cjs}"
+			],
+			"rules": {
+				"no-console": "off"
+			}
+		},
+		{
+			"files": [
+				"apps/calorie/src/lib/components/AddEntrySheet.svelte",
+				"apps/calorie/src/lib/components/CalendarHeatmap.svelte",
+				"apps/calorie/src/lib/components/DateStrip.svelte",
+				"apps/calorie/src/lib/components/MealSection.svelte",
+				"apps/calorie/src/routes/onboarding/+page.svelte"
+			],
+			"rules": {
+				"no-implicit-coercion": "off"
+			}
+		}
+	]
+}

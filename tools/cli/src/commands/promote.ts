@@ -1,6 +1,7 @@
 import { APPS, imageRef, type App } from '../apps.ts';
 import { imagetoolsCreate } from '../lib/docker.ts';
 import { fail, info, section, step, success } from '../lib/log.ts';
+import { appendSummary, summarySection, summaryTable } from '../lib/summary.ts';
 
 export type PromoteOpts = {
 	gitCommit: string;
@@ -28,6 +29,21 @@ export function promote(opts: PromoteOpts): void {
 		const version = versionFor(app, opts.versions)!;
 		promoteOne(app, opts.gitCommit, version);
 	}
+
+	const shortSha = opts.gitCommit.slice(0, 7);
+	const releasedRows: string[][] = releasing.map((a) => {
+		const v = versionFor(a, opts.versions)!;
+		return [`\`${a.name}\``, `\`v${v}\``, `\`:main-${shortSha}\` → \`:latest\`, \`:${v}\``];
+	});
+	const skippedNote =
+		skipping.length > 0
+			? `\n\n_Not in this release: ${skipping.map((a) => `\`${a.name}\``).join(', ')}._`
+			: '';
+	const body =
+		releasing.length > 0
+			? summaryTable(['App', 'Version', 'Retag'], releasedRows) + skippedNote
+			: '_Nothing to promote (no apps had a release in this run)._';
+	appendSummary(summarySection('🚀 Promote', body));
 }
 
 function promoteOne(app: App, sha: string, version: string): void {

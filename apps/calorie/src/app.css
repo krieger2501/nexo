@@ -1,0 +1,185 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+@import '@fontsource-variable/fraunces';
+@import '@nexo/ui/tokens.css';
+@import '@nexo/ui/base.css' layer(base);
+@import '@nexo/ui/components.css' layer(components);
+@import 'tailwindcss';
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Clay Tablet — burnt-sienna Ember on warm Bone.
+ * A personal ledger, not a video game.
+ * Numerals are first-class citizens; the serif (Fraunces) holds the voice.
+ * ───────────────────────────────────────────────────────────────────────── */
+@theme {
+	/* ── Ember — primary accent ── */
+	--color-accent: #b85a3a;
+	--color-ember: var(--color-accent);
+	--color-ember-deep: oklch(48% 0.16 36);
+	--color-ember-soft: oklch(70% 0.13 42);
+	--color-ember-glow: oklch(82% 0.09 48);
+	--color-ember-tint: oklch(95% 0.035 50);
+
+	/* ── Macro hues — basic tier ── */
+	--color-protein: oklch(58% 0.14 22);
+	--color-carbs: oklch(72% 0.14 78);
+	--color-fat: oklch(70% 0.1 92);
+
+	/* ── Macro hues — extended/full ── */
+	--color-fiber: oklch(62% 0.11 148);
+	--color-sugar: oklch(72% 0.13 348);
+	--color-satfat: oklch(50% 0.08 38);
+	--color-sodium: oklch(60% 0.06 232);
+
+	/* ── Status — distinct under vs over (NOT both red) ── */
+	--color-undertarget: oklch(72% 0.1 88);
+	--color-ontarget: oklch(60% 0.12 148);
+	--color-overtarget: oklch(56% 0.14 24);
+
+	/* ── Slot hues — quiet differentiation ── */
+	--color-slot-breakfast: oklch(72% 0.14 78);
+	--color-slot-lunch: var(--color-ember);
+	--color-slot-dinner: oklch(60% 0.12 268);
+	--color-slot-snack: oklch(62% 0.11 148);
+}
+
+:root {
+	/* Fraunces variable axes: opsz 9-144, SOFT 25-100, wght 100-900 */
+	--font-display: 'Fraunces Variable', ui-serif, Georgia, serif;
+
+	/* Macro derivatives — soft backgrounds + hairline borders */
+	--protein-soft: color-mix(in oklab, var(--color-protein) 12%, var(--color-bg-0));
+	--protein-line: color-mix(in oklab, var(--color-protein) 32%, var(--color-border-default));
+	--carbs-soft: color-mix(in oklab, var(--color-carbs) 14%, var(--color-bg-0));
+	--carbs-line: color-mix(in oklab, var(--color-carbs) 32%, var(--color-border-default));
+	--fat-soft: color-mix(in oklab, var(--color-fat) 14%, var(--color-bg-0));
+	--fat-line: color-mix(in oklab, var(--color-fat) 32%, var(--color-border-default));
+	--fiber-soft: color-mix(in oklab, var(--color-fiber) 14%, var(--color-bg-0));
+	--sugar-soft: color-mix(in oklab, var(--color-sugar) 14%, var(--color-bg-0));
+
+	--ember-soft-bg: color-mix(in oklab, var(--color-ember) 8%, var(--color-bg-0));
+	--ember-tint-bg: color-mix(in oklab, var(--color-ember) 5%, var(--color-bg-0));
+	--ember-line: color-mix(in oklab, var(--color-ember) 28%, var(--color-border-default));
+}
+
+body {
+	min-height: 100dvh;
+	overflow-x: hidden;
+	font-feature-settings:
+		'ss01' 1,
+		'cv11' 1;
+}
+
+/* ── Tabular numerals everywhere they live ── */
+.tnum,
+.numeral,
+.numeral-md {
+	font-feature-settings:
+		'tnum' 1,
+		'lnum' 1;
+	font-variant-numeric: tabular-nums lining-nums;
+}
+
+.numeral {
+	font-family: var(--font-display);
+	font-feature-settings:
+		'tnum' 1,
+		'lnum' 1;
+	font-variant-numeric: tabular-nums lining-nums;
+	font-variation-settings:
+		'opsz' 144,
+		'SOFT' 80,
+		'wght' 460;
+	font-size: clamp(48px, 12vw, 72px);
+	line-height: 0.94;
+	letter-spacing: -0.035em;
+}
+
+.numeral-md {
+	font-family: var(--font-display);
+	font-feature-settings:
+		'tnum' 1,
+		'lnum' 1;
+	font-variant-numeric: tabular-nums lining-nums;
+	font-variation-settings:
+		'opsz' 36,
+		'SOFT' 70,
+		'wght' 460;
+	font-size: 28px;
+	line-height: 1;
+	letter-spacing: -0.025em;
+}
+
+.serif-display {
+	font-family: var(--font-display);
+	font-variation-settings:
+		'opsz' 60,
+		'SOFT' 100,
+		'wght' 460,
+		'ital' 0;
+	letter-spacing: -0.025em;
+}
+
+.serif-italic {
+	font-family: var(--font-display);
+	font-variation-settings:
+		'opsz' 24,
+		'SOFT' 100,
+		'wght' 420,
+		'ital' 1;
+	font-style: italic;
+	letter-spacing: -0.005em;
+}
+
+.eyebrow {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	font-weight: 500;
+	color: var(--color-text-subtle);
+}
+
+.eyebrow-num {
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.18em;
+	font-feature-settings: 'tnum' 1;
+	color: var(--color-text-faint);
+}
+
+/* ── Quiet pulse for "searching" indicator ── */
+@keyframes pulse-soft {
+	0%,
+	100% {
+		opacity: 0.5;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+
+/* ── Strip native number spinners — every numeric input goes through Stepper/UnitStepper ── */
+input[type='number'] {
+	-moz-appearance: textfield;
+	appearance: textfield;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+	appearance: none;
+	margin: 0;
+}
+
+/* ── Respect reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

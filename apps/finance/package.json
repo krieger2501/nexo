@@ -10,8 +10,8 @@
 	"scripts": {
 		"build": "vite build",
 		"dev": "vite dev --port 3002",
-		"lint": "eslint .",
-		"lint:fix": "eslint . --fix",
+		"lint": "eslint \"**/*.svelte\"",
+		"lint:fix": "eslint \"**/*.svelte\" --fix",
 		"preview": "vite preview",
 		"qc": "run-s lint type:check build test:unit",
 		"test:e2e": "playwright test",
@@ -20,8 +20,8 @@
 		"test:unit:watch": "vitest",
 		"translate": "pnpm dlx @inlang/paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide",
 		"translate:watch": "pnpm dlx @inlang/paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide --watch",
-		"type:check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"type:check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
+		"type:check": "svelte-kit sync && svelte-check-native --tsconfig ./tsconfig.json",
+		"type:check:watch": "svelte-kit sync && svelte-check-native --tsconfig ./tsconfig.json --watch"
 	},
 	"dependencies": {
 		"@fontsource-variable/inter": "^5.2.8",
@@ -51,7 +51,7 @@
 		"@vitest/coverage-v8": "^4.1.7",
 		"happy-dom": "^20.9.0",
 		"svelte": "catalog:",
-		"svelte-check": "catalog:",
+		"svelte-check-native": "catalog:",
 		"tailwindcss": "catalog:",
 		"vite": "catalog:",
 		"vitest": "^4.1.7"

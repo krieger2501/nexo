@@ -18,7 +18,7 @@
 	"svelte": "./src/index.ts",
 	"types": "./src/index.ts",
 	"scripts": {
-		"type:check": "svelte-check --tsconfig ./tsconfig.json"
+		"type:check": "svelte-check-native --tsconfig ./tsconfig.json"
 	},
 	"dependencies": {
 		"@lucide/svelte": "catalog:"
@@ -27,7 +27,7 @@
 		"@sveltejs/kit": "catalog:",
 		"@sveltejs/vite-plugin-svelte": "catalog:",
 		"svelte": "catalog:",
-		"svelte-check": "catalog:",
+		"svelte-check-native": "catalog:",
 		"typescript": "^5.9.3"
 	},
 	"peerDependencies": {

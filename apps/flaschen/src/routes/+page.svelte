@@ -5,8 +5,10 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { applyAction, enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { PageHeader, BottomSheet } from '@nexo/ui';
+	import { BottomSheet } from '@nexo/ui';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
+	import MatchHotCard from '$lib/components/MatchHotCard.svelte';
+	import { pushBridge } from '$lib/components/pushBridge.svelte.js';
 	import { Plug, Sliders, ChevronRight, XCircle, Hand, Info, CalendarPlus } from '@lucide/svelte';
 	import type { ActionData, PageData } from './$types';
 	import type { PlannedShiftPayload } from '$lib/server/flaschenpost';
@@ -20,6 +22,7 @@
 		if (data.connection === 'never') return 'accent';
 		if (data.deviceCount === 0) return 'warn';
 		if (!data.pollEnabled) return 'warn';
+		if (inQuietHoursNow) return 'accent';
 		return 'ok';
 	});
 
@@ -28,11 +31,30 @@
 		if (data.connection === 'reconnect') return m.dashboard_status_reconnect();
 		if (data.deviceCount === 0) return m.dashboard_status_no_devices();
 		if (!data.pollEnabled) return m.dashboard_status_paused();
+		if (inQuietHoursNow) return m.dashboard_status_quiet();
 		return m.dashboard_status_ok();
+	});
+
+	let nowMinute = $state(0);
+	$effect(() => {
+		const update = () => {
+			const d = new Date();
+			nowMinute = d.getHours() * 60 + d.getMinutes();
+		};
+		update();
+		const id = setInterval(update, 60_000);
+		return () => clearInterval(id);
+	});
+
+	const inQuietHoursNow = $derived.by(() => {
+		if (!data.quietHours?.enabled) return false;
+		const { startMinutes: start, endMinutes: end } = data.quietHours;
+		return start === end ? false : start < end ? nowMinute >= start && nowMinute < end : nowMinute >= start || nowMinute < end;
 	});
 
 	let now = $state(Date.now());
 	onMount(() => {
+		pushBridge.install();
 		const id = setInterval(() => (now = Date.now()), 60_000);
 		return () => clearInterval(id);
 	});
@@ -197,7 +219,7 @@
 
 	let highlightedRow = $state<string | null>(null);
 	function highlightFocus(node: HTMLElement, key: string) {
-		if (data.focusKey && data.focusKey === key) {
+		if (data.focusKey && data.focusKey === key && !hotKey) {
 			node.scrollIntoView({ block: 'center', behavior: 'smooth' });
 			highlightedRow = key;
 			setTimeout(() => {
@@ -205,6 +227,62 @@
 			}, 2200);
 		}
 	}
+
+	// ── Hot card driver ─────────────────────────────────────────────
+	// Two sources can light up the hot card:
+	//   1. ?shift=<key>  → arrived via notification click
+	//   2. live SW push  → app open when push fires
+	// We track which dedupeKeys have been locally dismissed so a
+	// "Skip for now" press hides the card without touching the DB.
+	let dismissedKeys = $state<Set<string>>(new Set());
+	let liveHot = $state<{ key: string; receivedAt: number } | null>(null);
+
+	$effect(() => {
+		const latest = pushBridge.latest;
+		if (!latest) return;
+		if (dismissedKeys.has(latest.dedupeKey)) return;
+		liveHot = { key: latest.dedupeKey, receivedAt: latest.receivedAt };
+		invalidateAll();
+		pushBridge.clear();
+	});
+
+	const hotKey = $derived.by<string | null>(() => {
+		if (liveHot && !dismissedKeys.has(liveHot.key)) return liveHot.key;
+		if (data.focusKey && !dismissedKeys.has(data.focusKey)) return data.focusKey;
+		return null;
+	});
+
+	const hotOffer = $derived.by(() => {
+		if (!hotKey) return null;
+		const found = data.matches.find((o) => o.dedupeKey === hotKey);
+		if (found) return found;
+		const borderlineHit = data.borderlines.find((o) => o.dedupeKey === hotKey);
+		if (borderlineHit) return borderlineHit;
+		return null;
+	});
+
+	const hotReceivedAt = $derived(liveHot?.key === hotKey ? liveHot.receivedAt : Date.now());
+
+	function dismissHot(key: string) {
+		const next = new Set(dismissedKeys);
+		next.add(key);
+		dismissedKeys = next;
+		flashToast(m.dashboard_hot_skipped());
+	}
+	function takenHot(key: string) {
+		const next = new Set(dismissedKeys);
+		next.add(key);
+		dismissedKeys = next;
+	}
+
+	// Strip the hot shift from the inline list while it lives in the hero slot —
+	// we don't want it shown twice.
+	const visibleMatches = $derived(
+		hotKey ? data.matches.filter((o) => o.dedupeKey !== hotKey) : data.matches
+	);
+	const visibleBorderlines = $derived(
+		hotKey ? data.borderlines.filter((o) => o.dedupeKey !== hotKey) : data.borderlines
+	);
 
 	$effect(() => {
 		if (page.url.searchParams.has('shift')) {
@@ -222,11 +300,17 @@
 </script>
 
 <div class="page">
-	<PageHeader title="Hey, {displayName}" subtitle={data.todayLabel}>
-		{#snippet avatar()}
+	<div class="greeting">
+		<div class="greeting-line">
+			<span class="greeting-hi">Hey,</span>
+			<span class="greeting-name">{displayName}.</span>
+			<span class="greeting-spacer"></span>
 			<UserAvatarMenu />
-		{/snippet}
-	</PageHeader>
+		</div>
+		{#if data.todayLabel}
+			<span class="greeting-date">{data.todayLabel}</span>
+		{/if}
+	</div>
 
 	{#if isDisconnected}
 		<section
@@ -242,22 +326,20 @@
 			</div>
 			<div class="orb-wrap" aria-hidden="true">
 				<span class="orb">
-					<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path
-							d="M9.5 2h5v3l1.2 2.4A4 4 0 0 1 16 9.6V20a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V9.6a4 4 0 0 1 .3-2.2L9.5 5V2Z"
-							stroke="currentColor"
-							stroke-width="1.5"
-							stroke-linejoin="round"
-						/>
-						<path d="M9 12h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+					<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+						<rect x="10.25" y="2.5" width="3.5" height="1.5" rx="0.3" />
+						<path d="M10.5 4h3v4l2 2v9.5a2 2 0 0 1-2 2h-3a2 2 0 0 1-2-2V10l2-2V4z" />
+						<rect x="9" y="14" width="6" height="3" rx="0.4" fill="rgba(0, 0, 0, 0.22)" />
 					</svg>
 				</span>
 			</div>
 			<div class="hero-body">
 				<h1 class="hero-title">
-					{data.connection === 'reconnect'
-						? m.dashboard_reconnect_title()
-						: m.dashboard_connect_required_title()}
+					{#if data.connection === 'reconnect'}
+						<em>Reconnect</em> to keep watching.
+					{:else}
+						<em>Connect</em> Flaschenpost first.
+					{/if}
 				</h1>
 				<p class="hero-sub">
 					{data.connection === 'reconnect'
@@ -266,7 +348,7 @@
 				</p>
 				<div class="hero-actions">
 					<a class="btn primary" href="/settings?connect=1">
-						<Plug size={14} strokeWidth={1.8} />
+						<Plug size={16} strokeWidth={2} />
 						{m.dashboard_connect_cta()}
 					</a>
 				</div>
@@ -274,21 +356,29 @@
 		</section>
 	{:else}
 		<a class="status-strip" href="/devices" data-tone={statusTone}>
-			<span class="ss-eyebrow">{m.dashboard_eyebrow()}</span>
-			<span class="ss-pill" data-tone={statusTone}>
-				<span class="ss-dot"></span>
-				{statusLabel}
+			<span class="ss-orb"></span>
+			<span class="ss-body">
+				<span class="ss-eyebrow">{m.dashboard_eyebrow()}</span>
+				<span class="ss-label">{statusLabel}</span>
 			</span>
-			<span class="ss-spacer"></span>
 			{#if lastCheckedLabel}
 				<span class="ss-meta">{m.dashboard_last_checked({ when: lastCheckedLabel })}</span>
 			{/if}
-			<ChevronRight size={14} strokeWidth={1.8} />
+			<ChevronRight size={16} strokeWidth={1.8} class="ss-chev" />
 		</a>
+
+		{#if hotOffer}
+			<MatchHotCard
+				offer={hotOffer}
+				receivedAt={hotReceivedAt}
+				onSkip={dismissHot}
+				onTaken={takenHot}
+			/>
+		{/if}
 
 		{#if showTaken && data.takenShift}
 			<aside class="banner banner-warn">
-				<div class="banner-ico"><XCircle size={16} strokeWidth={1.8} /></div>
+				<div class="banner-ico"><XCircle size={18} strokeWidth={1.8} /></div>
 				<div class="banner-body">
 					<div class="banner-title">{m.dashboard_taken_title()}</div>
 					<p class="banner-desc">
@@ -326,14 +416,15 @@
 		{#if data.plannedShifts.length > 0}
 			<section class="dash-section">
 				<div class="section-head">
-					<span class="section-eyebrow">
-						{m.dashboard_upcoming_title()}
-						<span class="section-count"
-							>· {m.dashboard_upcoming_count({ count: String(data.plannedShifts.length) })}</span
-						>
-					</span>
+					<div class="section-kicker">
+						<span class="kicker-em">Roster</span>
+						<span class="section-eyebrow">{m.dashboard_upcoming_title()}</span>
+					</div>
+					<span class="section-count"
+						>{m.dashboard_upcoming_count({ count: String(data.plannedShifts.length) })}</span
+					>
 				</div>
-				<div class="shift-list">
+				<div class="shift-list stagger">
 					{#each data.plannedShifts as shift (shift.shiftId)}
 						<div class="shift-row" class:in-progress={shift.employeeStartedShift}>
 							<div class="shift-date">
@@ -386,19 +477,20 @@
 			</section>
 		{/if}
 
-		{#if data.matches.length > 0}
-			<section class="dash-section">
+		{#if visibleMatches.length > 0}
+			<section class="dash-section dash-section--ontap">
 				<div class="section-head">
-					<span class="section-eyebrow">
-						{m.dashboard_available_now()}
-						<span class="section-count"
-							>· {m.dashboard_available_count({ count: String(data.matches.length) })}</span
-						>
-					</span>
+					<div class="section-kicker">
+						<span class="kicker-em">On tap</span>
+						<span class="section-eyebrow">{m.dashboard_available_now()}</span>
+					</div>
+					<span class="section-count"
+						>{m.dashboard_available_count({ count: String(visibleMatches.length) })}</span
+					>
 				</div>
 
-				<div class="shift-list">
-					{#each data.matches as offer (offer.dedupeKey)}
+				<div class="shift-list stagger">
+					{#each visibleMatches as offer (offer.dedupeKey)}
 						{@const focused = highlightedRow === offer.dedupeKey}
 						<div class="shift-row pickable" class:focused use:highlightFocus={offer.dedupeKey}>
 							<div class="shift-date">
@@ -440,23 +532,19 @@
 					{/each}
 				</div>
 			</section>
-		{:else}
+		{:else if !hotOffer}
 			<div class="dev-empty">
 				<div class="glyph">
 					<svg
 						viewBox="0 0 24 24"
-						width="22"
-						height="22"
-						fill="none"
-						stroke-width="1.6"
+						width="30"
+						height="30"
+						fill="currentColor"
 						aria-hidden="true"
 					>
-						<path
-							d="M10 3h4v3l1.6 1.8c.6.7 1 1.6 1 2.5V19a2 2 0 0 1-2 2H9.4A2 2 0 0 1 7.4 19V10.3c0-.9.4-1.8 1-2.5L10 6V3Z"
-							stroke="currentColor"
-							stroke-linejoin="round"
-						/>
-						<path d="M9 14h6" stroke="currentColor" stroke-linecap="round" />
+						<rect x="10.25" y="2.5" width="3.5" height="1.5" rx="0.3" />
+						<path d="M10.5 4h3v4l2 2v9.5a2 2 0 0 1-2 2h-3a2 2 0 0 1-2-2V10l2-2V4z" />
+						<rect x="9" y="14" width="6" height="3" rx="0.4" fill="rgba(0, 0, 0, 0.22)" />
 					</svg>
 				</div>
 				<h3>{m.dashboard_empty_title()}</h3>
@@ -468,18 +556,18 @@
 			</div>
 		{/if}
 
-		{#if data.borderlines.length > 0}
+		{#if visibleBorderlines.length > 0}
 			<details class="dash-section borderline-section">
 				<summary>
 					<span class="section-eyebrow">
 						{m.dashboard_borderline()}
-						<span class="section-count">· {data.borderlines.length}</span>
+						<span class="section-count">· {visibleBorderlines.length}</span>
 					</span>
 					<span class="chev"><ChevronRight size={14} strokeWidth={1.8} /></span>
 				</summary>
 				<p class="section-desc">{m.dashboard_borderline_desc()}</p>
 				<div class="shift-list">
-					{#each data.borderlines as offer (offer.dedupeKey)}
+					{#each visibleBorderlines as offer (offer.dedupeKey)}
 						{@const focused = highlightedRow === offer.dedupeKey}
 						<div
 							class="shift-row pickable borderline"
@@ -584,7 +672,7 @@
 	{/if}
 </div>
 
-<!-- ─── Take-shift confirm sheet ─── -->
+<!-- ─── Take-shift confirm sheet (used by inline list buttons) ─── -->
 <BottomSheet
 	bind:open={takeOpen}
 	title={m.dashboard_take_shift()}
@@ -651,7 +739,7 @@
 
 {#if toastMessage}
 	<div class="toast" role="status">
-		<span class="toast-ico"><Info size={16} strokeWidth={1.8} /></span>
+		<span class="toast-ico"><Info size={18} strokeWidth={1.8} /></span>
 		<div class="toast-body">
 			<div class="toast-title">{m.dashboard_take_toast_title()}</div>
 			<p class="toast-desc">{toastMessage}</p>
@@ -674,508 +762,13 @@
 {/if}
 
 <style>
-	.page {
+	.greeting-line {
 		display: flex;
-		flex-direction: column;
-		gap: 14px;
-	}
-
-	/* ─── Take-shift confirm sheet ─── */
-	.confirm-shift {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-		padding: 4px 0 8px;
-	}
-	.confirm-row {
-		display: flex;
-		justify-content: space-between;
 		align-items: baseline;
-		gap: 12px;
-		font-size: 14px;
-	}
-	.confirm-label {
-		font-size: 11px;
-		font-weight: 600;
-		color: var(--text-subtle);
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-	}
-	.confirm-value {
-		text-align: right;
-		color: var(--text-primary);
-		font-weight: 500;
-	}
-
-	.status-strip {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		padding: 10px 14px;
-		text-decoration: none;
-		color: inherit;
-		background: var(--surface-1);
-		border: 1px solid var(--border-default);
-		border-radius: var(--radius-lg);
-	}
-	.ss-eyebrow {
-		font-family: var(--font-mono);
-		font-size: 9.5px;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		color: var(--text-subtle);
-	}
-	.ss-pill {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 3px 10px;
-		border-radius: 999px;
-		font-family: var(--font-mono);
-		font-size: 10.5px;
-		letter-spacing: 0.06em;
-		font-weight: 500;
-		background: var(--bg-2);
-		color: var(--text-muted);
-		border: 1px solid var(--border-default);
-	}
-	.ss-pill[data-tone='ok'] {
-		background: var(--ok-soft);
-		color: var(--ok-ink);
-		border-color: color-mix(in oklab, var(--ok) 30%, transparent);
-	}
-	.ss-pill[data-tone='warn'] {
-		background: var(--warn-soft);
-		color: var(--warn-ink);
-		border-color: color-mix(in oklab, var(--warn) 30%, transparent);
-	}
-	.ss-pill[data-tone='err'] {
-		background: var(--err-soft);
-		color: var(--err-ink);
-		border-color: color-mix(in oklab, var(--err) 30%, transparent);
-	}
-	.ss-pill[data-tone='accent'] {
-		background: var(--accent-soft);
-		color: var(--accent-ink);
-		border-color: var(--accent-line);
-	}
-	.ss-dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		background: currentColor;
-	}
-	.ss-spacer {
-		flex: 1;
-	}
-	.ss-meta {
-		font-family: var(--font-mono);
-		font-size: 10.5px;
-		color: var(--text-faint);
-		letter-spacing: 0.04em;
-	}
-
-	.banner {
-		display: flex;
-		gap: 12px;
-		align-items: flex-start;
-		padding: 12px 14px;
-		border-radius: var(--radius-lg);
-	}
-	.banner-warn {
-		background: var(--warn-soft);
-		border: 1px solid color-mix(in oklab, var(--warn) 30%, transparent);
-		color: var(--warn-ink);
-	}
-	.banner-muted {
-		background: var(--bg-1);
-		border: 1px dashed var(--border-strong);
-		color: var(--text-muted);
-	}
-	.banner-ico {
-		flex-shrink: 0;
-		display: grid;
-		place-items: center;
-		margin-top: 1px;
-	}
-	.banner-body {
-		flex: 1;
-		min-width: 0;
-	}
-	.banner-title {
-		font-size: 13.5px;
-		font-weight: 600;
-		letter-spacing: -0.01em;
-	}
-	.banner-desc {
-		margin: 2px 0 0;
-		font-size: 12.5px;
-		line-height: 1.5;
-	}
-	.banner-cid {
-		margin-left: 6px;
-		font-family: var(--font-mono);
-		font-size: 11px;
-		color: var(--text-faint);
-		letter-spacing: 0.04em;
-	}
-	.banner-x {
-		appearance: none;
-		border: 0;
-		background: transparent;
-		color: inherit;
-		opacity: 0.7;
-		cursor: pointer;
-		flex-shrink: 0;
-	}
-	.banner-x:hover {
-		opacity: 1;
-	}
-
-	.dash-section {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-	}
-	.section-eyebrow {
-		font-family: var(--font-mono);
-		font-size: 10px;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		color: var(--text-primary);
-		font-weight: 500;
-	}
-	.section-count {
-		color: var(--text-subtle);
-		font-weight: 400;
-	}
-	.section-desc {
-		margin: -4px 4px 4px;
-		font-size: 12px;
-		color: var(--text-subtle);
-		line-height: 1.45;
-	}
-
-	.shift-list {
-		display: grid;
-		gap: 8px;
-	}
-	.shift-row {
-		display: grid;
-		grid-template-columns: auto 1fr auto;
-		align-items: center;
-		gap: 12px;
-		padding: 12px 14px;
-		background: var(--surface-1);
-		border: 1px solid var(--border-default);
-		border-radius: var(--radius-lg);
-		transition:
-			border-color var(--dur-fast) var(--ease-out),
-			outline-color var(--dur-base) var(--ease-out);
-	}
-	.shift-row.borderline {
-		border-left: 3px solid color-mix(in oklab, var(--warn) 50%, transparent);
-	}
-	.shift-row.unmatched {
-		border-left: 3px solid color-mix(in oklab, var(--text-faint) 60%, transparent);
-		opacity: 0.92;
-	}
-	.shift-row.in-progress {
-		border-color: color-mix(in oklab, var(--ok) 40%, var(--border-default));
-	}
-	.shift-row.focused {
-		outline: 2px solid var(--accent);
-		outline-offset: 2px;
-	}
-	.shift-date {
-		flex-shrink: 0;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 0 12px 0 0;
-		min-width: 50px;
-		border-right: 1px solid var(--border-default);
-		margin-right: 2px;
-	}
-	.shift-date .dow {
-		font-family: var(--font-mono);
-		font-size: 9.5px;
-		letter-spacing: 0.14em;
-		color: var(--text-subtle);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.shift-date .day {
-		font-size: 15px;
-		font-weight: 600;
-		color: var(--text-primary);
-		font-variant-numeric: tabular-nums;
-		letter-spacing: -0.01em;
-		line-height: 1.2;
-		margin-top: 3px;
-	}
-	.shift-row.in-progress .shift-date .day {
-		color: var(--ok-ink);
-	}
-	.shift-body {
-		min-width: 0;
-	}
-	.shift-title {
-		font-size: 13.5px;
-		font-weight: 600;
-		letter-spacing: -0.01em;
-		color: var(--text-primary);
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		flex-wrap: wrap;
-	}
-	.shift-meta-row {
-		margin-top: 3px;
-		display: flex;
-		align-items: center;
 		gap: 8px;
 		flex-wrap: wrap;
-		font-size: 11.5px;
-		color: var(--text-muted);
-		font-variant-numeric: tabular-nums;
 	}
-	.time-range {
-		font-weight: 500;
-		color: var(--text-primary);
-		letter-spacing: 0.01em;
-	}
-	.time-dur {
-		color: var(--text-subtle);
-		font-size: 10.5px;
-		letter-spacing: 0.02em;
-	}
-	.chips-inline {
-		display: inline-flex;
-		gap: 5px;
-		flex-wrap: wrap;
-	}
-	.chip {
-		display: inline-flex;
-		align-items: center;
-		gap: 3px;
-		padding: 2px 8px;
-		border-radius: 999px;
-		font-size: 10.5px;
-		font-weight: 500;
-		letter-spacing: 0.01em;
-		line-height: 1.4;
-		font-variant-numeric: tabular-nums;
-		background: var(--bg-1);
-		color: var(--text-muted);
-		border: 1px solid var(--border-default);
-	}
-	.chip-bonus {
-		background: color-mix(in oklab, var(--accent) 10%, var(--bg-1));
-		color: var(--accent-ink);
-		border-color: color-mix(in oklab, var(--accent) 25%, transparent);
-	}
-	.chip-mp {
-		background: var(--bg-1);
-	}
-	.chip-type {
-		text-transform: uppercase;
-		font-family: var(--font-mono);
-		font-size: 9.5px;
-		letter-spacing: 0.08em;
-	}
-	.chip-reason {
-		background: color-mix(in oklab, var(--warn) 8%, var(--bg-1));
-		color: var(--warn-ink);
-		border-color: color-mix(in oklab, var(--warn) 25%, transparent);
-	}
-	.badge {
-		display: inline-flex;
-		align-items: center;
-		font-family: var(--font-mono);
-		font-size: 9.5px;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		padding: 2px 7px;
-		border-radius: 999px;
-		font-weight: 500;
-	}
-	.badge.ok {
-		background: var(--ok-soft);
-		color: var(--ok-ink);
-		border: 1px solid color-mix(in oklab, var(--ok) 30%, transparent);
-	}
-
-	.take-btn {
-		appearance: none;
-		flex-shrink: 0;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 0 12px;
-		height: 34px;
-		border-radius: 999px;
-		background: var(--accent);
-		color: #fff;
-		border: 0;
-		font-size: 12px;
-		font-weight: 600;
-		letter-spacing: -0.005em;
-		cursor: pointer;
-		transition: transform var(--dur-fast) var(--ease-out);
-		font-family: var(--font-sans);
-	}
-	.take-btn:active {
-		transform: scale(0.97);
-	}
-	.take-btn.ghost {
-		background: transparent;
-		color: var(--accent-ink);
-		border: 1px solid var(--accent-line);
-	}
-
-	.cal-btn {
-		appearance: none;
-		flex-shrink: 0;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 0 12px;
-		height: 34px;
-		border-radius: 999px;
-		background: transparent;
-		color: var(--accent-ink);
-		border: 1px solid var(--accent-line);
-		font-size: 12px;
-		font-weight: 600;
-		letter-spacing: -0.005em;
-		cursor: pointer;
-		text-decoration: none;
-		transition: transform var(--dur-fast) var(--ease-out);
-		font-family: var(--font-sans);
-	}
-	.cal-btn:active {
-		transform: scale(0.97);
-	}
-	@media (max-width: 420px) {
-		.cal-btn-label,
-		.take-btn span {
-			display: none;
-		}
-		.cal-btn,
-		.take-btn {
-			padding: 0;
-			width: 34px;
-			justify-content: center;
-		}
-	}
-
-	.borderline-section {
-		background: var(--surface-1);
-		border: 1px solid var(--border-default);
-		border-radius: var(--radius-lg);
-		padding: 12px 14px;
-		opacity: 0.9;
-	}
-	.borderline-section[open] {
-		opacity: 1;
-	}
-	.unmatched-section {
-		background: var(--bg-1);
-		border: 1px dashed var(--border-default);
-		opacity: 0.78;
-	}
-	.unmatched-section[open] {
-		opacity: 1;
-	}
-	.borderline-section[open] {
-		opacity: 1;
-	}
-	.borderline-section[open] summary .chev {
-		transform: rotate(90deg);
-	}
-	.borderline-section summary {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		cursor: pointer;
-		list-style: none;
-		color: var(--text-primary);
-	}
-	.borderline-section summary::-webkit-details-marker {
-		display: none;
-	}
-	.borderline-section .chev {
-		margin-left: auto;
-		color: var(--text-subtle);
-		display: inline-grid;
-		place-items: center;
-		transition: transform var(--dur-fast) var(--ease-out);
-	}
-
-	.toast {
-		position: fixed;
-		left: 16px;
-		right: 16px;
-		bottom: calc(env(safe-area-inset-bottom, 0) + 80px);
-		display: flex;
-		gap: 12px;
-		align-items: flex-start;
-		max-width: 480px;
-		margin: 0 auto;
-		padding: 14px 16px;
-		color: var(--text-primary);
-		background: var(--surface-1);
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius-lg);
-		box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.28);
-		z-index: 50;
-		animation: toast-in 220ms var(--ease-out);
-	}
-	.toast-ico {
-		flex-shrink: 0;
-		display: grid;
-		place-items: center;
-		margin-top: 1px;
-		color: var(--accent);
-	}
-	.toast-body {
+	.greeting-spacer {
 		flex: 1;
-		min-width: 0;
-	}
-	.toast-title {
-		font-size: 13.5px;
-		font-weight: 600;
-		letter-spacing: -0.01em;
-	}
-	.toast-desc {
-		margin: 3px 0 0;
-		font-size: 12.5px;
-		line-height: 1.5;
-		color: var(--text-muted);
-	}
-	.toast-x {
-		appearance: none;
-		border: 0;
-		background: transparent;
-		color: var(--text-subtle);
-		opacity: 0.7;
-		cursor: pointer;
-		flex-shrink: 0;
-		padding: 0;
-	}
-	.toast-x:hover {
-		opacity: 1;
-	}
-	@keyframes toast-in {
-		from {
-			opacity: 0;
-			transform: translateY(8px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
 	}
 </style>

@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [db, auth, admin, finance, flaschen, landing, bot]
+        app: [db, auth, admin, finance, flaschen, calorie, landing, bot]
     steps:
       - name: Delete :pr-${{ github.event.number }} from ghcr.io/nexo-suite/nexo-${{ matrix.app }}
         env:

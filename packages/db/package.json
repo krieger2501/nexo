@@ -5,8 +5,8 @@
 	"type": "module",
 	"exports": {
 		".": {
-			"types": "./dist/src/index.d.ts",
-			"default": "./dist/src/index.js"
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
 		}
 	},
 	"files": [
@@ -14,15 +14,13 @@
 		"package.json"
 	],
 	"scripts": {
-		"build": "tsc -p tsconfig.build.json && cp -r migrations dist/migrations",
-		"clean": "rm -rf dist",
+		"build": "tsdown && cp -r migrations dist/migrations",
+		"clean": "del dist",
 		"db:generate": "dotenv -e ../../.env.local -e ../../.env -- drizzle-kit generate",
 		"db:migrate": "dotenv -e ../../.env.local -e ../../.env -- drizzle-kit migrate",
 		"db:studio": "dotenv -e ../../.env.local -e ../../.env -- drizzle-kit studio",
-		"lint": "eslint .",
-		"lint:fix": "eslint . --fix",
-		"qc": "run-s lint type:check build",
-		"type:check": "tsc --noEmit"
+		"qc": "run-s type:check build",
+		"type:check": "tsgo --noEmit"
 	},
 	"dependencies": {
 		"drizzle-orm": "catalog:",

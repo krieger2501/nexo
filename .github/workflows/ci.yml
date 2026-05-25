@@ -34,7 +34,7 @@ jobs:
       - name: Check package.json sort order
         run: pnpm package:check
 
-      - name: Check formatting (prettier)
+      - name: Check formatting (oxfmt)
         run: pnpm format:check
 
       - name: Sync SvelteKit types
@@ -49,7 +49,7 @@ jobs:
       - name: Find dead code (knip)
         run: pnpm knip
 
-      - name: Lint (eslint)
+      - name: Lint (oxlint + svelte)
         run: pnpm lint
 
       - name: Type check (svelte-check / tsc)
@@ -215,6 +215,7 @@ jobs:
           APP_VERSION_ADMIN: ${{ fromJSON(needs.release-please.outputs.versions_json).admin }}
           APP_VERSION_FINANCE: ${{ fromJSON(needs.release-please.outputs.versions_json).finance }}
           APP_VERSION_FLASCHEN: ${{ fromJSON(needs.release-please.outputs.versions_json).flaschen }}
+          APP_VERSION_CALORIE: ${{ fromJSON(needs.release-please.outputs.versions_json).calorie }}
           APP_VERSION_LANDING: ${{ fromJSON(needs.release-please.outputs.versions_json).landing }}
           APP_VERSION_BOT: ${{ fromJSON(needs.release-please.outputs.versions_json).bot }}
           APP_COMMIT: ${{ github.sha }}
