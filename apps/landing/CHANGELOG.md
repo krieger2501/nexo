@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/nexo-suite/nexo/compare/landing-v0.8.0...landing-v0.9.0) (2026-05-27)
+
+
+### Features
+
+* **deploy:** version pinning, cleaner logs, rollback section, GH environments + summary ([0df227e](https://github.com/nexo-suite/nexo/commit/0df227e1280e3651c9e8e7e16fb6bd6b0ffcc6eb))
+
 ## [0.8.0](https://github.com/nexo-suite/nexo/compare/landing-v0.7.0...landing-v0.8.0) (2026-05-27)
 
 

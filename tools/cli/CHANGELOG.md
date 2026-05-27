@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/nexo-suite/nexo/compare/cli-v0.4.1...cli-v0.5.0) (2026-05-27)
+
+
+### Features
+
+* **deploy:** version pinning, cleaner logs, rollback section, GH environments + summary ([0df227e](https://github.com/nexo-suite/nexo/commit/0df227e1280e3651c9e8e7e16fb6bd6b0ffcc6eb))
+
 ## [0.4.1](https://github.com/nexo-suite/nexo/compare/cli-v0.4.0...cli-v0.4.1) (2026-05-27)
 
 
