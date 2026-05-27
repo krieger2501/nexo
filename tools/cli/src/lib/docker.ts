@@ -62,16 +62,9 @@ export function bakeBuild(opts: {
 }
 
 // Registry-side manifest copy. No layer pull/push — fast, even for multi-arch
-// images. Used for the PR-merged-to-main retag and the release-please retag.
-export function imagetoolsCreate(source: string, targets: readonly string[]): void {
-	const args: string[] = ['buildx', 'imagetools', 'create'];
-	for (const t of targets) args.push('--tag', t);
-	args.push(source);
-	run('docker', args);
-}
-
-// Async sibling of `imagetoolsCreate`. Each call is a registry round-trip,
-// so awaiting several at once with `Promise.all` collapses ~N×latency into 1×.
+// images. Each call is a registry round-trip; run several with Promise.all to
+// collapse N× latency into 1×. Used for the PR-merged-to-main retag and the
+// release-please retag.
 export async function imagetoolsCreateAsync(
 	source: string,
 	targets: readonly string[]
