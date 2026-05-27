@@ -2,7 +2,7 @@
 
 A self-hosted personal app suite delivered as individual PWAs. Each app installs independently on your iPhone home screen. One login, one server, one database.
 
-Built and run by [Kevin Rieger](https://github.com/krieger2501) for friends & family on a single €5/mo VPS.
+Built and run by [Kevin](https://github.com/krieger2501) for friends & family on a single €5/mo VPS.
 
 **Live:** [krieger2501.de](https://krieger2501.de) · Auth: `auth.krieger2501.de` · Finance: `finance.krieger2501.de` · Calorie: `calorie.krieger2501.de`
 
