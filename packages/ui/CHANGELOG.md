@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.0](https://github.com/nexo-suite/nexo/compare/ui-v0.8.0...ui-v0.9.0) (2026-05-27)
+
+
+### Features
+
+* **calorie:** inline add panel, custom foods, OFF localization & cleanup ([b4be417](https://github.com/nexo-suite/nexo/commit/b4be417a83c49f7977796ed77885cd642a9d5cc1))
+
+
+### Bug Fixes
+
+* **calorie:** tighter OFF timeout, sheet not hidden by bottom nav, more explanatory create-food sheet ([0ade8e3](https://github.com/nexo-suite/nexo/commit/0ade8e3bba1ec0db6d3a0e80e6b6ae9db2b6b2ca))
+* **ui:** BottomSheet click-race + self-canceling close timer ([ae62f93](https://github.com/nexo-suite/nexo/commit/ae62f93b9df21d22ff4ed398f6e8e48d3f31715e))
+* **ui:** portal BottomSheet to body + clearer macro list in CreateFoodSheet ([a94f4e7](https://github.com/nexo-suite/nexo/commit/a94f4e7fc8ce3c1db90e9085e4096a505e3ae3bf))
+
 ## [0.8.0](https://github.com/nexo-suite/nexo/compare/ui-v0.7.0...ui-v0.8.0) (2026-05-25)
 
 

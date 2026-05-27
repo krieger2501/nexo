@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.0](https://github.com/nexo-suite/nexo/compare/landing-v0.7.0...landing-v0.8.0) (2026-05-27)
+
+
+### Features
+
+* **calorie:** inline add panel, custom foods, OFF localization & cleanup ([b4be417](https://github.com/nexo-suite/nexo/commit/b4be417a83c49f7977796ed77885cd642a9d5cc1))
+* **landing,auth:** self-host Inter Variable + JetBrains Mono ([f9c6b15](https://github.com/nexo-suite/nexo/commit/f9c6b15038d71395a4cbbe79ce0e93382fe61ed8))
+* **landing:** EU compliance — Impressum, Datenschutz, noindex ([dcb8b9e](https://github.com/nexo-suite/nexo/commit/dcb8b9e1c902d5da563433a77a38d155150033a9))
+
 ## [0.7.0](https://github.com/nexo-suite/nexo/compare/landing-v0.6.0...landing-v0.7.0) (2026-05-25)
 
 

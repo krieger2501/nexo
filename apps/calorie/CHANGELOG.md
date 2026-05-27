@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0](https://github.com/nexo-suite/nexo/compare/calorie-v0.2.0...calorie-v0.3.0) (2026-05-27)
+
+
+### Features
+
+* **calorie:** fiber in macro→kcal estimate + fiber/sugar in detail pane ([5c087c3](https://github.com/nexo-suite/nexo/commit/5c087c3ef2d10328e0788a7cb9dd6e26e6a35448))
+* **calorie:** fill in fiber + sugar across all 50 seed foods ([be242eb](https://github.com/nexo-suite/nexo/commit/be242eb1bbec5e968ab1109c1b63c5c2df3015f2))
+* **calorie:** inline add panel, custom foods, OFF localization & cleanup ([b4be417](https://github.com/nexo-suite/nexo/commit/b4be417a83c49f7977796ed77885cd642a9d5cc1))
+* **calorie:** remaining i18n keys + minor code cleanup ([9552888](https://github.com/nexo-suite/nexo/commit/9552888ed4e8f4bd0aadc731fa3493d44525dda9))
+* **calorie:** saved meals fix, progressive search, date-strip polish ([3044d1d](https://github.com/nexo-suite/nexo/commit/3044d1d4b7d04fdf882da2e4a0ab81502ffac9cc))
+* **calorie:** tier-aware CreateFoodSheet — only ask for what user tracks ([5714368](https://github.com/nexo-suite/nexo/commit/5714368ad25fe1e26c1fb8207e8cb4ef60a86090))
+* **calorie:** weight tracking page, history overhaul, i18n ([43e7f22](https://github.com/nexo-suite/nexo/commit/43e7f228c3ad3d629334c7f2c25d6ecc7cc4cb07))
+
+
+### Bug Fixes
+
+* **calorie:** tighter OFF timeout, sheet not hidden by bottom nav, more explanatory create-food sheet ([0ade8e3](https://github.com/nexo-suite/nexo/commit/0ade8e3bba1ec0db6d3a0e80e6b6ae9db2b6b2ca))
+* **ui:** portal BottomSheet to body + clearer macro list in CreateFoodSheet ([a94f4e7](https://github.com/nexo-suite/nexo/commit/a94f4e7fc8ce3c1db90e9085e4096a505e3ae3bf))
+
 ## [0.2.0](https://github.com/nexo-suite/nexo/compare/calorie-v0.1.0...calorie-v0.2.0) (2026-05-25)
 
 

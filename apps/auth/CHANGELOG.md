@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/nexo-suite/nexo/compare/auth-v0.8.0...auth-v0.9.0) (2026-05-27)
+
+
+### Features
+
+* **calorie:** inline add panel, custom foods, OFF localization & cleanup ([b4be417](https://github.com/nexo-suite/nexo/commit/b4be417a83c49f7977796ed77885cd642a9d5cc1))
+* **landing,auth:** self-host Inter Variable + JetBrains Mono ([f9c6b15](https://github.com/nexo-suite/nexo/commit/f9c6b15038d71395a4cbbe79ce0e93382fe61ed8))
+
 ## [0.8.0](https://github.com/nexo-suite/nexo/compare/auth-v0.7.0...auth-v0.8.0) (2026-05-25)
 
 
