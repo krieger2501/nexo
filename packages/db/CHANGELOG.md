@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/nexo-suite/nexo/compare/db-v0.8.0...db-v0.9.0) (2026-05-27)
+
+
+### Features
+
+* **calorie:** inline add panel, custom foods, OFF localization & cleanup ([b4be417](https://github.com/nexo-suite/nexo/commit/b4be417a83c49f7977796ed77885cd642a9d5cc1))
+* **calorie:** weight tracking page, history overhaul, i18n ([43e7f22](https://github.com/nexo-suite/nexo/commit/43e7f228c3ad3d629334c7f2c25d6ecc7cc4cb07))
+
 ## [0.8.0](https://github.com/nexo-suite/nexo/compare/db-v0.7.0...db-v0.8.0) (2026-05-25)
 
 

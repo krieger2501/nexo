@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/nexo-suite/nexo/compare/cli-v0.3.0...cli-v0.4.0) (2026-05-27)
+
+
+### Features
+
+* **calorie:** inline add panel, custom foods, OFF localization & cleanup ([b4be417](https://github.com/nexo-suite/nexo/commit/b4be417a83c49f7977796ed77885cd642a9d5cc1))
+
 ## [0.3.0](https://github.com/nexo-suite/nexo/compare/cli-v0.2.0...cli-v0.3.0) (2026-05-25)
 
 
