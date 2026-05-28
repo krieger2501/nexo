@@ -20,7 +20,7 @@ interface BarcodeDetectorCtor {
 }
 
 const BARCODE_FORMATS_NATIVE = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
-const BARCODE_FORMATS_ZXING = ['EAN-13', 'EAN-8', 'UPC-A', 'UPC-E'];
+const BARCODE_FORMATS_ZXING = ['EAN13', 'EAN8', 'UPCA', 'UPCE'];
 
 export async function makeDecoder(): Promise<DecodeFn> {
 	const native = (globalThis as unknown as { BarcodeDetector?: BarcodeDetectorCtor })
