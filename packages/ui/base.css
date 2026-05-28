@@ -13,6 +13,11 @@ body {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	text-rendering: optimizeLegibility;
+	/* PWAs are app-shells, not documents — horizontal scroll and rubber-band
+	   back-swipe gestures should never trigger. Lock both on html and body
+	   because mobile browsers scroll either depending on context. */
+	overflow-x: hidden;
+	overscroll-behavior-x: none;
 }
 
 body {
@@ -22,7 +27,6 @@ body {
 	   and `position: fixed; bottom: 0` (BottomNav) anchors to body bottom rather
 	   than the viewport, leaving a gap until first scroll. 100vh stays stable. */
 	min-height: 100vh;
-	overflow-x: hidden;
 }
 
 button {

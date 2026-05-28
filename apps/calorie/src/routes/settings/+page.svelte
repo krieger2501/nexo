@@ -485,13 +485,20 @@
 	.tier-opt {
 		all: unset;
 		flex: 1;
+		min-width: 0;
 		text-align: center;
-		padding: 9px 12px;
+		padding: 9px 8px;
 		border-radius: 10px;
 		font-size: 13px;
+		line-height: 1.2;
 		color: var(--color-text-muted);
 		cursor: pointer;
 		transition: all 160ms;
+		/* `min-width: 0` lets flex shrink below intrinsic content width; the
+		   wrap rules below let multi-word labels (e.g. "Arayüzle aynı",
+		   "Wie die App") break instead of pushing the row past the viewport. */
+		white-space: normal;
+		overflow-wrap: anywhere;
 	}
 
 	.tier-opt.on {
