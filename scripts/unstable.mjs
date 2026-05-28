@@ -20,17 +20,20 @@
 //   FINANCE_UNSTABLE_TAG=pr-123
 //   AUTH_UNSTABLE_TAG=pr-127
 
-import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { compose, composeBest, logSection, waitForServices } from './lib/compose.mjs';
 
 const ENV_FILE = '.env.unstable';
+const PROFILE_FLAGS = ['--profile', 'unstable'];
+const ENV_FILE_ARGS = ['--env-file', '.env', '--env-file', ENV_FILE];
+const HEALTH_BUDGET_SECONDS = 60;
 
 const UNSTABLE_APPS = new Set(['auth', 'admin', 'finance', 'flaschen', 'calorie', 'landing']);
 
 const [, , action, ...rest] = process.argv;
 
 main().catch((err) => {
-	console.error(`✗ ${err.message ?? err}`);
+	console.error(`\n✗ ${err.message ?? err}`);
 	process.exit(1);
 });
 
@@ -42,7 +45,7 @@ async function main() {
 			const [service, pr] = rest;
 			assertService(service);
 			assertPr(pr);
-			up(service, pr);
+			await up(service, pr);
 			break;
 		}
 		case 'down': {
@@ -51,8 +54,7 @@ async function main() {
 			// pr is informational here (kept for symmetry / logging); we don't
 			// gate on it because a "down" from any source should remove the
 			// container regardless of which PR last brought it up.
-			down(service);
-			if (pr) console.log(`(was pinned to ${pr})`);
+			down(service, pr);
 			break;
 		}
 		case 'down-all-for-pr': {
@@ -70,44 +72,54 @@ async function main() {
 	}
 }
 
-function up(service, pr) {
+async function up(service, pr) {
 	const tag = `pr-${pr}`;
+	const composeService = `${service}_unstable`;
 	const previous = readEnv()[envKey(service)] ?? null;
 
-	console.log(`📌 Pinning ${service}_unstable to ${tag}`);
+	logSection(`1/3  Pin ${composeService} → ${tag}`);
 	writeEnv({ ...readEnv(), [envKey(service)]: tag });
+	console.log(`  ${envKey(service)}=${tag}`);
 
-	console.log(`⬇️  Pulling ${service}_unstable`);
-	compose(['--profile', 'unstable', 'pull', `${service}_unstable`]);
+	logSection(`2/3  Pull + start ${composeService}`);
+	compose([...PROFILE_FLAGS, ...ENV_FILE_ARGS, 'pull', '--quiet', composeService]);
+	compose([...PROFILE_FLAGS, ...ENV_FILE_ARGS, 'up', '-d', composeService]);
 
-	console.log(`🚀 Starting ${service}_unstable`);
-	compose(['--profile', 'unstable', 'up', '-d', `${service}_unstable`]);
-
-	console.log('⏳ Waiting 15s for healthcheck');
-	sleepSync(15_000);
-
-	const healthy = healthcheckContainer(`${service}_unstable`);
-	if (!healthy) {
-		console.error('🚨 Healthcheck failed — tearing down and reverting pin');
-		compose(['--profile', 'unstable', 'rm', '-sf', `${service}_unstable`]);
+	logSection(`3/3  Service health  (budget: ${HEALTH_BUDGET_SECONDS}s)`);
+	const specs = [{ service: composeService, kind: 'longrun', critical: true }];
+	const result = await waitForServices(specs, PROFILE_FLAGS, HEALTH_BUDGET_SECONDS);
+	if (!result.ok) {
+		console.error(`\n✗ ${composeService}: ${result.reason}`);
+		composeBest([
+			...PROFILE_FLAGS,
+			...ENV_FILE_ARGS,
+			'logs',
+			'--tail',
+			'30',
+			'--no-color',
+			composeService
+		]);
+		composeBest([...PROFILE_FLAGS, ...ENV_FILE_ARGS, 'rm', '-sf', composeService]);
 		const env = readEnv();
 		if (previous === null) delete env[envKey(service)];
 		else env[envKey(service)] = previous;
 		writeEnv(env);
-		throw new Error(`${service}_unstable failed healthcheck`);
+		throw new Error(`${composeService} failed healthcheck`);
 	}
-	console.log(`✅ ${service}_unstable up on ${tag}`);
+
+	logSection(`✅ ${composeService} up on ${tag}`);
 }
 
-function down(service) {
-	console.log(`🛑 Stopping ${service}_unstable`);
-	composeBest(['--profile', 'unstable', 'rm', '-sf', `${service}_unstable`]);
+function down(service, pr) {
+	const composeService = `${service}_unstable`;
+	logSection(`Stopping ${composeService}${pr ? ` (was pinned to pr-${pr})` : ''}`);
+	composeBest([...PROFILE_FLAGS, ...ENV_FILE_ARGS, 'rm', '-sf', composeService]);
 	const env = readEnv();
 	if (envKey(service) in env) {
 		delete env[envKey(service)];
 		writeEnv(env);
 	}
-	console.log(`✅ ${service}_unstable down`);
+	console.log(`  ✅ ${composeService} down`);
 }
 
 function downAllForPr(pr) {
@@ -123,32 +135,16 @@ function downAllForPr(pr) {
 		console.log(`(no unstable containers pinned to ${tag})`);
 		return;
 	}
-	console.log(
-		`🛑 Tearing down ${services.length} container(s) pinned to ${tag}: ${services.join(', ')}`
-	);
-	for (const service of services) down(service);
+	logSection(`Tearing down ${services.length} container(s) pinned to ${tag}`);
+	console.log(`  ${services.join(', ')}`);
+	for (const service of services) down(service, pr);
 }
 
 function downAll() {
-	console.log('🧹 Stopping every _unstable container');
-	composeBest(['--profile', 'unstable', 'down', '--remove-orphans']);
+	logSection('Stopping every _unstable container');
+	composeBest([...PROFILE_FLAGS, ...ENV_FILE_ARGS, 'down', '--remove-orphans']);
 	writeFileSync(ENV_FILE, '');
-	console.log('✅ All unstable instances cleared');
-}
-
-function healthcheckContainer(container) {
-	// Use the container's own healthcheck status. Compose `ps` with the
-	// status filter avoids needing to know which port the container exposes.
-	const result = run('docker', ['inspect', '--format={{.State.Health.Status}}', container], {
-		silent: true
-	});
-	if (result.status !== 0) {
-		console.error(`docker inspect ${container} failed`);
-		return false;
-	}
-	const status = (result.stdout ?? '').trim();
-	console.log(`Health status: ${status}`);
-	return status === 'healthy' || status === 'starting'; // starting is acceptable for slow-booting apps
+	console.log('  ✅ All unstable instances cleared');
 }
 
 // ── env-file helpers ───────────────────────────────────────────────────────
@@ -186,47 +182,6 @@ function serviceFromKey(key) {
 	if (!match) return null;
 	const service = match[1].toLowerCase();
 	return UNSTABLE_APPS.has(service) ? service : null;
-}
-
-// ── compose helpers ────────────────────────────────────────────────────────
-
-function compose(args) {
-	run(
-		'docker',
-		['compose', '-f', 'docker-compose.yml', '--env-file', '.env', '--env-file', ENV_FILE, ...args],
-		{
-			throwOnError: true
-		}
-	);
-}
-
-function composeBest(args) {
-	run(
-		'docker',
-		['compose', '-f', 'docker-compose.yml', '--env-file', '.env', '--env-file', ENV_FILE, ...args],
-		{
-			throwOnError: false
-		}
-	);
-}
-
-function run(cmd, args, opts = {}) {
-	const result = spawnSync(cmd, args, {
-		stdio: opts.silent ? 'pipe' : 'inherit',
-		env: process.env,
-		encoding: 'utf8'
-	});
-	if (opts.throwOnError && result.status !== 0) {
-		throw new Error(`${cmd} ${args.join(' ')} exited with status ${result.status}`);
-	}
-	return result;
-}
-
-function sleepSync(ms) {
-	const end = Date.now() + ms;
-	while (Date.now() < end) {
-		spawnSync('sleep', ['0.1']);
-	}
 }
 
 // ── validation ─────────────────────────────────────────────────────────────
