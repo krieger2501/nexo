@@ -76,7 +76,7 @@ export function renderComment(ctx: RenderContext): string {
 		'',
 		...checkboxes,
 		'',
-		'To opt in as a viewer: open the app\'s settings → Diagnostics → "Use unstable when available". Untick to go back.',
+		'To opt in as a viewer: open the app\'s settings → Diagnostics → "Use unstable build of this app when available". The cookie is scoped to that subdomain, so toggle each app separately. Untick to go back.',
 		'',
 		'> Auto-clears on PR close and after every production release deploy.'
 	].join('\n');

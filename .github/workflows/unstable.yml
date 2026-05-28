@@ -42,21 +42,9 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: ACTION,SERVICE,PR_NUMBER
-          script: |
-            set -e
-            cd /home/deploy/nexo
-            case "$ACTION" in
-              up|down)
-                node scripts/unstable.mjs "$ACTION" "$SERVICE" "$PR_NUMBER"
-                ;;
-              down-all-for-pr)
-                node scripts/unstable.mjs "$ACTION" "$PR_NUMBER"
-                ;;
-              down-all)
-                node scripts/unstable.mjs "$ACTION"
-                ;;
-              *)
-                echo "Unknown action: $ACTION" >&2
-                exit 1
-                ;;
-            esac
+          # Dispatch + per-action validation lives in scripts/unstable.mjs;
+          # the script accepts all three positional args every time and
+          # ignores empties for the variants that don't need them. No `case`,
+          # no `set -e` — script_stop gives us the same fail-fast behaviour.
+          script_stop: true
+          script: cd /home/deploy/nexo && node scripts/unstable.mjs "$ACTION" "$SERVICE" "$PR_NUMBER"

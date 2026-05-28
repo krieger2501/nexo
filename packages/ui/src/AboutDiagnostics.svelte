@@ -80,12 +80,14 @@
 	function toggleUnstable(next: boolean) {
 		if (typeof document === 'undefined') return;
 		useUnstable = next;
-		const onKriegerHost = location.hostname.endsWith('krieger2501.de');
-		const domain = onKriegerHost ? '; domain=.krieger2501.de' : '';
+		// No `domain=` attribute → cookie scopes to the exact host that set it,
+		// so toggling on `calorie.krieger2501.de` only routes calorie to the
+		// unstable upstream. Caddy's per-vhost matchers already only see cookies
+		// sent to that vhost, so no Caddy change is needed.
 		const secure = location.protocol === 'https:' ? '; secure' : '';
 		const value = next ? '1' : '0';
 		const maxAge = next ? 'max-age=2592000' : 'max-age=0';
-		document.cookie = `${UNSTABLE_COOKIE}=${value}; path=/${domain}; ${maxAge}${secure}; samesite=lax`;
+		document.cookie = `${UNSTABLE_COOKIE}=${value}; path=/; ${maxAge}${secure}; samesite=lax`;
 		location.reload();
 	}
 
@@ -206,10 +208,11 @@
 				onchange={(e) => toggleUnstable((e.currentTarget as HTMLInputElement).checked)}
 			/>
 			<span class="ad-toggle-text">
-				<span class="ad-toggle-label">Use unstable build when available</span>
+				<span class="ad-toggle-label">Use unstable build of this app when available</span>
 				<span class="ad-toggle-desc">
-					Routes you to the per-PR <code>:pr-&lt;n&gt;</code> container if a maintainer has it pinned.
-					Falls back to stable when no unstable instance is running.
+					Routes <em>only this app</em> to its per-PR <code>:pr-&lt;n&gt;</code> container if a maintainer
+					has it pinned. Falls back to stable when no unstable instance is running. Toggle each app
+					separately.
 				</span>
 			</span>
 		</label>
