@@ -12,36 +12,29 @@ jobs:
   delete-pr-images:
     # Merged PRs are kept: their :pr-NN image is the source the main push retags
     # as :main / :main-<sha> via `imagetools create`. Deleting it could orphan
-    # blobs the new manifest references.
+    # blobs the new manifest references. Merged tags age out organically — the
+    # repo is public, GHCR storage is free, and the namespace cost is small.
     if: github.event.pull_request.merged == false
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        app: [db, auth, admin, finance, flaschen, calorie, landing, bot]
     steps:
-      - name: Delete :pr-${{ github.event.number }} from ghcr.io/nexo-suite/nexo-${{ matrix.app }}
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.0
+        env:
+          PNPM_HOME: ${{ runner.temp }}/pnpm
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.0.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Delete :pr-${{ github.event.number }} across all packages
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUM: ${{ github.event.number }}
-          PKG: nexo-${{ matrix.app }}
-        run: |
-          set -e
-          # Find any package version whose tag list contains pr-<num>, then delete it.
-          # The tag → version mapping is what GHCR exposes; deleting the version
-          # untags it and reclaims the storage.
-          version_ids=$(gh api --paginate \
-            "/orgs/nexo-suite/packages/container/${PKG}/versions?per_page=100" \
-            --jq ".[] | select(.metadata.container.tags | index(\"pr-${PR_NUM}\")) | .id" \
-            || true)
-
-          if [ -z "$version_ids" ]; then
-            echo "No pr-${PR_NUM} image found for ${PKG} — nothing to clean up."
-            exit 0
-          fi
-
-          for id in $version_ids; do
-            echo "Deleting ${PKG} version ${id} (tagged pr-${PR_NUM})"
-            gh api --method DELETE \
-              "/orgs/nexo-suite/packages/container/${PKG}/versions/${id}"
-          done
+        run: pnpm exec nexo prune-pr-images --pr ${{ github.event.number }}

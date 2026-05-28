@@ -141,7 +141,10 @@ export function registerWebhooks(webhooks: Webhooks, env: Env): void {
 		ownerLogin: string,
 		tag: string
 	) {
-		if (packageType !== 'container') return;
+		// GitHub's `package` webhook sends `package_type: "CONTAINER"` on the
+		// wire (uppercase) even though Octokit's TS types claim lowercase.
+		// Normalize before comparing so events aren't silently dropped.
+		if (packageType.toLowerCase() !== 'container') return;
 		if (ownerLogin.toLowerCase() !== env.owner.toLowerCase()) return;
 		if (!pkgName.startsWith('nexo-')) return;
 		const app = pkgName.slice('nexo-'.length);
@@ -212,29 +215,68 @@ export function registerWebhooks(webhooks: Webhooks, env: Env): void {
 		// corresponding sticky comment.
 		if (!path.endsWith(UNSTABLE_WORKFLOW_PATH_SUFFIX)) return;
 		const title = payload.workflow_run.display_title ?? '';
-		const m = title.match(/PR #(\d+)/);
+		// Run-name shape (set by .github/workflows/unstable.yml):
+		//   "Unstable · PR #<n> · <service> · <action>"
+		// where action ∈ {up, down, down-all-for-pr, down-all}. service is empty
+		// for down-all*; the regex uses \S* to capture it as the empty string in
+		// that case so the parse still succeeds.
+		const m = title.match(/^Unstable · PR #(\d+) · (\S*) · (up|down|down-all-for-pr|down-all)/);
 		if (!m) return;
 		const prNumber = Number(m[1]);
+		const rawService = m[2];
+		const action = m[3] as 'up' | 'down' | 'down-all-for-pr' | 'down-all';
+		const service =
+			rawService && (UNSTABLE_APPS as readonly string[]).includes(rawService)
+				? (rawService as UnstableApp)
+				: null;
 		const conclusion = payload.workflow_run.conclusion;
 		const runUrl = payload.workflow_run.html_url;
 
 		await withPRLock(prNumber, async () => {
 			const state = getPRState(prNumber);
 			if (!state) return;
-			if (conclusion !== 'success') {
-				try {
-					const octokit = await getInstallationOctokit(env);
-					// Surface the failure as a notice on the sticky and revert the
-					// activity hint so the comment shows untruck → unticked. The
-					// next successful reconcile clears the notice.
-					state.notice = `Unstable workflow failed: [${title}](${runUrl}). Re-tick to retry.`;
-					for (const app of UNSTABLE_APPS) delete state.activity[app];
+			try {
+				const octokit = await getInstallationOctokit(env);
+				if (conclusion === 'success') {
+					// On `up` success, attach the workflow's html_url to activity so
+					// the sticky's "running since … ([logs](…))" link resolves. Other
+					// actions just clear any stale failure notice.
+					if (action === 'up' && service) {
+						const prev = state.activity[service];
+						state.activity[service] = {
+							sinceMs: prev?.sinceMs ?? Date.now(),
+							runUrl
+						};
+					}
+					if (state.notice) state.notice = undefined;
 					setPRState(state);
 					const body = renderComment({ state, otherPRPins: {} });
 					await upsertStickyComment(octokit, env, state, body);
-				} catch (e) {
-					logger.error('failed to post unstable failure', { prNumber, error: String(e) });
+					return;
 				}
+
+				// Failure path. Surface the run as a notice on the sticky and revert
+				// the affected app(s) so the user can retry.
+				state.notice = `Unstable workflow failed: [${title}](${runUrl}). Re-tick to retry.`;
+				if (action === 'down-all' || action === 'down-all-for-pr') {
+					for (const app of UNSTABLE_APPS) delete state.activity[app];
+				} else if (service) {
+					delete state.activity[service];
+					// Only `up` failures should untick — on `down` the user already
+					// asked for "off"; flipping intent on would falsely claim running.
+					if (action === 'up') state.intent[service] = false;
+				}
+				setPRState(state);
+				const body = renderComment({ state, otherPRPins: {} });
+				await upsertStickyComment(octokit, env, state, body);
+			} catch (e) {
+				logger.error('failed to handle unstable workflow_run', {
+					prNumber,
+					action,
+					service,
+					conclusion,
+					error: String(e)
+				});
 			}
 		});
 	});

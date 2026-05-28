@@ -10,7 +10,11 @@ import { setPRState, UNSTABLE_APPS, type PRState, type UnstableApp } from './sta
 
 const logger = createLogger('bot');
 const GH_API_VERSION = '2022-11-28';
-const UNSTABLE_WORKFLOW = 'unstable.yml';
+// Numeric workflow id for `.github/workflows/unstable.yml`. GitHub deprecated
+// the filename form of the dispatches path; the numeric id is stable for the
+// lifetime of the file (only changes if the file is deleted and re-created).
+// Verify with `gh workflow list` — the row labelled "Unstable Instance".
+const UNSTABLE_WORKFLOW_ID = 282047999;
 
 export type Env = {
 	// GitHub App's Client ID string (e.g. `Iv23li…`). Per the @octokit/auth-app
@@ -148,7 +152,7 @@ export async function dispatchUnstable(
 	await octokit.actions.createWorkflowDispatch({
 		owner: env.owner,
 		repo: env.repo,
-		workflow_id: UNSTABLE_WORKFLOW,
+		workflow_id: UNSTABLE_WORKFLOW_ID,
 		ref: 'main',
 		inputs: {
 			action,

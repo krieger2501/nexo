@@ -30,7 +30,11 @@ const HEALTH_BUDGET_SECONDS = 60;
 
 const UNSTABLE_APPS = new Set(['auth', 'admin', 'finance', 'flaschen', 'calorie', 'landing']);
 
-const [, , action, ...rest] = process.argv;
+// Always-three-positional-args invocation shape: action, service, pr.
+// Variants that don't need a field (down-all-for-pr ignores service; down-all
+// ignores both) just receive empty strings — the per-action branch validates
+// only what it needs. This keeps the YAML caller a one-liner with no `case`.
+const [, , action = '', service = '', pr = ''] = process.argv;
 
 main().catch((err) => {
 	console.error(`\n✗ ${err.message ?? err}`);
@@ -42,14 +46,12 @@ async function main() {
 
 	switch (action) {
 		case 'up': {
-			const [service, pr] = rest;
 			assertService(service);
 			assertPr(pr);
 			await up(service, pr);
 			break;
 		}
 		case 'down': {
-			const [service, pr] = rest;
 			assertService(service);
 			// pr is informational here (kept for symmetry / logging); we don't
 			// gate on it because a "down" from any source should remove the
@@ -58,7 +60,6 @@ async function main() {
 			break;
 		}
 		case 'down-all-for-pr': {
-			const [pr] = rest;
 			assertPr(pr);
 			downAllForPr(pr);
 			break;
@@ -68,7 +69,7 @@ async function main() {
 			break;
 		}
 		default:
-			throw new Error(`unknown action: ${action ?? '(none)'}`);
+			throw new Error(`unknown action: ${action || '(none)'}`);
 	}
 }
 

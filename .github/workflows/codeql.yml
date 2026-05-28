@@ -1,0 +1,60 @@
+name: CodeQL
+
+# Advanced Setup. Replaces the GitHub-managed Default Setup once you flip the
+# toggle at Settings → Code security → CodeQL analysis → "Advanced".
+#
+# Scope: javascript-typescript covers every SvelteKit app, the @nexo/bot
+# Node service, the @nexo/cli build tooling, every package under packages/,
+# and the inline scripts in scripts/. No GitHub Actions analysis (own queries
+# pin actions and we read PRs by API, not from action inputs); no other
+# languages in the repo.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Mondays at 06:17 UTC — off-peak, off the :00/:30 marks where everyone
+    # else's crons land. Catches advisories landed since the last push.
+    - cron: '17 6 * * 1'
+
+# Cancel in-flight runs for the same ref. PR pushes shouldn't queue up; the
+# weekly cron has its own ref so it won't be cancelled by a push to main.
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions: {}
+
+jobs:
+  analyze:
+    name: Analyze (javascript-typescript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      # Tightest set that satisfies github/codeql-action/analyze@v3.
+      security-events: write
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4.36.0
+        with:
+          languages: javascript-typescript
+          # security-extended ≈ security-and-quality minus the noisy quality
+          # rules. Recommended for security-focused repos. Switch to
+          # security-and-quality if you want lint-style findings too.
+          queries: security-extended
+          # No custom build needed — CodeQL extracts JS/TS from source.
+          build-mode: none
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4.36.0
+        with:
+          category: '/language:javascript-typescript'

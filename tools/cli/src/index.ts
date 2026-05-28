@@ -9,6 +9,8 @@ import { promote } from './commands/promote.ts';
 import { ciInit } from './commands/ci-init.ts';
 import { collectVersions } from './commands/collect-versions.ts';
 import { deploySummary, type DeploySummaryOpts } from './commands/deploy-summary.ts';
+import { prunePrImages } from './commands/prune-pr-images.ts';
+import { pruneMainShas } from './commands/prune-main-shas.ts';
 import { fail } from './lib/log.ts';
 
 const program = new Command();
@@ -121,6 +123,35 @@ program
 	.option('--versions <json>', 'versions JSON object', process.env.VERSIONS_JSON)
 	.action((opts: DeploySummaryOpts) => {
 		deploySummary(opts);
+	});
+
+program
+	.command('prune-pr-images')
+	.description(
+		'Delete `:pr-<n>` GHCR tags for one PR across every package. Used by pr-cleanup.yml on `pull_request.closed`. Refuses unless the PR is closed/merged.'
+	)
+	.requiredOption('--pr <n>', 'PR number', (s) => Number.parseInt(s, 10))
+	.option('--repo <owner/name>', 'GitHub repo slug', process.env.GITHUB_REPOSITORY)
+	.option('--dry-run', 'list what would be deleted without deleting', false)
+	.action(async (opts: { pr: number; repo?: string; dryRun?: boolean }) => {
+		await prunePrImages({ pr: opts.pr, repo: opts.repo, dryRun: opts.dryRun });
+	});
+
+program
+	.command('prune-main-shas')
+	.description(
+		'Delete old `:main-<sha>` GHCR tags, keeping the newest N per package. Used by ghcr-cleanup.yml`s weekly cron. Preserves anything also tagged :main, :latest, or v* (rolling pointers and released versions).'
+	)
+	.option('--owner <org>', 'GitHub org', process.env.GITHUB_REPOSITORY_OWNER)
+	.option(
+		'--keep <n>',
+		'number of newest versions to keep per package',
+		(s) => Number.parseInt(s, 10),
+		20
+	)
+	.option('--dry-run', 'list what would be deleted without deleting', false)
+	.action(async (opts: { owner?: string; keep?: number; dryRun?: boolean }) => {
+		await pruneMainShas({ owner: opts.owner, keep: opts.keep, dryRun: opts.dryRun });
 	});
 
 program.parseAsync(process.argv).catch((err) => {
