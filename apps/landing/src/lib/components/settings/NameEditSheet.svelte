@@ -8,7 +8,13 @@
 	}: { open?: boolean; value: string } = $props();
 </script>
 
-<BottomSheet bind:open title={m.sheet_title_name()}>
+<BottomSheet
+	bind:open
+	title={m.sheet_title_name()}
+	actions={[
+		{ label: m.sheet_action_done(), variant: 'primary', onclick: () => (open = false) }
+	]}
+>
 	<p class="sub">{m.sheet_name_sub()}</p>
 	<div class="field">
 		<label for="sheetName">{m.sheet_name_label()}</label>
@@ -21,9 +27,6 @@
 		/>
 	</div>
 	<div class="hint">{m.sheet_name_hint()}</div>
-	<button type="button" class="done" onclick={() => (open = false)}>
-		{m.sheet_action_done()}
-	</button>
 </BottomSheet>
 
 <style>
@@ -48,6 +51,8 @@
 	}
 	.field input {
 		all: unset;
+		box-sizing: border-box;
+		width: 100%;
 		padding: 12px 14px;
 		font: inherit;
 		font-size: 15px;
@@ -63,23 +68,5 @@
 		color: var(--color-text-subtle);
 		margin-top: 8px;
 		line-height: 1.4;
-	}
-	.done {
-		all: unset;
-		display: block;
-		width: 100%;
-		padding: 14px;
-		margin-top: 16px;
-		text-align: center;
-		font: inherit;
-		font-size: 15px;
-		font-weight: 600;
-		color: #fff;
-		background: var(--color-accent);
-		border-radius: var(--radius-md);
-		cursor: pointer;
-	}
-	.done:active {
-		opacity: 0.85;
 	}
 </style>

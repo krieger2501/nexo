@@ -4,6 +4,7 @@ export { default as AboutDiagnostics } from './AboutDiagnostics.svelte';
 export { default as BottomNav } from './BottomNav.svelte';
 export type { BottomNavTab } from './BottomNav.types.js';
 export { default as BottomSheet } from './BottomSheet.svelte';
+export type { SheetAction, SheetActionVariant } from './BottomSheet.types.js';
 export { default as DeviceListRow } from './DeviceListRow.svelte';
 export { default as KonamiCode } from './KonamiCode.svelte';
 export { default as OptionPickerSheet } from './OptionPickerSheet.svelte';

@@ -19,7 +19,11 @@
 	} = $props();
 </script>
 
-<BottomSheet bind:open {title}>
+<BottomSheet
+	bind:open
+	{title}
+	actions={[{ label: closeLabel, variant: 'secondary', onclick: () => (open = false) }]}
+>
 	{#if subtitle}
 		<p class="sub">{subtitle}</p>
 	{/if}
@@ -29,7 +33,6 @@
 	{#if stubNotice}
 		<div class="stub-notice">{stubNotice}</div>
 	{/if}
-	<button type="button" class="close" onclick={() => (open = false)}>{closeLabel}</button>
 </BottomSheet>
 
 <style>
@@ -59,26 +62,5 @@
 		border-radius: var(--radius-sm, 8px);
 		margin-top: 12px;
 		line-height: 1.4;
-	}
-
-	.close {
-		all: unset;
-		display: block;
-		width: 100%;
-		padding: 14px;
-		margin-top: 16px;
-		text-align: center;
-		font: inherit;
-		font-size: 15px;
-		font-weight: 600;
-		color: var(--color-text-primary);
-		background: var(--color-bg-1);
-		border: 1px solid var(--color-border-default);
-		border-radius: var(--radius-md);
-		cursor: pointer;
-	}
-
-	.close:active {
-		opacity: 0.85;
 	}
 </style>
