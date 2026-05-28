@@ -696,9 +696,7 @@
 		closeLabel={m.sheet_action_close()}
 	/>
 
-	<BottomSheet bind:open={sessionsSheetOpen} title={m.sheet_title_sessions()}>
-		<SessionsSheet sessions={data.sessions} onclose={() => (sessionsSheetOpen = false)} />
-	</BottomSheet>
+	<SessionsSheet bind:open={sessionsSheetOpen} sessions={data.sessions} />
 
 	<SignoutSheet
 		bind:open={signoutSheetOpen}

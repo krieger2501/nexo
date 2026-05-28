@@ -10,7 +10,8 @@
 		ProfileHubCard,
 		SectionLabel,
 		SettingsCard,
-		SettingsRow
+		SettingsRow,
+		type SheetAction
 	} from '@nexo/ui';
 	import Stepper from '$lib/components/Stepper.svelte';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
@@ -69,6 +70,21 @@
 
 	let goalWeightOpen = $state(false);
 	let goalWeightDraft = $state(70);
+
+	const GOAL_WEIGHT_SAVE_FORM = 'goal-weight-save';
+	const GOAL_WEIGHT_CLEAR_FORM = 'goal-weight-clear';
+	const goalWeightActions = $derived<SheetAction[]>(
+		targetWeightKg != null
+			? [
+					{
+						label: m.profile_goal_weight_clear(),
+						variant: 'secondary',
+						formId: GOAL_WEIGHT_CLEAR_FORM
+					},
+					{ label: m.action_save(), variant: 'primary', formId: GOAL_WEIGHT_SAVE_FORM }
+				]
+			: [{ label: m.action_save(), variant: 'primary', formId: GOAL_WEIGHT_SAVE_FORM }]
+	);
 
 	$effect(() => {
 		if (goalWeightOpen) {
@@ -254,7 +270,7 @@
 	/>
 </div>
 
-<BottomSheet bind:open={goalWeightOpen} title={m.profile_goal_weight_section()}>
+<BottomSheet bind:open={goalWeightOpen} title={m.profile_goal_weight_section()} actions={goalWeightActions}>
 	<div class="goal-form">
 		<div class="gf-stepper-wrap">
 			<Stepper
@@ -268,38 +284,38 @@
 			/>
 			<span class="gf-unit">kg</span>
 		</div>
-		<div class="gf-actions">
-			{#if targetWeightKg != null}
-				<form
-					method="POST"
-					action="?/updateGoalWeight"
-					use:enhance={() => {
-						return async ({ update }) => {
-							await update();
-							goalWeightOpen = false;
-						};
-					}}
-				>
-					<input type="hidden" name="targetWeightKg" value="" />
-					<button class="gf-clear" type="submit">{m.profile_goal_weight_clear()}</button>
-				</form>
-			{/if}
-			<form
-				class="gf-save-form"
-				method="POST"
-				action="?/updateGoalWeight"
-				use:enhance={() => {
-					return async ({ update }) => {
-						await update();
-						goalWeightOpen = false;
-					};
-				}}
-			>
-				<input type="hidden" name="targetWeightKg" value={goalWeightDraft.toFixed(1)} />
-				<button class="gf-save" type="submit">{m.action_save()}</button>
-			</form>
-		</div>
 	</div>
+
+	{#if targetWeightKg != null}
+		<form
+			id={GOAL_WEIGHT_CLEAR_FORM}
+			method="POST"
+			action="?/updateGoalWeight"
+			class="hidden-form"
+			use:enhance={() => {
+				return async ({ update }) => {
+					await update();
+					goalWeightOpen = false;
+				};
+			}}
+		>
+			<input type="hidden" name="targetWeightKg" value="" />
+		</form>
+	{/if}
+	<form
+		id={GOAL_WEIGHT_SAVE_FORM}
+		method="POST"
+		action="?/updateGoalWeight"
+		class="hidden-form"
+		use:enhance={() => {
+			return async ({ update }) => {
+				await update();
+				goalWeightOpen = false;
+			};
+		}}
+	>
+		<input type="hidden" name="targetWeightKg" value={goalWeightDraft.toFixed(1)} />
+	</form>
 </BottomSheet>
 
 <OptionPickerSheet

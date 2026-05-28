@@ -1,15 +1,18 @@
 <script lang="ts">
 	import { untrack, type Snippet } from 'svelte';
+	import type { SheetAction } from './BottomSheet.types.js';
 
 	let {
 		open = $bindable(false),
 		title,
 		subtitle,
+		actions,
 		children
 	}: {
 		open: boolean;
 		title: string;
 		subtitle?: string;
+		actions?: readonly SheetAction[];
 		children: Snippet;
 	} = $props();
 
@@ -152,6 +155,36 @@
 
 			<div class="sheet-content">
 				{@render children()}
+				{#if actions && actions.length > 0}
+					<div class="sheet-actions" class:single={actions.length === 1}>
+						{#each actions as action}
+							{#if action.href}
+								<a
+									class="sheet-btn sheet-btn-{action.variant ?? 'primary'}"
+									href={action.href}
+								>
+									{action.label}
+								</a>
+							{:else if action.formId}
+								<button
+									type="submit"
+									form={action.formId}
+									class="sheet-btn sheet-btn-{action.variant ?? 'primary'}"
+								>
+									{action.label}
+								</button>
+							{:else}
+								<button
+									type="button"
+									class="sheet-btn sheet-btn-{action.variant ?? 'primary'}"
+									onclick={action.onclick}
+								>
+									{action.label}
+								</button>
+							{/if}
+						{/each}
+					</div>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -241,6 +274,47 @@
 		overflow-y: auto;
 		padding: 0 20px calc(32px + env(safe-area-inset-bottom, 0px));
 		max-height: 85dvh;
+	}
+
+	.sheet-actions {
+		display: flex;
+		gap: 10px;
+		margin-top: 20px;
+	}
+
+	.sheet-btn {
+		all: unset;
+		box-sizing: border-box;
+		flex: 1;
+		min-height: 48px;
+		padding: 14px 16px;
+		text-align: center;
+		font: inherit;
+		font-size: 15px;
+		font-weight: 600;
+		border-radius: var(--radius-md, 12px);
+		cursor: pointer;
+		display: grid;
+		place-items: center;
+		text-decoration: none;
+		transition: opacity 150ms;
+	}
+	.sheet-btn:active {
+		opacity: 0.85;
+	}
+
+	.sheet-btn-primary {
+		background: var(--color-accent);
+		color: var(--color-text-on-accent, #fff);
+	}
+	.sheet-btn-secondary {
+		background: var(--color-bg-1);
+		color: var(--color-text-primary);
+		border: 1px solid var(--color-border-default);
+	}
+	.sheet-btn-danger {
+		background: var(--color-expense, oklch(0.59 0.2 27));
+		color: #fff;
 	}
 
 	@keyframes fade-in {

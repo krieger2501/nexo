@@ -35,7 +35,11 @@
 	} = $props();
 </script>
 
-<BottomSheet bind:open {title}>
+<BottomSheet
+	bind:open
+	{title}
+	actions={[{ label: doneLabel, variant: 'primary', onclick: () => (open = false) }]}
+>
 	{#if subtitle}
 		<p class="sub">{subtitle}</p>
 	{/if}
@@ -66,7 +70,6 @@
 		<div class="stub-notice">{stubNotice}</div>
 	{/if}
 	{@render footer?.()}
-	<button type="button" class="done" onclick={() => (open = false)}>{doneLabel}</button>
 </BottomSheet>
 
 <style>
@@ -183,25 +186,5 @@
 		inset: 3px;
 		border-radius: 50%;
 		background: var(--color-accent);
-	}
-
-	.done {
-		all: unset;
-		display: block;
-		width: 100%;
-		padding: 14px;
-		margin-top: 16px;
-		text-align: center;
-		font: inherit;
-		font-size: 15px;
-		font-weight: 600;
-		color: var(--color-text-on-accent, #fff);
-		background: var(--color-accent);
-		border-radius: var(--radius-md);
-		cursor: pointer;
-	}
-
-	.done:active {
-		opacity: 0.85;
 	}
 </style>

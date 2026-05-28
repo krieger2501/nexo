@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { DeviceListRow } from '@nexo/ui';
+	import { BottomSheet, DeviceListRow, type SheetAction } from '@nexo/ui';
 	import { m } from '$lib/paraglide/messages.js';
 	import { getLocale } from '$lib/paraglide/runtime.js';
 
@@ -19,11 +19,11 @@
 	};
 
 	let {
-		sessions,
-		onclose
+		open = $bindable(false),
+		sessions
 	}: {
+		open?: boolean;
 		sessions: Session[];
-		onclose: () => void;
 	} = $props();
 
 	let renamingSessionId = $state<string | null>(null);
@@ -47,93 +47,111 @@
 		}
 		return lines;
 	}
+
+	const REVOKE_ALL_FORM_ID = 'revoke-all-sessions-form';
+	const sheetActions = $derived<SheetAction[]>(
+		sessions.length > 1
+			? [
+					{ label: m.sessions_revoke_all(), variant: 'danger', formId: REVOKE_ALL_FORM_ID },
+					{ label: m.sheet_action_close(), variant: 'secondary', onclick: () => (open = false) }
+				]
+			: [{ label: m.sheet_action_close(), variant: 'secondary', onclick: () => (open = false) }]
+	);
 </script>
 
-<p class="sheet-sub">{m.sessions_sub()}</p>
-<div class="session-list">
-	{#each sorted as session (session.id)}
-		<DeviceListRow
-			icon={session.icon}
-			label={session.name ?? session.summary}
-			metaLines={buildMetaLines(session)}
-			isCurrent={session.isCurrent}
-		>
-			{#snippet actions()}
-				{#if renamingSessionId === session.id}
-					<form
-						method="POST"
-						action="?/renameSession"
-						use:enhance={() => {
-							return async ({ update }) => {
-								await update({ reset: false });
-								renamingSessionId = null;
-							};
-						}}
-					>
-						<input type="hidden" name="sessionId" value={session.id} />
-						<input
-							class="session-rename-input"
-							type="text"
-							name="name"
-							bind:value={renameValue}
-							placeholder={m.sessions_rename_placeholder()}
-							maxlength="32"
-						/>
-						<button type="submit" class="session-rename-save">{m.sessions_rename_save()}</button>
-					</form>
-				{:else}
+<BottomSheet bind:open title={m.sheet_title_sessions()} actions={sheetActions}>
+	<p class="sub">{m.sessions_sub()}</p>
+	<div class="session-list">
+		{#each sorted as session (session.id)}
+			{#if renamingSessionId === session.id}
+				<form
+					class="rename-row"
+					method="POST"
+					action="?/renameSession"
+					use:enhance={() => {
+						return async ({ update }) => {
+							await update({ reset: false });
+							renamingSessionId = null;
+						};
+					}}
+				>
+					<div class="rename-icon">{session.icon}</div>
+					<input type="hidden" name="sessionId" value={session.id} />
+					<!-- svelte-ignore a11y_autofocus -->
+					<input
+						class="rename-input"
+						type="text"
+						name="name"
+						bind:value={renameValue}
+						placeholder={m.sessions_rename_placeholder()}
+						maxlength="32"
+						autofocus
+					/>
 					<button
 						type="button"
-						class="session-action-btn"
-						onclick={() => {
-							renamingSessionId = session.id;
-							renameValue = session.name ?? '';
-						}}
-						aria-label={m.sessions_rename_aria()}>✏️</button
+						class="rename-action cancel"
+						onclick={() => (renamingSessionId = null)}
+						aria-label={m.sheet_action_close()}>✕</button
 					>
-					{#if !session.isCurrent}
-						<form
-							method="POST"
-							action="?/revokeSession"
-							use:enhance={() => {
-								return async ({ update }) => {
-									await update({ reset: false });
-								};
+					<button type="submit" class="rename-action save">{m.sessions_rename_save()}</button>
+				</form>
+			{:else}
+				<DeviceListRow
+					icon={session.icon}
+					label={session.name ?? session.summary}
+					metaLines={buildMetaLines(session)}
+					isCurrent={session.isCurrent}
+				>
+					{#snippet actions()}
+						<button
+							type="button"
+							class="session-action-btn"
+							onclick={() => {
+								renamingSessionId = session.id;
+								renameValue = session.name ?? '';
 							}}
+							aria-label={m.sessions_rename_aria()}>✏️</button
 						>
-							<input type="hidden" name="sessionId" value={session.id} />
-							<button
-								type="submit"
-								class="session-action-btn danger"
-								aria-label={m.sessions_revoke_aria()}>✕</button
+						{#if !session.isCurrent}
+							<form
+								method="POST"
+								action="?/revokeSession"
+								use:enhance={() => {
+									return async ({ update }) => {
+										await update({ reset: false });
+									};
+								}}
 							>
-						</form>
-					{/if}
-				{/if}
-			{/snippet}
-		</DeviceListRow>
-	{/each}
-</div>
-{#if sessions.length > 1}
-	<form
-		method="POST"
-		action="?/revokeOtherSessions"
-		use:enhance={() => {
-			return async ({ update }) => {
-				await update({ reset: false });
-				onclose();
-			};
-		}}
-	>
-		<button type="submit" class="sheet-btn-danger full-width">{m.sessions_revoke_all()}</button>
-	</form>
-{/if}
-<button type="button" class="sheet-done secondary" onclick={onclose}
-	>{m.sheet_action_close()}</button
->
+								<input type="hidden" name="sessionId" value={session.id} />
+								<button
+									type="submit"
+									class="session-action-btn danger"
+									aria-label={m.sessions_revoke_aria()}>✕</button
+								>
+							</form>
+						{/if}
+					{/snippet}
+				</DeviceListRow>
+			{/if}
+		{/each}
+	</div>
+	{#if sessions.length > 1}
+		<form
+			id={REVOKE_ALL_FORM_ID}
+			method="POST"
+			action="?/revokeOtherSessions"
+			use:enhance={() => {
+				return async ({ update }) => {
+					await update({ reset: false });
+					open = false;
+				};
+			}}
+		></form>
+	{/if}
+</BottomSheet>
 
 <style>
-	.sheet-sub {
+	.sub {
 		font-size: 13px;
 		color: var(--color-text-muted, #a1a1aa);
 		margin-bottom: 16px;
@@ -142,29 +160,62 @@
 		display: flex;
 		flex-direction: column;
 	}
-	.session-rename-input {
+	.rename-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 14px 16px;
+		border-top: 1px solid var(--color-border-subtle, #f0f0f0);
+		background: color-mix(in oklab, var(--color-accent, #16a34a) 4%, transparent);
+	}
+	.rename-row:first-child {
+		border-top: 0;
+	}
+	.rename-icon {
+		width: 32px;
+		height: 32px;
+		border-radius: 8px;
+		background: var(--color-bg-1, #fafafa);
+		display: grid;
+		place-items: center;
+		font-size: 18px;
+		flex-shrink: 0;
+	}
+	.rename-input {
 		flex: 1;
+		min-width: 0;
 		font: inherit;
-		font-size: 13px;
-		padding: 4px 8px;
+		font-size: 14px;
+		padding: 8px 10px;
 		border: 1px solid var(--color-border-default, #e5e5e5);
 		border-radius: var(--radius-sm, 8px);
-		background: var(--color-bg-1, #fafafa);
+		background: var(--color-surface-1, #fff);
 		outline: none;
 	}
-	.session-rename-input:focus {
+	.rename-input:focus {
 		border-color: var(--color-accent, #16a34a);
+		box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent, #16a34a) 12%, transparent);
 	}
-	.session-rename-save {
+	.rename-action {
 		font: inherit;
 		font-size: 12px;
 		font-weight: 600;
-		padding: 4px 10px;
+		padding: 0 10px;
+		height: 32px;
 		border: none;
 		border-radius: var(--radius-sm, 8px);
+		cursor: pointer;
+		flex-shrink: 0;
+	}
+	.rename-action.save {
 		background: var(--color-accent, #16a34a);
 		color: #fff;
-		cursor: pointer;
+	}
+	.rename-action.cancel {
+		width: 32px;
+		padding: 0;
+		background: var(--color-bg-1, #fafafa);
+		color: var(--color-text-muted, #71717a);
 	}
 	.session-action-btn {
 		width: 28px;
@@ -184,28 +235,5 @@
 	.session-action-btn.danger {
 		color: var(--color-expense, #dc2626);
 		font-weight: 700;
-	}
-	.full-width {
-		width: 100%;
-		margin-top: 12px;
-	}
-	.sheet-btn-danger {
-		display: block;
-		padding: 12px;
-		font: inherit;
-		font-size: 14px;
-		font-weight: 600;
-		text-align: center;
-		border: none;
-		border-radius: var(--radius-md, 12px);
-		background: color-mix(in oklab, var(--color-expense, #dc2626) 10%, transparent);
-		color: var(--color-expense, #dc2626);
-		cursor: pointer;
-		text-decoration: none;
-	}
-	.sheet-done.secondary {
-		background: var(--color-bg-1, #fafafa);
-		color: var(--color-text-primary, #18181b);
-		border: 1px solid var(--color-border-default, #e5e5e5);
 	}
 </style>
