@@ -23,11 +23,11 @@
 	"dependencies": {
 		"react": "^19.2.6",
 		"react-dom": "^19.2.6",
-		"react-email": "^6.3.2",
-		"resend": "^6.12.3"
+		"react-email": "^6.4.0",
+		"resend": "^6.12.4"
 	},
 	"devDependencies": {
-		"@react-email/ui": "^6.3.2",
+		"@react-email/ui": "^6.4.0",
 		"@types/node": "catalog:",
 		"@types/react": "^19.2.15",
 		"@types/react-dom": "^19.2.3"

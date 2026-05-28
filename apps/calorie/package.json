@@ -34,7 +34,7 @@
 		"@nexo/ui": "workspace:*",
 		"better-auth": "catalog:",
 		"drizzle-orm": "catalog:",
-		"zxing-wasm": "^2.2.4"
+		"zxing-wasm": "^3.0.3"
 	},
 	"devDependencies": {
 		"@inlang/paraglide-js": "catalog:",

@@ -10,7 +10,7 @@
 		"type:check": "tsgo --noEmit"
 	},
 	"dependencies": {
-		"commander": "^12.1.0"
+		"commander": "^14.0.3"
 	},
 	"devDependencies": {
 		"@types/node": "catalog:"

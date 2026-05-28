@@ -8,10 +8,10 @@ allowBuilds:
   simple-git-hooks: true
 
 overrides:
-  cookie: '>=0.7.2'
-  esbuild: '>=0.25.0'
-  postcss: '>=8.5.10'
-  ws: '>=8.20.1'
+  cookie: '>=1.1.1'
+  esbuild: '>=0.28.0'
+  postcss: '>=8.5.15'
+  ws: '>=8.21.0'
 
 catalog:
   '@inlang/paraglide-js': '^2.18.1'
