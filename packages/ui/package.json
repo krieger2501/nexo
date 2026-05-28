@@ -27,8 +27,7 @@
 		"@sveltejs/kit": "catalog:",
 		"@sveltejs/vite-plugin-svelte": "catalog:",
 		"svelte": "catalog:",
-		"svelte-check-native": "catalog:",
-		"typescript": "^5.9.3"
+		"svelte-check-native": "catalog:"
 	},
 	"peerDependencies": {
 		"svelte": "^5.0.0"
