@@ -88,7 +88,11 @@
 		display: grid;
 		place-items: center;
 		overflow: hidden;
-		background: oklch(15% 0.02 60);
+		/* No background here — the camera <video> sits absolutely behind us
+		   in `.reticle-wrap`. An opaque background occluded the stream and
+		   produced a black screen even though the camera track was active.
+		   The dark fallback for "video not yet playing" is provided by
+		   `.scan-page` in scan/+page.svelte, which shows through. */
 	}
 
 	/* Subtle film grain — sits over the camera feed, gives texture */
