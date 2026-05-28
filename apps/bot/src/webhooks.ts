@@ -135,23 +135,14 @@ export function registerWebhooks(webhooks: Webhooks, env: Env): void {
 		});
 	});
 
-	webhooks.on('registry_package.published', async ({ payload }) => {
-		const pkg = (
-			payload as unknown as {
-				registry_package?: {
-					name?: string;
-					package_type?: string;
-					owner?: { login?: string };
-					package_version?: { container_metadata?: { tag?: { name?: string } } };
-				};
-			}
-		).registry_package;
-		if (!pkg) return;
-		if (pkg.package_type !== 'container') return;
-		if (pkg.owner?.login?.toLowerCase() !== env.owner.toLowerCase()) return;
-
-		const pkgName = pkg.name ?? '';
-		const tag = pkg.package_version?.container_metadata?.tag?.name ?? '';
+	async function onContainerReady(
+		pkgName: string,
+		packageType: string,
+		ownerLogin: string,
+		tag: string
+	) {
+		if (packageType !== 'container') return;
+		if (ownerLogin.toLowerCase() !== env.owner.toLowerCase()) return;
 		if (!pkgName.startsWith('nexo-')) return;
 		const app = pkgName.slice('nexo-'.length);
 		if (!UNSTABLE_APPS.includes(app as UnstableApp)) return;
@@ -190,6 +181,18 @@ export function registerWebhooks(webhooks: Webhooks, env: Env): void {
 				logger.error('failed to handle image readiness', { prNumber, app, error: String(e) });
 			}
 		});
+	}
+
+	webhooks.on('package.published', async ({ payload }) => {
+		const pkg = payload.package;
+		const tag = pkg.package_version?.container_metadata?.tag?.name ?? '';
+		await onContainerReady(pkg.name, pkg.package_type, pkg.owner?.login ?? '', tag);
+	});
+
+	webhooks.on('package.updated', async ({ payload }) => {
+		const pkg = payload.package;
+		const tag = pkg.package_version?.docker_metadata?.[0]?.tags?.[0] ?? '';
+		await onContainerReady(pkg.name, pkg.package_type, pkg.owner?.login ?? '', tag);
 	});
 
 	webhooks.on('workflow_run.completed', async ({ payload }) => {
