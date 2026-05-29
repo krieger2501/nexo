@@ -442,8 +442,13 @@
 	bind:open={renameSheetOpen}
 	title={m.settings_rename_title()}
 	subtitle={m.settings_rename_subtitle()}
+	actions={[
+		{ label: m.common_cancel(), variant: 'secondary', onclick: () => (renameSheetOpen = false) },
+		{ label: m.common_save(), variant: 'primary', formId: 'admin-rename-form' }
+	]}
 >
 	<form
+		id="admin-rename-form"
 		method="POST"
 		action="?/rename"
 		use:enhance={() =>
@@ -465,12 +470,6 @@
 				use:focusOnMount
 			/>
 		</label>
-		<div class="sheet-actions sheet-actions-row">
-			<button type="button" class="sheet-cancel" onclick={() => (renameSheetOpen = false)}>
-				{m.common_cancel()}
-			</button>
-			<button type="submit" class="sheet-done">{m.common_save()}</button>
-		</div>
 	</form>
 </BottomSheet>
 
@@ -478,8 +477,13 @@
 	bind:open={removeSheetOpen}
 	title={m.settings_remove_title()}
 	subtitle={m.settings_remove_subtitle({ label: removingLabel })}
+	actions={[
+		{ label: m.common_cancel(), variant: 'secondary', onclick: () => (removeSheetOpen = false) },
+		{ label: m.common_remove(), variant: 'danger', formId: 'admin-remove-form' }
+	]}
 >
 	<form
+		id="admin-remove-form"
 		method="POST"
 		action="?/remove"
 		use:enhance={() =>
@@ -490,12 +494,6 @@
 			}}
 	>
 		<input type="hidden" name="id" value={removingId ?? ''} />
-		<div class="sheet-actions sheet-actions-row">
-			<button type="button" class="sheet-cancel" onclick={() => (removeSheetOpen = false)}>
-				{m.common_cancel()}
-			</button>
-			<button type="submit" class="sheet-done sheet-done-danger">{m.common_remove()}</button>
-		</div>
 	</form>
 </BottomSheet>
 

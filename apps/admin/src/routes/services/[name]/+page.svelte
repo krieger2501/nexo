@@ -328,9 +328,21 @@
 	{/if}
 </div>
 
-<BottomSheet bind:open={confirmOpen} title={verbCopy[confirmVerb].title}>
+<BottomSheet
+	bind:open={confirmOpen}
+	title={verbCopy[confirmVerb].title}
+	actions={[
+		{ label: m.common_cancel(), variant: 'secondary', onclick: () => (confirmOpen = false) },
+		{
+			label: busyVerb !== null ? '…' : verbCopy[confirmVerb].cta,
+			variant: confirmVerb === 'start' ? 'primary' : 'danger',
+			formId: 'admin-service-confirm-form'
+		}
+	]}
+>
 	<p class="confirm-body">{verbCopy[confirmVerb].body}</p>
 	<form
+		id="admin-service-confirm-form"
 		method="POST"
 		action="?/{confirmVerb}"
 		use:enhance={() => {
@@ -342,27 +354,7 @@
 				confirmOpen = false;
 			};
 		}}
-	>
-		<div class="confirm-actions">
-			<button
-				type="button"
-				class="btn btn-secondary"
-				onclick={() => (confirmOpen = false)}
-				disabled={busyVerb !== null}
-			>
-				{m.common_cancel()}
-			</button>
-			<button
-				type="submit"
-				class="btn"
-				class:btn-primary={confirmVerb === 'start'}
-				class:btn-danger={confirmVerb !== 'start'}
-				disabled={busyVerb !== null}
-			>
-				{busyVerb !== null ? '…' : verbCopy[confirmVerb].cta}
-			</button>
-		</div>
-	</form>
+	></form>
 </BottomSheet>
 
 <style>

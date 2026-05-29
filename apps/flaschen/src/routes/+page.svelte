@@ -5,7 +5,7 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { applyAction, enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { BottomSheet } from '@nexo/ui';
+	import { BottomSheet, type SheetAction } from '@nexo/ui';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
 	import MatchHotCard from '$lib/components/MatchHotCard.svelte';
 	import { pushBridge } from '$lib/components/pushBridge.svelte.js';
@@ -192,6 +192,22 @@
 		pendingTake = offer;
 		takeOpen = true;
 	}
+
+	const TAKE_FORM = 'take-shift-form';
+	const takeActions = $derived<SheetAction[]>([
+		{
+			label: m.connect_cancel(),
+			variant: 'secondary',
+			onclick: () => {
+				if (!takeSubmitting) takeOpen = false;
+			}
+		},
+		{
+			label: takeSubmitting ? m.dashboard_take_submitting() : m.dashboard_take_shift(),
+			variant: 'primary',
+			formId: TAKE_FORM
+		}
+	]);
 
 	function takeErrorMessage(code: string): string {
 		switch (code) {
@@ -677,11 +693,16 @@
 	bind:open={takeOpen}
 	title={m.dashboard_take_shift()}
 	subtitle={m.dashboard_take_confirm_subtitle()}
+	actions={takeActions}
 >
 	{#if pendingTake}
 		<form
+			id={TAKE_FORM}
 			method="POST"
 			action="?/takeShift"
+			onsubmit={(e) => {
+				if (takeSubmitting) e.preventDefault();
+			}}
 			use:enhance={() => {
 				takeSubmitting = true;
 				return async ({ result }) => {
@@ -719,19 +740,6 @@
 					<span class="confirm-label">Duration</span>
 					<span class="confirm-value">{fmtDuration(pendingTake.durationInMinutes)}</span>
 				</div>
-			</div>
-			<div class="sheet-actions sheet-actions-row">
-				<button
-					type="button"
-					class="sheet-cancel"
-					disabled={takeSubmitting}
-					onclick={() => (takeOpen = false)}
-				>
-					{m.connect_cancel()}
-				</button>
-				<button type="submit" class="sheet-done" disabled={takeSubmitting}>
-					{takeSubmitting ? m.dashboard_take_submitting() : m.dashboard_take_shift()}
-				</button>
 			</div>
 		</form>
 	{/if}

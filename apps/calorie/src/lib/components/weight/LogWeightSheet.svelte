@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
-	import { BottomSheet } from '@nexo/ui';
+	import { BottomSheet, type SheetAction } from '@nexo/ui';
 	import { enhance } from '$app/forms';
 	import { untrack } from 'svelte';
 	import type { WeightPoint } from '$lib/utils/weightStats';
@@ -59,10 +59,16 @@
 	function bumpKg(delta: number) {
 		kg = Math.max(20, Math.min(400, Math.round((kg + delta) * 10) / 10));
 	}
+
+	const LOG_WEIGHT_FORM = 'log-weight-form';
+	const sheetActions: SheetAction[] = [
+		{ label: m.action_save(), variant: 'primary', formId: LOG_WEIGHT_FORM }
+	];
 </script>
 
-<BottomSheet bind:open title={m.weight_log_sheet_title()}>
+<BottomSheet bind:open title={m.weight_log_sheet_title()} actions={sheetActions}>
 	<form
+		id={LOG_WEIGHT_FORM}
 		class="log-form"
 		method="POST"
 		action="/weight?/logWeight"
@@ -114,8 +120,6 @@
 		<div class="bn-unit-row">
 			<span class="bn-unit">kg</span>
 		</div>
-
-		<button class="confirm" type="submit">{m.action_save()}</button>
 	</form>
 </BottomSheet>
 
@@ -225,18 +229,5 @@
 		font-variation-settings: 'opsz' 24, 'SOFT' 90, 'wght' 420;
 		font-size: 16px;
 		color: var(--color-text-subtle);
-	}
-
-	.confirm {
-		all: unset;
-		cursor: pointer;
-		padding: 16px 22px;
-		text-align: center;
-		background: var(--color-ember);
-		color: oklch(98% 0.008 70);
-		border-radius: 16px;
-		font-size: 15px;
-		font-weight: 500;
-		margin-top: 8px;
 	}
 </style>

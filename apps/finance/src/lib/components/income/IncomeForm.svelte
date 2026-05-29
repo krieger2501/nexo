@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { BottomSheet, ToggleRow } from '@nexo/ui';
+	import { BottomSheet, ToggleRow, type SheetAction } from '@nexo/ui';
 	import HeroAmount from '$lib/components/ui/HeroAmount.svelte';
 	import { RECURRENCES, MONTHS } from '$lib/constants';
 	import { enhance } from '$app/forms';
@@ -34,6 +34,30 @@
 	});
 
 	let confirmDelete = $state(false);
+
+	const sheetActions = $derived<SheetAction[]>(
+		confirmDelete
+			? [
+					{
+						label: m.common_cancel(),
+						variant: 'secondary',
+						onclick: () => (confirmDelete = false)
+					},
+					{
+						label: m.common_yes_delete(),
+						variant: 'danger',
+						formId: 'income-delete-form'
+					}
+				]
+			: [
+					{ label: m.common_cancel(), variant: 'secondary', onclick: () => (open = false) },
+					{
+						label: m.income_form_save(),
+						variant: 'primary',
+						formId: 'income-save-form'
+					}
+				]
+	);
 	let form = $state({
 		name: '',
 		amount: '',
@@ -92,6 +116,7 @@
 	bind:open
 	title={editing ? m.income_form_edit_title() : m.income_form_new_emoji_title()}
 	subtitle={m.income_form_subtitle()}
+	actions={sheetActions}
 >
 	{#if confirmDelete}
 		<div class="space-y-4 py-2">
@@ -100,6 +125,7 @@
 				<p class="text-text-subtle mt-1 text-[12px]">{m.common_undone_warning()}</p>
 			</div>
 			<form
+				id="income-delete-form"
 				method="POST"
 				action="/income?/remove"
 				use:enhance={() => {
@@ -110,16 +136,11 @@
 				}}
 			>
 				<input type="hidden" name="id" value={editing?.id} />
-				<button type="submit" class="btn-primary w-full" style="background: var(--color-expense);">
-					{m.common_yes_delete()}
-				</button>
 			</form>
-			<button type="button" onclick={() => (confirmDelete = false)} class="btn-secondary w-full">
-				{m.common_cancel()}
-			</button>
 		</div>
 	{:else}
 		<form
+			id="income-save-form"
 			method="POST"
 			action="/income?/save"
 			use:enhance={() => {
@@ -242,15 +263,6 @@
 					id="inc-received"
 				/>
 			{/if}
-
-			<!-- Actions -->
-			<div class="actions">
-				<button type="button" class="btn-secondary" onclick={() => (open = false)}>{m.common_cancel()}</button>
-				<button type="submit" class="btn-primary">
-					<span>{m.income_form_save()}</span>
-					<span aria-hidden="true">→</span>
-				</button>
-			</div>
 
 			{#if editing}
 				<button type="button" onclick={() => (confirmDelete = true)} class="btn-delete">

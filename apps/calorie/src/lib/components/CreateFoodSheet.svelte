@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { Check, X } from '@lucide/svelte';
-	import { BottomSheet } from '@nexo/ui';
+	import { BottomSheet, type SheetAction } from '@nexo/ui';
 	import type { MacroTier } from '$lib/types';
 	import { tierShowsFiber, tierShowsSugar } from '$lib/calc';
 	import { m } from '$lib/paraglide/messages.js';
@@ -143,7 +142,12 @@
 	}
 </script>
 
-<BottomSheet bind:open title={m.create_food_heading()} subtitle={m.create_food_subtitle()}>
+<BottomSheet
+	bind:open
+	title={m.create_food_heading()}
+	subtitle={m.create_food_subtitle()}
+	actions={[{ label: m.create_food_save(), variant: 'primary', onclick: save }]}
+>
 	<div class="content">
 		<div class="title-block">
 			<input
@@ -278,13 +282,6 @@
 		{#if error}
 			<div class="error">{error}</div>
 		{/if}
-
-		<div class="save-bar">
-			<button class="save-cta" type="button" onclick={save} disabled={saving}>
-				<Check size={15} strokeWidth={2.2} />
-				<span>{m.create_food_save()}</span>
-			</button>
-		</div>
 	</div>
 </BottomSheet>
 
@@ -530,49 +527,5 @@
 		color: var(--color-overtarget);
 		border-radius: 10px;
 		font-size: 12.5px;
-	}
-
-	.save-bar {
-		position: sticky;
-		bottom: 0;
-		display: flex;
-		padding: 10px 0 6px;
-		margin-top: 6px;
-		background: linear-gradient(
-			to top,
-			var(--color-surface-1) 70%,
-			color-mix(in oklab, var(--color-surface-1) 50%, transparent)
-		);
-	}
-
-	.save-cta {
-		all: unset;
-		cursor: pointer;
-		display: inline-flex;
-		justify-content: center;
-		align-items: center;
-		gap: 6px;
-		padding: 14px 20px;
-		background: var(--color-ember);
-		color: oklch(98% 0.008 70);
-		border-radius: 14px;
-		font-size: 14.5px;
-		font-weight: 500;
-		letter-spacing: -0.005em;
-		box-shadow: 0 6px 18px -10px var(--color-ember-deep);
-		transition:
-			transform 120ms,
-			background 160ms;
-		flex: 1;
-	}
-
-	.save-cta:active:not(:disabled) {
-		transform: scale(0.99);
-		background: var(--color-ember-deep);
-	}
-
-	.save-cta:disabled {
-		opacity: 0.5;
-		cursor: default;
 	}
 </style>
