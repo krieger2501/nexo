@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { Trash2 } from '@lucide/svelte';
-	import { BottomSheet } from '@nexo/ui';
+	import { BottomSheet, type SheetAction } from '@nexo/ui';
 	import { invalidateAll } from '$app/navigation';
 	import UnitStepper from './UnitStepper.svelte';
 	import MealSlotChip from './MealSlotChip.svelte';
@@ -100,9 +99,23 @@
 			busy = false;
 		}
 	}
+
+	const sheetActions = $derived<SheetAction[]>([
+		{ label: m.action_delete(), variant: 'danger', onclick: remove },
+		{
+			label: `${m.action_save()} · ${live.kcal} ${m.unit_kcal()}`,
+			variant: 'primary',
+			onclick: save
+		}
+	]);
 </script>
 
-<BottomSheet bind:open title={m.edit_entry_heading()} subtitle={entry?.foodName ?? ''}>
+<BottomSheet
+	bind:open
+	title={m.edit_entry_heading()}
+	subtitle={entry?.foodName ?? ''}
+	actions={entry ? sheetActions : undefined}
+>
 	{#if entry}
 		<div class="edit">
 			<div class="meta">
@@ -163,18 +176,6 @@
 						</button>
 					{/each}
 				</div>
-			</div>
-
-			<!-- Action bar -->
-			<div class="actions">
-				<button class="delete-btn" type="button" onclick={remove} aria-label={m.action_delete()}>
-					<Trash2 size={15} strokeWidth={1.7} />
-					<span>{m.action_delete()}</span>
-				</button>
-				<button class="save-btn" type="button" onclick={save}>
-					<span>{m.action_save()}</span>
-					<span class="save-num">{live.kcal} {m.unit_kcal()}</span>
-				</button>
 			</div>
 		</div>
 	{/if}
@@ -322,63 +323,5 @@
 		background: var(--color-text-primary);
 		border-color: var(--color-text-primary);
 		color: var(--color-bg-0);
-	}
-
-	.actions {
-		display: grid;
-		grid-template-columns: auto 1fr;
-		gap: 8px;
-		padding-top: 6px;
-	}
-
-	.delete-btn {
-		all: unset;
-		cursor: pointer;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 14px 18px;
-		border-radius: 14px;
-		background: transparent;
-		border: 1px solid var(--color-border-default);
-		color: var(--color-overtarget);
-		font-size: 13px;
-		transition: all 160ms;
-	}
-
-	.delete-btn:active {
-		background: color-mix(in oklab, var(--color-overtarget) 8%, transparent);
-	}
-
-	.save-btn {
-		all: unset;
-		cursor: pointer;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 14px 22px;
-		background: var(--color-ember);
-		color: oklch(98% 0.008 70);
-		border-radius: 14px;
-		font-size: 14.5px;
-		font-weight: 500;
-		letter-spacing: -0.005em;
-		transition:
-			background 160ms,
-			transform 120ms;
-	}
-
-	.save-btn:active {
-		transform: scale(0.99);
-		background: var(--color-ember-deep);
-	}
-
-	.save-num {
-		font-family: var(--font-display);
-		font-feature-settings: 'tnum' 1;
-		font-variation-settings:
-			'opsz' 24,
-			'wght' 460;
-		opacity: 0.92;
 	}
 </style>

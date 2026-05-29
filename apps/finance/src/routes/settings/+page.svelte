@@ -377,6 +377,9 @@
 	bind:open={currencySheetOpen}
 	title={m.settings_currency()}
 	subtitle={m.settings_currency_sheet_subtitle()}
+	actions={[
+		{ label: m.common_done(), variant: 'primary', onclick: () => (currencySheetOpen = false) }
+	]}
 >
 	<div class="sheet-picker">
 		{#each currencies as c (c.code)}
@@ -397,11 +400,6 @@
 			</button>
 		{/each}
 	</div>
-	<div class="sheet-actions">
-		<button type="button" class="sheet-done" onclick={() => (currencySheetOpen = false)}
-			>{m.common_done()}</button
-		>
-	</div>
 </BottomSheet>
 
 <!-- ─── Default account sheet ─── -->
@@ -409,6 +407,9 @@
 	bind:open={accountSheetOpen}
 	title={m.settings_default_account()}
 	subtitle={m.settings_default_account_sheet_subtitle()}
+	actions={[
+		{ label: m.common_done(), variant: 'primary', onclick: () => (accountSheetOpen = false) }
+	]}
 >
 	<div class="sheet-picker">
 		<button
@@ -444,10 +445,6 @@
 			</button>
 		{/each}
 	</div>
-	<div class="sheet-actions">
-		<button type="button" class="sheet-done" onclick={() => (accountSheetOpen = false)}>{m.common_done()}</button
-		>
-	</div>
 </BottomSheet>
 
 <!-- ─── Forecast window sheet ─── -->
@@ -455,6 +452,9 @@
 	bind:open={forecastSheetOpen}
 	title={m.settings_forecast_window()}
 	subtitle={m.settings_forecast_window_sheet_subtitle()}
+	actions={[
+		{ label: m.common_done(), variant: 'primary', onclick: () => (forecastSheetOpen = false) }
+	]}
 >
 	<div class="sheet-picker">
 		{#each forecastWindows as fw (fw.value)}
@@ -475,11 +475,6 @@
 			</button>
 		{/each}
 	</div>
-	<div class="sheet-actions">
-		<button type="button" class="sheet-done" onclick={() => (forecastSheetOpen = false)}
-			>{m.common_done()}</button
-		>
-	</div>
 </BottomSheet>
 
 <!-- ─── Excluded from liquid sheet ─── -->
@@ -487,6 +482,9 @@
 	bind:open={excludedSheetOpen}
 	title={m.settings_excluded_from_liquid()}
 	subtitle={m.settings_excluded_from_liquid_sheet_subtitle()}
+	actions={[
+		{ label: m.common_done(), variant: 'primary', onclick: () => (excludedSheetOpen = false) }
+	]}
 >
 	<div class="excluded-card">
 		{#each accountsState as account (account.id)}
@@ -526,11 +524,6 @@
 	<p class="excluded-hint">
 		{m.settings_excluded_hint({ amount: fmtBalance(liquidTotal) })}
 	</p>
-	<div class="sheet-actions">
-		<button type="button" class="sheet-done" onclick={() => (excludedSheetOpen = false)}
-			>{m.common_done()}</button
-		>
-	</div>
 </BottomSheet>
 
 <!-- ─── Unsaved changes confirmation ─── -->

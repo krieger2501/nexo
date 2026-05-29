@@ -15,7 +15,8 @@
 		SaveBar,
 		SectionLabel,
 		Toggle,
-		UnsavedGuard
+		UnsavedGuard,
+		type SheetAction
 	} from '@nexo/ui';
 	import { AlertTriangle, ChevronRight } from '@lucide/svelte';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
@@ -48,6 +49,35 @@
 		quietStart = minutesToTime(data.quietHours.startMinutes);
 		quietEnd = minutesToTime(data.quietHours.endMinutes);
 	}
+
+	const CONNECT_FORM = 'connect-form';
+	const DISCONNECT_FORM = 'disconnect-form';
+
+	const connectActions = $derived<SheetAction[]>([
+		{
+			label: m.connect_cancel(),
+			variant: 'secondary',
+			onclick: () => (connectOpen = false)
+		},
+		{
+			label: m.connect_submit(),
+			variant: 'primary',
+			formId: CONNECT_FORM
+		}
+	]);
+
+	const disconnectActions = $derived<SheetAction[]>([
+		{
+			label: m.connect_cancel(),
+			variant: 'secondary',
+			onclick: () => (disconnectOpen = false)
+		},
+		{
+			label: m.settings_disconnect(),
+			variant: 'danger',
+			formId: DISCONNECT_FORM
+		}
+	]);
 
 	// Open the connect sheet automatically when arriving from the home CTA
 	// (`/settings?connect=1`). Strip the query so reloads don't re-open it.
@@ -283,15 +313,24 @@
 />
 
 <!-- ─── Connect sheet ─── -->
-<BottomSheet bind:open={connectOpen} title={m.settings_connect()} subtitle={m.connect_disclaimer()}>
+<BottomSheet
+	bind:open={connectOpen}
+	title={m.settings_connect()}
+	subtitle={m.connect_disclaimer()}
+	actions={connectActions}
+>
 	{@const connectError =
 		form?.error === 'INVALID_TOKEN' ||
 		form?.error === 'MISSING_TOKEN' ||
 		form?.error === 'CONNECT_FAILED' ||
 		form?.error === 'NO_EMPLOYEE_ID'}
 	<form
+		id={CONNECT_FORM}
 		method="POST"
 		action="?/connect"
+		onsubmit={(e) => {
+			if (connecting) e.preventDefault();
+		}}
 		use:enhance={() => {
 			connecting = true;
 			return async ({ update, result }) => {
@@ -331,12 +370,6 @@
 				<div class="field-error">{m.err_connect_failed()}</div>
 			{/if}
 		</div>
-		<div class="sheet-actions sheet-actions-row">
-			<button type="button" class="sheet-cancel" onclick={() => (connectOpen = false)}>
-				{m.connect_cancel()}
-			</button>
-			<button type="submit" class="sheet-done" disabled={connecting}>{m.connect_submit()}</button>
-		</div>
 	</form>
 </BottomSheet>
 
@@ -345,10 +378,15 @@
 	bind:open={disconnectOpen}
 	title={m.settings_disconnect()}
 	subtitle="This revokes our refresh token. You'll need to paste a new one to reconnect."
+	actions={disconnectActions}
 >
 	<form
+		id={DISCONNECT_FORM}
 		method="POST"
 		action="?/disconnect"
+		onsubmit={(e) => {
+			if (disconnecting) e.preventDefault();
+		}}
 		use:enhance={() => {
 			disconnecting = true;
 			return async ({ update }) => {
@@ -357,16 +395,7 @@
 				disconnectOpen = false;
 			};
 		}}
-	>
-		<div class="sheet-actions sheet-actions-row">
-			<button type="button" class="sheet-cancel" onclick={() => (disconnectOpen = false)}>
-				{m.connect_cancel()}
-			</button>
-			<button type="submit" class="sheet-done sheet-done-danger" disabled={disconnecting}>
-				{m.settings_disconnect()}
-			</button>
-		</div>
-	</form>
+	></form>
 </BottomSheet>
 
 <!-- Unsaved changes guard -->

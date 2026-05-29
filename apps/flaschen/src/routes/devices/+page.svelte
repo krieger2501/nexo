@@ -9,7 +9,8 @@
 		ErrorBanner,
 		PageHeader,
 		SectionLabel,
-		Toast
+		Toast,
+		type SheetAction
 	} from '@nexo/ui';
 	import { parseUserAgent, deviceIcon } from '@nexo/ui/utils/ua-parser';
 	import { formatRelative, defaultLabelFromUA } from '@nexo/ui/utils/format-relative';
@@ -272,6 +273,27 @@
 	});
 
 	const showA2hsHint = $derived(!standalone && permState !== 'unsupported');
+
+	const RENAME_FORM = 'device-rename-form';
+	const REMOVE_FORM = 'device-remove-form';
+
+	const renameActions: SheetAction[] = [
+		{
+			label: m.connect_cancel(),
+			variant: 'secondary',
+			onclick: () => (renameSheetOpen = false)
+		},
+		{ label: m.saved(), variant: 'primary', formId: RENAME_FORM }
+	];
+
+	const removeActions: SheetAction[] = [
+		{
+			label: m.connect_cancel(),
+			variant: 'secondary',
+			onclick: () => (removeSheetOpen = false)
+		},
+		{ label: m.devices_remove_confirm_cta(), variant: 'danger', formId: REMOVE_FORM }
+	];
 </script>
 
 <div class="page">
@@ -456,8 +478,10 @@
 	bind:open={renameSheetOpen}
 	title={m.devices_rename()}
 	subtitle={m.devices_rename_sub()}
+	actions={renameActions}
 >
 	<form
+		id={RENAME_FORM}
 		method="POST"
 		action="?/rename"
 		use:enhance={() =>
@@ -479,12 +503,6 @@
 				use:focusOnMount
 			/>
 		</label>
-		<div class="sheet-actions sheet-actions-row">
-			<button type="button" class="sheet-cancel" onclick={() => (renameSheetOpen = false)}>
-				{m.connect_cancel()}
-			</button>
-			<button type="submit" class="sheet-done">{m.saved()}</button>
-		</div>
 	</form>
 </BottomSheet>
 
@@ -493,10 +511,13 @@
 	bind:open={removeSheetOpen}
 	title={m.devices_remove_confirm_title()}
 	subtitle={m.devices_remove_confirm_desc({ label: removingLabel })}
+	actions={removeActions}
 >
 	<form
+		id={REMOVE_FORM}
 		method="POST"
 		action="?/remove"
+		class="hidden-form"
 		use:enhance={() =>
 			async ({ update }) => {
 				await update({ reset: false });
@@ -505,14 +526,6 @@
 			}}
 	>
 		<input type="hidden" name="id" value={removingId ?? ''} />
-		<div class="sheet-actions sheet-actions-row">
-			<button type="button" class="sheet-cancel" onclick={() => (removeSheetOpen = false)}>
-				{m.connect_cancel()}
-			</button>
-			<button type="submit" class="sheet-done sheet-done-danger">
-				{m.devices_remove_confirm_cta()}
-			</button>
-		</div>
 	</form>
 </BottomSheet>
 
@@ -527,6 +540,9 @@
 	.field {
 		display: block;
 		margin-bottom: 14px;
+	}
+	.hidden-form {
+		display: none;
 	}
 	.field-label {
 		display: block;

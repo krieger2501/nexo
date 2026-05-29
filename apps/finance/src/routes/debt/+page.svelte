@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { BottomSheet, PageHeader, ToggleRow } from '@nexo/ui';
+	import { BottomSheet, PageHeader, ToggleRow, type SheetAction } from '@nexo/ui';
 	import HeroAmount from '$lib/components/ui/HeroAmount.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
@@ -352,6 +352,23 @@
 		bind:open={showForm}
 		title={editing ? m.debt_form_edit_title() : m.debt_form_new_emoji_title()}
 		subtitle={m.debt_form_subtitle()}
+		actions={confirmDelete
+			? [
+					{
+						label: m.common_cancel(),
+						variant: 'secondary',
+						onclick: () => (confirmDelete = false)
+					},
+					{
+						label: m.common_yes_delete(),
+						variant: 'danger',
+						formId: 'debt-delete-form'
+					}
+				]
+			: [
+					{ label: m.common_cancel(), variant: 'secondary', onclick: () => (showForm = false) },
+					{ label: m.debt_form_save(), variant: 'primary', formId: 'debt-save-form' }
+				]}
 	>
 		{#if confirmDelete}
 			<div class="space-y-4 py-2">
@@ -362,6 +379,7 @@
 					<p class="text-text-subtle mt-1 text-[12px]">{m.common_undone_warning()}</p>
 				</div>
 				<form
+					id="debt-delete-form"
 					method="POST"
 					action="/debt?/remove"
 					use:enhance={() => {
@@ -372,20 +390,11 @@
 					}}
 				>
 					<input type="hidden" name="id" value={editing?.id} />
-					<button
-						type="submit"
-						class="btn-primary w-full"
-						style="background: var(--color-expense);"
-					>
-						{m.common_yes_delete()}
-					</button>
 				</form>
-				<button type="button" onclick={() => (confirmDelete = false)} class="btn-secondary w-full">
-					{m.common_cancel()}
-				</button>
 			</div>
 		{:else}
 			<form
+				id="debt-save-form"
 				method="POST"
 				action="/debt?/save"
 				use:enhance={() => {
@@ -486,17 +495,6 @@
 					id="dbt-paid"
 				/>
 
-				<!-- Actions -->
-				<div class="actions">
-					<button type="button" class="btn-secondary" onclick={() => (showForm = false)}
-						>{m.common_cancel()}</button
-					>
-					<button type="submit" class="btn-primary">
-						<span>{m.debt_form_save()}</span>
-						<span aria-hidden="true">→</span>
-					</button>
-				</div>
-
 				{#if editing}
 					<button type="button" onclick={() => (confirmDelete = true)} class="btn-delete">
 						{m.debt_form_delete()}
@@ -511,29 +509,33 @@
 	bind:open={confirmClear}
 	title={m.debt_clear_settled_title()}
 	subtitle={m.debt_clear_settled_subtitle()}
+	actions={[
+		{ label: m.common_cancel(), variant: 'secondary', onclick: () => (confirmClear = false) },
+		{
+			label: m.debt_clear_settled_confirm(),
+			variant: 'danger',
+			formId: 'debt-clear-settled-form'
+		}
+	]}
 >
-	<div class="space-y-3 py-2">
-		<form
-			method="POST"
-			action="?/clearSettled"
-			use:enhance={() => {
-				return async ({ update }) => {
-					confirmClear = false;
-					await update();
-				};
-			}}
-		>
-			<button type="submit" class="btn-primary w-full" style="background: var(--color-expense);">
-				{m.debt_clear_settled_confirm()}
-			</button>
-		</form>
-		<button type="button" onclick={() => (confirmClear = false)} class="btn-secondary w-full">
-			{m.common_cancel()}
-		</button>
-	</div>
+	<form
+		id="debt-clear-settled-form"
+		method="POST"
+		action="?/clearSettled"
+		class="hidden-form"
+		use:enhance={() => {
+			return async ({ update }) => {
+				confirmClear = false;
+				await update();
+			};
+		}}
+	></form>
 </BottomSheet>
 
 <style>
+	.hidden-form {
+		display: none;
+	}
 	.field {
 		margin-bottom: 12px;
 	}

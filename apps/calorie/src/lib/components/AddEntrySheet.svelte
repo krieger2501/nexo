@@ -12,7 +12,7 @@
 		ChevronDown,
 		HelpCircle
 	} from '@lucide/svelte';
-	import { BottomSheet } from '@nexo/ui';
+	import { BottomSheet, type SheetAction } from '@nexo/ui';
 	import { goto, invalidateAll } from '$app/navigation';
 	import UnitStepper from './UnitStepper.svelte';
 	import { untrack } from 'svelte';
@@ -377,9 +377,21 @@
 	const showFirstTip = $derived(
 		!firstTipDismissed && tab === 'search' && query.trim().length >= 3 && serverResults != null
 	);
+
+	const sheetActions = $derived<SheetAction[] | undefined>(
+		stack.length === 0
+			? undefined
+			: [
+					{
+						label: `${stack.length > 1 ? m.meal_save_button_many() : m.meal_save_button_one()} · ${stack.length} · ${Math.round(totals.kcal)} ${m.unit_kcal()}`,
+						variant: 'primary',
+						onclick: save
+					}
+				]
+	);
 </script>
 
-<BottomSheet bind:open title={sheetTitle}>
+<BottomSheet bind:open title={sheetTitle} actions={sheetActions}>
 	<!-- Slot chip — small, in the top-right area -->
 	<div class="slot-chip-row">
 		<button
@@ -787,23 +799,6 @@
 			{/if}
 		{/if}
 	</div>
-
-	<!-- Sticky save bar -->
-	{#if stack.length > 0}
-		<div class="save-bar">
-			<button class="save-cta" type="button" onclick={save}>
-				<span class="sc-label">
-					{stack.length > 1 ? m.meal_save_button_many() : m.meal_save_button_one()}
-				</span>
-				<span class="sc-num">
-					<span class="sc-count">{stack.length}</span>
-					<span class="sc-bullet">·</span>
-					{Math.round(totals.kcal)}
-					{m.unit_kcal()}
-				</span>
-			</button>
-		</div>
-	{/if}
 </BottomSheet>
 
 <style>
@@ -1647,76 +1642,5 @@
 
 	.ex-add:active {
 		transform: scale(0.99);
-	}
-
-	/* ── Sticky save bar ── */
-	.save-bar {
-		position: sticky;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		padding: 12px 0 4px;
-		background: linear-gradient(
-			to top,
-			var(--color-bg-0) 60%,
-			color-mix(in oklab, var(--color-bg-0) 50%, transparent)
-		);
-		margin-top: 10px;
-	}
-
-	.save-cta {
-		all: unset;
-		cursor: pointer;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 16px 22px;
-		background: var(--color-ember);
-		color: oklch(98% 0.008 70);
-		border-radius: 16px;
-		font-size: 15px;
-		font-weight: 500;
-		letter-spacing: -0.005em;
-		transition:
-			background 160ms,
-			transform 120ms;
-		width: 100%;
-		box-sizing: border-box;
-	}
-
-	.save-cta:active {
-		transform: scale(0.99);
-		background: var(--color-ember-deep);
-	}
-
-	.sc-label {
-		font-size: 15px;
-	}
-
-	.sc-num {
-		display: inline-flex;
-		align-items: baseline;
-		gap: 5px;
-		font-family: var(--font-display);
-		font-feature-settings: 'tnum' 1;
-		font-variation-settings:
-			'opsz' 24,
-			'wght' 460;
-		opacity: 0.92;
-	}
-
-	.sc-count {
-		display: inline-grid;
-		place-items: center;
-		min-width: 22px;
-		height: 22px;
-		padding: 0 6px;
-		border-radius: 999px;
-		background: rgba(255, 255, 255, 0.16);
-		font-size: 12px;
-	}
-
-	.sc-bullet {
-		opacity: 0.5;
 	}
 </style>

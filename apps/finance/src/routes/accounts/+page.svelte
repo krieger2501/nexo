@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { BottomSheet, PageHeader, ToggleRow } from '@nexo/ui';
+	import { BottomSheet, PageHeader, ToggleRow, type SheetAction } from '@nexo/ui';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
 	import { Plus } from '@lucide/svelte';
 	import { enhance } from '$app/forms';
@@ -213,6 +213,27 @@
 		bind:open={showForm}
 		title={editing ? m.accounts_form_edit_title() : m.accounts_form_new_title()}
 		subtitle={m.accounts_form_subtitle()}
+		actions={confirmDelete
+			? [
+					{
+						label: m.common_cancel(),
+						variant: 'secondary',
+						onclick: () => (confirmDelete = false)
+					},
+					{
+						label: m.common_yes_delete(),
+						variant: 'danger',
+						formId: 'accounts-delete-form'
+					}
+				]
+			: [
+					{ label: m.common_cancel(), variant: 'secondary', onclick: () => (showForm = false) },
+					{
+						label: m.accounts_form_save(),
+						variant: 'primary',
+						formId: 'accounts-save-form'
+					}
+				]}
 	>
 		{#if confirmDelete}
 			<div class="space-y-4 py-2">
@@ -223,6 +244,7 @@
 					<p class="text-text-subtle mt-1 text-[12px]">{m.common_undone_warning()}</p>
 				</div>
 				<form
+					id="accounts-delete-form"
 					method="POST"
 					action="?/remove"
 					use:enhance={() => {
@@ -233,20 +255,11 @@
 					}}
 				>
 					<input type="hidden" name="id" value={editing?.id} />
-					<button
-						type="submit"
-						class="btn-primary w-full"
-						style="background: var(--color-expense);"
-					>
-						{m.common_yes_delete()}
-					</button>
 				</form>
-				<button type="button" onclick={() => (confirmDelete = false)} class="btn-secondary w-full">
-					{m.common_cancel()}
-				</button>
 			</div>
 		{:else}
 			<form
+				id="accounts-save-form"
 				method="POST"
 				action="?/save"
 				use:enhance={() => {
@@ -333,14 +346,6 @@
 					description={m.accounts_form_include_desc()}
 					id="acc-liquid"
 				/>
-
-				<!-- Actions -->
-				<div class="actions">
-					<button type="button" class="btn-secondary" onclick={() => (showForm = false)}
-						>{m.common_cancel()}</button
-					>
-					<button type="submit" class="btn-primary">{m.accounts_form_save()}</button>
-				</div>
 
 				{#if editing}
 					<button type="button" onclick={() => (confirmDelete = true)} class="btn-delete">

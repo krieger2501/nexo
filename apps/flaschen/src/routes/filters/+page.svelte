@@ -2,8 +2,8 @@
 	import { untrack } from 'svelte';
 	import { m } from '$lib/paraglide/messages.js';
 	import { enhance } from '$app/forms';
-	import { BottomSheet, PageHeader, SaveBar, Toggle, UnsavedGuard } from '@nexo/ui';
-	import { Check, Plus, Trash2, X } from '@lucide/svelte';
+	import { BottomSheet, PageHeader, SaveBar, Toggle, UnsavedGuard, type SheetAction } from '@nexo/ui';
+	import { Plus, X } from '@lucide/svelte';
 	import type { WeeklySlot, WeeklyWindows } from '@nexo/db';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
 
@@ -718,6 +718,83 @@
 		return !slotsHaveError(overrideDraft.slots);
 	});
 
+	// ─── Sheet action arrays ───
+	const OVERRIDE_DELETE_FORM = 'override-delete-form';
+	const OVERRIDE_SAVE_FORM = 'override-save-form';
+
+	const daySheetActions = $derived<SheetAction[]>([
+		{
+			label: m.override_cancel(),
+			variant: 'secondary',
+			onclick: () => {
+				daySheetOpen = false;
+				daySheetDay = null;
+			}
+		},
+		{
+			label: m.filters_done(),
+			variant: 'primary',
+			onclick: () => {
+				if (slotsHaveError(daySheetSlots)) return;
+				applyDaySheet();
+			}
+		}
+	]);
+
+	const overrideSheetActions = $derived<SheetAction[]>(
+		!overrideDraft
+			? []
+			: confirmDeleteOverride
+				? [
+						{
+							label: m.override_cancel(),
+							variant: 'secondary',
+							onclick: () => (confirmDeleteOverride = false)
+						},
+						{
+							label: m.override_delete_yes(),
+							variant: 'danger',
+							formId: OVERRIDE_DELETE_FORM
+						}
+					]
+				: overrideDraft.id
+					? [
+							{
+								label: m.override_cancel(),
+								variant: 'secondary',
+								onclick: () => {
+									overrideSheetOpen = false;
+									overrideDraft = null;
+								}
+							},
+							{
+								label: m.override_delete(),
+								variant: 'danger',
+								onclick: () => (confirmDeleteOverride = true)
+							},
+							{
+								label: m.override_save(),
+								variant: 'primary',
+								formId: OVERRIDE_SAVE_FORM
+							}
+						]
+					: [
+							{
+								label: m.override_cancel(),
+								variant: 'secondary',
+								onclick: () => {
+									overrideSheetOpen = false;
+									overrideDraft = null;
+								}
+							},
+							{
+								label: m.override_save(),
+								variant: 'primary',
+								formId: OVERRIDE_SAVE_FORM
+							}
+						]
+	);
+
 	function resetPrefsToServer() {
 		const w = data.prefs.weeklyWindows;
 		const shared = deriveShared(w);
@@ -1201,6 +1278,7 @@
 		? m.filters_day_sheet_title({ day: dayShort[Number(daySheetDay) - 1] })
 		: m.filters_day_sheet_title({ day: '' })}
 	subtitle={m.filters_day_sheet_desc()}
+	actions={daySheetActions}
 >
 	<div class="ds-body">
 		{#each daySheetSlots as slot, i (i)}
@@ -1249,27 +1327,6 @@
 			{m.filters_day_sheet_reset()}
 		</button>
 	</div>
-	<div class="sheet-actions sheet-actions-row">
-		<button
-			type="button"
-			class="sheet-cancel"
-			onclick={() => {
-				daySheetOpen = false;
-				daySheetDay = null;
-			}}
-		>
-			{m.override_cancel()}
-		</button>
-		<button
-			type="button"
-			class="sheet-done"
-			onclick={applyDaySheet}
-			disabled={slotsHaveError(daySheetSlots)}
-		>
-			<Check size={14} strokeWidth={1.8} />
-			{m.filters_done()}
-		</button>
-	</div>
 </BottomSheet>
 
 <!-- Per-date override editor sheet -->
@@ -1283,12 +1340,17 @@
 	subtitle={confirmDeleteOverride
 		? m.override_delete_confirm_desc()
 		: m.settings_special_days_hint()}
+	actions={overrideSheetActions}
 >
 	{#if overrideDraft}
 		{#if confirmDeleteOverride}
 			<form
+				id={OVERRIDE_DELETE_FORM}
 				method="POST"
 				action="?/deleteOverride"
+				onsubmit={(e) => {
+					if (overrideSubmitting) e.preventDefault();
+				}}
 				use:enhance={() => {
 					overrideSubmitting = true;
 					return async ({ update, result }) => {
@@ -1303,24 +1365,17 @@
 				}}
 			>
 				<input type="hidden" name="id" value={overrideDraft.id} />
-				<div class="sheet-actions sheet-actions-row">
-					<button
-						type="button"
-						class="sheet-cancel"
-						onclick={() => (confirmDeleteOverride = false)}
-					>
-						{m.override_cancel()}
-					</button>
-					<button type="submit" class="sheet-done sheet-danger" disabled={overrideSubmitting}>
-						<Trash2 size={14} strokeWidth={1.8} />
-						{m.override_delete_yes()}
-					</button>
-				</div>
 			</form>
 		{:else}
 			<form
+				id={OVERRIDE_SAVE_FORM}
 				method="POST"
 				action="?/saveOverride"
+				onsubmit={(e) => {
+					if (overrideSubmitting || !overrideSlotsValid || !overrideDraft?.date) {
+						e.preventDefault();
+					}
+				}}
 				use:enhance={() => {
 					overrideSubmitting = true;
 					return async ({ update, result }) => {
@@ -1418,37 +1473,6 @@
 						bind:value={overrideDraft.note}
 					/>
 				</label>
-
-				<div class="sheet-actions sheet-actions-row">
-					<button
-						type="button"
-						class="sheet-cancel"
-						onclick={() => {
-							overrideSheetOpen = false;
-							overrideDraft = null;
-						}}
-					>
-						{m.override_cancel()}
-					</button>
-					{#if overrideDraft.id}
-						<button
-							type="button"
-							class="sheet-cancel sheet-danger"
-							onclick={() => (confirmDeleteOverride = true)}
-						>
-							<Trash2 size={14} strokeWidth={1.8} />
-							{m.override_delete()}
-						</button>
-					{/if}
-					<button
-						type="submit"
-						class="sheet-done"
-						disabled={overrideSubmitting || !overrideSlotsValid || !overrideDraft.date}
-					>
-						<Check size={14} strokeWidth={1.8} />
-						{m.override_save()}
-					</button>
-				</div>
 			</form>
 		{/if}
 	{/if}
@@ -1570,11 +1594,6 @@
 	.sheet-error {
 		font-size: 12px;
 		color: var(--err-ink);
-	}
-
-	.sheet-cancel.sheet-danger {
-		color: var(--err-ink);
-		border-color: color-mix(in oklab, var(--err) 30%, var(--border-default));
 	}
 
 	.seg {

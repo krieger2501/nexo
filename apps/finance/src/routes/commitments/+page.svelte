@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { BottomSheet, PageHeader } from '@nexo/ui';
+	import { BottomSheet, PageHeader, type SheetAction } from '@nexo/ui';
 	import UserAvatarMenu from '$lib/components/UserAvatarMenu.svelte';
 	import { Plus, ChevronRight, ArrowUpRight, ArrowDownLeft } from '@lucide/svelte';
 	import { enhance } from '$app/forms';
@@ -366,7 +366,32 @@
 
 <!-- Expense form sheet -->
 {#if showExpenseForm}
-	<BottomSheet bind:open={showExpenseForm} title={editingExpense ? m.commitments_expense_form_edit() : m.commitments_expense_form_new()}>
+	<BottomSheet
+		bind:open={showExpenseForm}
+		title={editingExpense ? m.commitments_expense_form_edit() : m.commitments_expense_form_new()}
+		actions={confirmDeleteExpense
+			? [
+					{
+						label: m.common_cancel(),
+						variant: 'secondary',
+						onclick: () => (confirmDeleteExpense = false)
+					},
+					{
+						label: m.common_yes_delete(),
+						variant: 'danger',
+						formId: 'commitments-expense-delete-form'
+					}
+				]
+			: [
+					{
+						label: editingExpense
+							? m.commitments_form_save_expense()
+							: m.commitments_form_create_expense(),
+						variant: 'primary',
+						formId: 'commitments-expense-save-form'
+					}
+				]}
+	>
 		{#if confirmDeleteExpense}
 			<div class="space-y-4 py-2">
 				<div class="bg-bg-1 rounded-[var(--radius-lg)] px-4 py-4 text-center">
@@ -374,6 +399,7 @@
 					<p class="text-text-subtle mt-1 text-[12px]">{m.common_undone_warning()}</p>
 				</div>
 				<form
+					id="commitments-expense-delete-form"
 					method="POST"
 					action="?/removeExpense"
 					use:enhance={() => {
@@ -384,24 +410,11 @@
 					}}
 				>
 					<input type="hidden" name="id" value={editingExpense?.id} />
-					<button
-						type="submit"
-						class="w-full rounded-[var(--radius-md)] py-3 text-[14px] font-semibold text-white"
-						style="background: var(--color-expense);"
-					>
-						{m.common_yes_delete()}
-					</button>
 				</form>
-				<button
-					type="button"
-					onclick={() => (confirmDeleteExpense = false)}
-					class="text-text-subtle w-full rounded-[var(--radius-md)] py-3 text-[14px] font-semibold"
-				>
-					{m.common_cancel()}
-				</button>
 			</div>
 		{:else}
 			<form
+				id="commitments-expense-save-form"
 				method="POST"
 				action="?/saveExpense"
 				use:enhance={() => {
@@ -478,12 +491,6 @@
 						/>
 					</div>
 				</div>
-				<button
-					type="submit"
-					class="bg-text-primary text-bg-0 mt-5 h-12 w-full rounded-[var(--radius-md)] text-[14px] font-semibold"
-				>
-					{editingExpense ? m.commitments_form_save_expense() : m.commitments_form_create_expense()}
-				</button>
 				{#if editingExpense}
 					<button
 						type="button"
@@ -501,7 +508,43 @@
 
 <!-- Debt form sheet -->
 {#if showDebtForm}
-	<BottomSheet bind:open={showDebtForm} title={editingDebt ? m.commitments_debt_form_edit() : m.commitments_debt_form_new()}>
+	<BottomSheet
+		bind:open={showDebtForm}
+		title={editingDebt ? m.commitments_debt_form_edit() : m.commitments_debt_form_new()}
+		actions={confirmDeleteDebt
+			? [
+					{
+						label: m.common_cancel(),
+						variant: 'secondary',
+						onclick: () => (confirmDeleteDebt = false)
+					},
+					{
+						label: m.common_yes_delete(),
+						variant: 'danger',
+						formId: 'commitments-debt-delete-form'
+					}
+				]
+			: editingDebt
+				? [
+						{
+							label: m.commitments_form_mark_paid(),
+							variant: 'secondary',
+							formId: 'mark-debt-paid-form'
+						},
+						{
+							label: m.commitments_form_save_debt(),
+							variant: 'primary',
+							formId: 'commitments-debt-save-form'
+						}
+					]
+				: [
+						{
+							label: m.commitments_form_create_debt(),
+							variant: 'primary',
+							formId: 'commitments-debt-save-form'
+						}
+					]}
+	>
 		{#if confirmDeleteDebt}
 			<div class="space-y-4 py-2">
 				<div class="bg-bg-1 rounded-[var(--radius-lg)] px-4 py-4 text-center">
@@ -511,6 +554,7 @@
 					<p class="text-text-subtle mt-1 text-[12px]">{m.common_undone_warning()}</p>
 				</div>
 				<form
+					id="commitments-debt-delete-form"
 					method="POST"
 					action="?/removeDebt"
 					use:enhance={() => {
@@ -521,24 +565,11 @@
 					}}
 				>
 					<input type="hidden" name="id" value={editingDebt?.id} />
-					<button
-						type="submit"
-						class="w-full rounded-[var(--radius-md)] py-3 text-[14px] font-semibold text-white"
-						style="background: var(--color-debt);"
-					>
-						{m.common_yes_delete()}
-					</button>
 				</form>
-				<button
-					type="button"
-					onclick={() => (confirmDeleteDebt = false)}
-					class="text-text-subtle w-full rounded-[var(--radius-md)] py-3 text-[14px] font-semibold"
-				>
-					{m.common_cancel()}
-				</button>
 			</div>
 		{:else}
 			<form
+				id="commitments-debt-save-form"
 				method="POST"
 				action="?/saveDebt"
 				use:enhance={() => {
@@ -629,31 +660,15 @@
 						/>
 					</div>
 				</div>
-				<button
-					type="submit"
-					class="bg-text-primary text-bg-0 mt-5 h-12 w-full rounded-[var(--radius-md)] text-[14px] font-semibold"
-				>
-					{editingDebt ? m.commitments_form_save_debt() : m.commitments_form_create_debt()}
-				</button>
 				{#if editingDebt}
-					<div class="mt-2 grid grid-cols-2 gap-2">
-						<button
-							type="submit"
-							form="mark-debt-paid-form"
-							class="h-12 rounded-[var(--radius-md)] text-[14px] font-semibold text-white"
-							style="background: var(--color-income);"
-						>
-							{m.commitments_form_mark_paid()}
-						</button>
-						<button
-							type="button"
-							onclick={() => (confirmDeleteDebt = true)}
-							class="h-12 rounded-[var(--radius-md)] text-[14px] font-semibold"
-							style="color: var(--expense-ink);"
-						>
-							{m.common_delete()}
-						</button>
-					</div>
+					<button
+						type="button"
+						onclick={() => (confirmDeleteDebt = true)}
+						class="mt-4 w-full rounded-[var(--radius-md)] py-3 text-[14px] font-semibold"
+						style="color: var(--expense-ink);"
+					>
+						{m.common_delete()}
+					</button>
 				{/if}
 			</form>
 		{/if}
