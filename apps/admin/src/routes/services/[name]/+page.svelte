@@ -576,12 +576,6 @@
 	.btn-ghost {
 		background: var(--color-bg-2);
 	}
-	.btn-danger {
-		background: oklch(0.59 0.2 27);
-		border-color: oklch(0.59 0.2 27);
-		color: #fff;
-		font-weight: 600;
-	}
 	.icon-btn {
 		display: inline-grid;
 		place-items: center;
@@ -611,10 +605,5 @@
 		font-size: 14px;
 		line-height: 1.5;
 		margin: 0 0 16px;
-	}
-	.confirm-actions {
-		display: flex;
-		justify-content: flex-end;
-		gap: 8px;
 	}
 </style>

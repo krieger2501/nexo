@@ -415,41 +415,6 @@
 		border-color: var(--accent-line);
 		color: var(--accent-ink);
 	}
-	.actions {
-		display: flex;
-		gap: 10px;
-		margin-top: 8px;
-	}
-	.btn-primary {
-		flex: 1;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		height: 48px;
-		font: inherit;
-		font-size: 15px;
-		font-weight: 600;
-		border-radius: var(--radius-md);
-		border: 1px solid transparent;
-		background: var(--color-accent);
-		color: #fff;
-		cursor: pointer;
-	}
-	.btn-secondary {
-		flex: 1;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		height: 48px;
-		font: inherit;
-		font-size: 15px;
-		font-weight: 600;
-		border-radius: var(--radius-md);
-		border: 1px solid var(--color-border-strong);
-		background: transparent;
-		color: var(--color-text-primary);
-		cursor: pointer;
-	}
 	.btn-delete {
 		width: 100%;
 		display: flex;
