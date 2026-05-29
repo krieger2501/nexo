@@ -779,7 +779,4 @@
 		border-radius: var(--radius-md);
 		background: var(--color-surface-1);
 	}
-	.sheet-done {
-		background: var(--accent-ink);
-	}
 </style>

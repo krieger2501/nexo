@@ -586,42 +586,6 @@
 		color: var(--color-text-subtle);
 	}
 
-	.gf-actions {
-		display: flex;
-		gap: 10px;
-	}
-
-	.gf-clear {
-		all: unset;
-		cursor: pointer;
-		flex: 0 0 auto;
-		padding: 14px 18px;
-		text-align: center;
-		background: var(--color-bg-1);
-		color: var(--color-text-muted);
-		border-radius: 14px;
-		font-size: 14px;
-		font-weight: 500;
-	}
-
-	.gf-save-form {
-		flex: 1;
-		display: flex;
-	}
-
-	.gf-save {
-		all: unset;
-		cursor: pointer;
-		flex: 1;
-		padding: 14px 18px;
-		text-align: center;
-		background: var(--color-ember);
-		color: oklch(98% 0.008 70);
-		border-radius: 14px;
-		font-size: 15px;
-		font-weight: 500;
-	}
-
 	.b-cell {
 		display: flex;
 		flex-direction: column;

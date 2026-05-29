@@ -412,47 +412,6 @@
 		color: var(--expense-ink);
 		font-weight: 500;
 	}
-	.actions {
-		display: flex;
-		gap: 10px;
-		margin-top: 12px;
-	}
-	.btn-primary {
-		flex: 1;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		gap: 8px;
-		height: 50px;
-		font: inherit;
-		font-size: 15.5px;
-		font-weight: 600;
-		letter-spacing: -0.005em;
-		border-radius: var(--radius-md);
-		border: 1px solid transparent;
-		background: var(--color-text-primary);
-		color: var(--color-bg-0);
-		cursor: pointer;
-		transition: transform var(--duration-fast) var(--ease-out);
-	}
-	.btn-primary:active {
-		transform: scale(0.98);
-	}
-	.btn-secondary {
-		flex: 1;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		height: 50px;
-		font: inherit;
-		font-size: 15px;
-		font-weight: 600;
-		border-radius: var(--radius-md);
-		border: 1px solid var(--color-border-strong);
-		background: transparent;
-		color: var(--color-text-primary);
-		cursor: pointer;
-	}
 	.btn-delete {
 		width: 100%;
 		display: flex;

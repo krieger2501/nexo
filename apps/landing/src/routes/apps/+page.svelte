@@ -1048,9 +1048,4 @@
 		margin-top: 4px;
 		text-transform: none;
 	}
-
-	/* ─── Sheet content ─── */
-	.sheet-btn-danger:active {
-		opacity: 0.85;
-	}
 </style>
