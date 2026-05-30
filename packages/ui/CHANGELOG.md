@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/nexo-suite/nexo/compare/ui-v0.10.0...ui-v0.10.1) (2026-05-30)
+
+
+### Bug Fixes
+
+* **ui:** lock horizontal scroll across PWAs and stop tier-switcher overflow ([6396fdf](https://github.com/nexo-suite/nexo/commit/6396fdf96af126add8f5ccf664ca4537d52d35c7))
+
 ## [0.10.0](https://github.com/nexo-suite/nexo/compare/ui-v0.9.1...ui-v0.10.0) (2026-05-29)
 
 
