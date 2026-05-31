@@ -1,9 +1,20 @@
 import type { ShiftOfferPayload } from '@nexo/db';
 import { browserHeaders } from './headers';
+import { parseOfferStart } from './parseOfferStart';
 import { ensureFreshAccessToken, loadAccount } from './tokens';
 
 const API_BASE = 'https://api.flaschen.io/employee-portal-api/v1';
 const REQUEST_TIMEOUT_MS = 20_000;
+const PLANNED_TZ = 'Europe/Berlin';
+
+/** Format a timestamp the way the assign-shift endpoint expects: a literal
+ *  `YYYY-MM-DDTHH:MM:SS+00:00`. The offers endpoint sometimes returns `Z`
+ *  suffixes or fractional seconds; assigning with those returns 500. */
+function toAssignTimestamp(iso: string): string {
+	const noTz = iso.replace(/(Z|[+-]\d{2}:?\d{2})$/, '');
+	const noFractional = noTz.replace(/\.\d+$/, '');
+	return `${noFractional}+00:00`;
+}
 
 /** A shift the employee has already been scheduled for (their own roster), as
  *  returned by /shift-planning/{employeeId}/planned-for-employee. */
@@ -24,7 +35,8 @@ export class ApiError extends Error {
 	constructor(
 		message: string,
 		public readonly status: number,
-		public readonly body: string
+		public readonly body: string,
+		public readonly requestBody?: string
 	) {
 		super(message);
 		this.name = 'ApiError';
@@ -196,8 +208,24 @@ export async function listPlannedShifts(
 		const n = normalizePlanned(raw);
 		if (n) out.push(n);
 	}
-	out.sort((a, b) => a.start.localeCompare(b.start));
-	return out;
+
+	// Drop shifts that ended already. The upstream keeps returning past shifts
+	// until they roll out of its window, and `employeeStartedShift` stays true
+	// after the shift is over — so without this filter the dashboard's "in
+	// progress" badge sticks around for hours.
+	const nowMs = Date.now();
+	const live = out.filter((s) => {
+		try {
+			const startLocal = parseOfferStart(s.start, PLANNED_TZ);
+			const endLocal = startLocal.add({ minutes: s.durationInMinutes });
+			return endLocal.epochMilliseconds > nowMs;
+		} catch {
+			return true;
+		}
+	});
+
+	live.sort((a, b) => a.start.localeCompare(b.start));
+	return live;
 }
 
 /** Accept (assign) a target shift slot to the employee. Mirrors the
@@ -214,15 +242,14 @@ export async function acceptShiftOffer(userId: string, offer: ShiftOfferPayload)
 		`${API_BASE}/shift-offer/${encodeURIComponent(acct.employeeId)}` +
 		`/assign-shift-from-target-shift-slot-to-employee`;
 
-	const planDate = `${offer.date}T00:00:00+00:00`;
 	const body = {
 		employeeId: acct.employeeId,
 		shiftPeriod: {
 			durationInMinutes: offer.durationInMinutes,
-			start: offer.start
+			start: toAssignTimestamp(offer.start)
 		},
 		shiftPlanId: {
-			date: planDate,
+			date: `${offer.date}T00:00:00+00:00`,
 			warehouseId: offer.warehouse.warehouseId,
 			workgroupId: offer.workgroup.workgroupId
 		},
@@ -230,6 +257,7 @@ export async function acceptShiftOffer(userId: string, offer: ShiftOfferPayload)
 		ignoreExpectedRewardScoreValidation: true,
 		isMarketplaceShift: offer.isMarketplaceShift
 	};
+	const serializedBody = JSON.stringify(body);
 
 	const res = await fetchWithTimeout(url, {
 		method: 'POST',
@@ -237,9 +265,10 @@ export async function acceptShiftOffer(userId: string, offer: ShiftOfferPayload)
 			Authorization: `Bearer ${token}`,
 			'Content-Type': 'application/json'
 		}),
-		body: JSON.stringify(body)
+		body: serializedBody
 	});
 
 	const text = await res.text();
-	if (!res.ok) throw new ApiError(`assign-shift endpoint ${res.status}`, res.status, text);
+	if (!res.ok)
+		throw new ApiError(`assign-shift endpoint ${res.status}`, res.status, text, serializedBody);
 }
