@@ -219,7 +219,8 @@ export const actions: Actions = {
 					correlationId: locals.correlationId,
 					dedupeKey,
 					upstreamStatus: e.status,
-					upstreamBody: e.body.slice(0, 500)
+					upstreamBody: e.body.slice(0, 500),
+					requestBody: e.requestBody?.slice(0, 500)
 				});
 				// 4xx from upstream usually means the slot was just taken by
 				// somebody else; keep it claimed locally so it disappears from
